@@ -14,6 +14,7 @@ const spaRoutes = [
   'train/reaction',
   'train/gridshot',
   'train/strafetrack',
+  'train/micro-flick',
   'train/sniper',
   'train/routines',
   'calibrate',

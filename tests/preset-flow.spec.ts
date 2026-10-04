@@ -9,8 +9,8 @@ async function seed(page: Page) {
   await page.evaluate(() => {
     const base = { gameId: 'cs2', sensitivity: .65, dpi: 800, createdAt: '2026-09-05', updatedAt: '2026-09-05' }
     localStorage.setItem('xensi-player-profile', JSON.stringify({ presets: [
-      { ...base, id: 'main', name: 'Principal', isPrimary: true },
-      { ...base, id: 'test', name: 'Teste', sensitivity: .7, isPrimary: false },
+      { ...base, id: '10000000-0000-4000-8000-000000000001', name: 'Principal', isPrimary: true },
+      { ...base, id: '10000000-0000-4000-8000-000000000002', name: 'Teste', sensitivity: .7, isPrimary: false },
     ] }))
     window.dispatchEvent(new Event('xensi-profile-updated'))
   })
@@ -55,7 +55,7 @@ test.describe('shared presets and game identity', () => {
       await expect.poll(() => page.evaluate(() => document.pointerLockElement?.tagName)).toBe('CANVAS')
       await page.clock.runFor(65000)
       await expect(page.locator('.warmup-result-modal')).toBeVisible()
-      const snapshot = await page.evaluate(() => JSON.parse(localStorage.getItem('sensi-warmup-session:v1:switch')!).sessionContext)
+      const snapshot = await page.evaluate(async () => (await (await import('/src/sessionRepository.ts')).getSessionRepository().database.sessions(null))[0].context)
       expect(snapshot).toMatchObject({ gameId: 'cs2', sensitivity: .7, dpi: 800 })
       expect(snapshot.presetId).toBeTruthy()
       await page.locator('.warmup-result-modal').getByRole('button', { name: /Sair/ }).click()
@@ -111,7 +111,7 @@ test.describe('shared presets and game identity', () => {
     await expect(dialog.getByRole('button', { name: /Continuar/ })).toBeEnabled()
     await cs.click()
     await dialog.getByRole('button', { name: /Continuar/ }).click()
-    await dialog.getByLabel('Preset utilizado').selectOption('test')
+    await dialog.getByLabel('Preset utilizado').selectOption('10000000-0000-4000-8000-000000000002')
     await expect(dialog.getByRole('textbox', { name: 'Sensibilidade', exact: true })).toHaveValue('0.7')
     await dialog.getByRole('textbox', { name: 'Sensibilidade', exact: true }).fill('0.73')
     await page.evaluate(() => window.dispatchEvent(new Event('xensi-profile-updated')))

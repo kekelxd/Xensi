@@ -11,7 +11,7 @@ import { SensitivityConfigFields } from './SensitivityConfigFields'
 import { WizardStepPanel, WizardStepper } from './SetupWizard'
 import { presetCopy } from './presetCopy'
 import { useSensitivityPreset, type PresetLaunch } from './useSensitivityPreset'
-import { saveSensitivityPreset } from './playerProfileStore'
+import { getPresetRepository } from './presetRepository'
 import { useDialogFocus } from './useDialogFocus'
 
 const FINDER_GAMES: GameId[] = ['cs2', 'valorant', 'overwatch2', 'warzone']
@@ -54,12 +54,14 @@ export function SensitivityFinderModal({ initialPreset = null }: SensitivityFind
     setSaved(false); setCopied(false); setSetupOpen(false)
     search.start(parsedBaseSensitivity)
   }
-  const save = (updateId?: string) => {
+  const save = async (updateId?: string) => {
     const cmPer360 = sensitivity === null || !game.yaw ? null : cmPer360FromSensitivity(sensitivity, game.yaw, parsedDpi)
     if (sensitivity === null || cmPer360 === null) return
     try {
-      saveSensitivityPreset(window.localStorage, { gameId, sensitivity, dpi: parsedDpi }, updateId)
-      setSaved(true); setSaveError('')
+      const repository = getPresetRepository()
+      const values = { gameId, sensitivity, dpi: Math.round(parsedDpi) }
+      const ok = updateId ? await repository.update(updateId, values) : await repository.create(values)
+      if (ok) { setSaved(true); setSaveError('') } else setSaveError(text.error)
     } catch { setSaveError(text.error) }
   }
   const copy = async () => {

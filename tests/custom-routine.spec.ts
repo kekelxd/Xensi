@@ -11,7 +11,7 @@ const openRoutineLibrary = async (page: import('@playwright/test').Page) => {
 
 const openNewRoutineBuilder = async (page: import('@playwright/test').Page) => {
   await openRoutineLibrary(page)
-  await page.getByRole('button', { name: 'Criar primeira rotina' }).click()
+  await page.getByRole('button', { name: 'Criar rotina', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Monte sua playlist de treino' })).toBeVisible()
 }
 
@@ -31,7 +31,7 @@ test.describe('Saved routines library', () => {
     await openRoutineLibrary(page)
 
     await expect(page.getByRole('heading', { name: 'Minhas rotinas' })).toBeVisible()
-    await expect(page.getByText('Você ainda não salvou nenhuma rotina.')).toBeVisible()
+    await expect(page.getByText('Nenhuma rotina salva')).toBeVisible()
     await expect(page.locator('.routine-library-card')).toHaveCount(0)
   })
 
@@ -158,9 +158,16 @@ test.describe('Custom routine execution', () => {
     await expect(page.getByText('Rotina concluída')).toBeVisible()
     await expect(page.locator('.routine-result-list article')).toHaveCount(2)
 
-    const flick = await page.evaluate(() => JSON.parse(localStorage.getItem('sensi-warmup-session:v1:flick')!))
-    const tracking = await page.evaluate(() => JSON.parse(localStorage.getItem('sensi-warmup-session:v1:tracking')!))
-    expect(flick.history[0].sessionContext.configuration).toMatchObject({ difficulty: 'easy', durationSeconds: 60 })
-    expect(tracking.history[0].sessionContext.configuration).toMatchObject({ difficulty: 'medium', durationSeconds: 60 })
+    const records = await page.evaluate(async () => {
+      const { getSessionRepository } = await import('/src/sessionRepository.ts')
+      const database = getSessionRepository().database
+      return { sessions: await database.sessions(null), runs: await database.runs(null) }
+    })
+    expect(records.sessions).toHaveLength(2)
+    expect(records.runs).toHaveLength(1)
+    expect(records.runs[0].status).toBe('completed')
+    expect(records.sessions.every(s => s.routineRunId === records.runs[0].id && s.status === 'completed')).toBe(true)
+    expect(records.sessions.find(s => s.exerciseId === 'flick')?.config).toMatchObject({ effectiveDifficulty: 'easy', durationSeconds: 60 })
+    expect(records.sessions.find(s => s.exerciseId === 'tracking')?.config).toMatchObject({ effectiveDifficulty: 'medium', durationSeconds: 60 })
   })
 })

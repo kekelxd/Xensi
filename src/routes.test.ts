@@ -30,6 +30,7 @@ describe('application route map', () => {
     ['gridshot', '/train/gridshot'],
     ['strafetrack', '/train/strafetrack'],
     ['sniper-reaction', '/train/sniper'],
+    ['micro_flick', '/train/micro-flick'],
   ] as const)('maps warmup exercise %s to %s', (warmupEntry, path) => {
     expect(viewRoutePath('warmup', { warmupEntry })).toBe(path)
   })

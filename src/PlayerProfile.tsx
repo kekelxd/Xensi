@@ -1,12 +1,16 @@
 import { useMemo, useState } from 'react'
-import { Check, ChevronRight, Crosshair, Edit3, Gauge, MoreVertical, Plus, RefreshCw, Search, Star, Trash2, X } from 'lucide-react'
+import { Check, ChevronRight, Crosshair, Download, Edit3, Gauge, MoreVertical, Plus, RefreshCw, Search, Star, Trash2, X } from 'lucide-react'
 import { AvatarArtwork } from './AvatarArtwork'
 import { XENSI_AVATARS, type AvatarId } from './avatars'
 import { GAME_SENSITIVITY_PROFILES, GAME_SENSITIVITY_PROFILE_BY_ID, type GameSensitivityProfileId } from './gameSensitivityProfiles'
 import { useI18n, type Locale } from './i18n'
-import { calculatePresetCm360, ensureSinglePrimary, writePlayerProfile, type PlayerProfileData, type SensitivityPreset } from './playerProfileStore'
+import { calculatePresetCm360, readPlayerProfile, writePlayerProfile, type SensitivityPreset } from './playerProfileStore'
+import { getPresetRepository } from './presetRepository'
+import { getRoutineRepository } from './routineRepository'
+import { useRoutineState } from './useRoutineState'
+import { getSessionRepository, useSessionState } from './sessionRepository'
 import { GameBadge } from './GameBadge'
-import { usePlayerProfile } from './useSensitivityPreset'
+import { usePlayerProfile, usePresetState } from './useSensitivityPreset'
 import { normalizeSensitivityForGame } from './sensitivityConversionEngine'
 import { updateAuthenticatedProfile } from './authService'
 
@@ -164,14 +168,17 @@ const copy = {
 
 const CALIBRATOR_GAMES = new Set<GameSensitivityProfileId>(['cs2', 'valorant', 'overwatch2', 'warzone'])
 
-function createPresetId() {
-  return globalThis.crypto?.randomUUID?.() ?? `preset-${Date.now()}`
-}
-
 export function PlayerProfile({ onConvert, onCalibrate }: PlayerProfileProps) {
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
   const text = copy[locale]
   const profile = usePlayerProfile()
+  const sync = usePresetState()
+  const routineSync = useRoutineState(), sessionSync = useSessionState()
+  const presetDisabled = sync.status !== 'ready' || sync.busy
+  const importPending = sync.pendingImport + routineSync.pendingImport + sessionSync.pendingImport
+  const importLabel = t(routineSync.pendingImport > 0 || sessionSync.pendingImport > 0 ? 'accountData.importTitle' : 'presets.import')
+  const importDisabled = presetDisabled || routineSync.status !== 'ready' || sessionSync.status !== 'ready'
+    || routineSync.busy || sessionSync.busy || sync.userId !== routineSync.userId || sync.userId !== sessionSync.userId
   const [identityOpen, setIdentityOpen] = useState(false)
   const [identityDraft, setIdentityDraft] = useState({ nickname: profile.nickname, avatarId: profile.avatarId })
   const [presetDraft, setPresetDraft] = useState<PresetDraft | null>(null)
@@ -197,8 +204,7 @@ export function PlayerProfile({ onConvert, onCalibrate }: PlayerProfileProps) {
     })
   }, [gameFilter, profile.presets, searchQuery])
 
-  const persist = (next: PlayerProfileData) => {
-    writePlayerProfile(window.localStorage, next)
+  const savedStatus = () => {
     setStatus(text.saved)
     window.setTimeout(() => setStatus(''), 1600)
   }
@@ -215,7 +221,8 @@ export function PlayerProfile({ onConvert, onCalibrate }: PlayerProfileProps) {
       setError(result.message ?? text.invalid)
       return
     }
-    persist({ ...profile, ...nextIdentity })
+    writePlayerProfile(window.localStorage, { ...readPlayerProfile(window.localStorage), ...nextIdentity })
+    savedStatus()
     setIdentityOpen(false)
   }
 
@@ -231,7 +238,7 @@ export function PlayerProfile({ onConvert, onCalibrate }: PlayerProfileProps) {
     setPresetDraft({ id: preset.id, gameId: preset.gameId, name: preset.name ?? '', sensitivity: String(preset.sensitivity), dpi: String(preset.dpi), isPrimary: preset.isPrimary, createdAt: preset.createdAt })
   }
 
-  const savePreset = () => {
+  const savePreset = async () => {
     if (!presetDraft) return
     const sensitivity = Number(presetDraft.sensitivity.replace(',', '.'))
     const dpi = Number(presetDraft.dpi.replace(',', '.'))
@@ -242,29 +249,19 @@ export function PlayerProfile({ onConvert, onCalibrate }: PlayerProfileProps) {
       setError(text.invalid)
       return
     }
-    const now = new Date().toISOString()
-    const saved: SensitivityPreset = {
-      id: presetDraft.id ?? createPresetId(), gameId: presetDraft.gameId,
-      name: presetDraft.name.trim() || undefined, sensitivity: storedSensitivity, dpi: Math.round(dpi),
-      isPrimary: presetDraft.isPrimary, createdAt: presetDraft.createdAt ?? now, updatedAt: now,
-    }
-    const exists = profile.presets.some((preset) => preset.id === saved.id)
-    const nextPresets = exists ? profile.presets.map((preset) => preset.id === saved.id ? saved : preset) : [...profile.presets, saved]
-    const withPrimary = saved.isPrimary
-      ? ensureSinglePrimary(nextPresets.map((preset) => preset.gameId === saved.gameId ? { ...preset, isPrimary: preset.id === saved.id } : preset))
-      : ensureSinglePrimary(nextPresets)
-    persist({ ...profile, presets: withPrimary })
-    setPresetDraft(null)
+    const values = { gameId: presetDraft.gameId, name: presetDraft.name, sensitivity: storedSensitivity,
+      dpi: Math.round(dpi), isPrimary: presetDraft.isPrimary }
+    const repository = getPresetRepository()
+    const ok = presetDraft.id ? await repository.update(presetDraft.id, values) : await repository.create(values)
+    if (ok) { savedStatus(); setPresetDraft(null) } else setError(t('presets.syncFailure'))
   }
 
-  const setPrimary = (id: string) => {
-    const gameId = profile.presets.find(preset => preset.id === id)?.gameId
-    persist({ ...profile, presets: profile.presets.map(preset => preset.gameId === gameId ? { ...preset, isPrimary: preset.id === id } : preset) })
+  const setPrimary = async (id: string) => {
+    if (await getPresetRepository().setPrimary(id)) savedStatus()
   }
 
-  const removePreset = (id: string) => {
-    persist({ ...profile, presets: ensureSinglePrimary(profile.presets.filter((preset) => preset.id !== id)) })
-    setPendingRemove(null)
+  const removePreset = async (id: string) => {
+    if (await getPresetRepository().remove(id)) { savedStatus(); setPendingRemove(null) }
   }
 
   return <section className="profile-v1-workspace">
@@ -299,13 +296,17 @@ export function PlayerProfile({ onConvert, onCalibrate }: PlayerProfileProps) {
               <button type="button" className="primary-button profile-v1-active-primary" onClick={() => onCalibrate(activePreset)} disabled={!CALIBRATOR_GAMES.has(activePreset.gameId)} title={!CALIBRATOR_GAMES.has(activePreset.gameId) ? text.calibratorUnavailable : undefined}><Gauge size={17} /> {text.calibrate}</button>
               <button type="button" className="secondary-button" onClick={() => onConvert(activePreset)}><RefreshCw size={17} /> {text.convert}</button>
             </footer>
-          </> : <div className="profile-v1-active-empty"><Crosshair size={24} /><h2>{text.activeConfig}</h2><p>{text.emptyText}</p><button className="primary-button" type="button" onClick={openNewPreset}><Plus size={16} /> {text.add}</button></div>}
+          </> : sync.status !== 'ready' ? <p role="status">{t('presets.loading')}</p> : <div className="profile-v1-active-empty"><Crosshair size={24} /><h2>{text.activeConfig}</h2><p>{text.emptyText}</p><button className="primary-button" type="button" disabled={presetDisabled} onClick={openNewPreset}><Plus size={16} /> {text.add}</button></div>}
         </article>
       </div>
 
       <section className="profile-v1-presets">
+        {sync.status !== 'ready' && <p role="status">{t('presets.loading')}</p>}
         <header>
-          <div><span className="profile-v1-label">{text.sensitivities}</span><small>{profile.presets.length}</small></div>
+          <div><span className="profile-v1-label">{text.sensitivities}</span><small>{profile.presets.length}</small>
+            {sync.userId && <button className="icon-button" type="button" disabled={presetDisabled} title={t('presets.refresh')} aria-label={t('presets.refresh')} onClick={() => void getPresetRepository().refresh()}><RefreshCw size={16} /></button>}
+            {importPending > 0 && <button className="icon-button" type="button" disabled={importDisabled} title={importLabel} aria-label={importLabel} onClick={() => { getPresetRepository().offerImport(); getRoutineRepository().offerImport(); getSessionRepository().offerImport() }}><Download size={16} /></button>}
+          </div>
           <div className="profile-v1-tools">
             <label><Search size={16} /><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder={text.searchPlaceholder} aria-label={text.searchPlaceholder} />{searchQuery && <button type="button" onClick={() => setSearchQuery('')} aria-label={text.clearSearch}><X size={14} /></button>}</label>
             <div className="profile-v1-filter">
@@ -315,27 +316,27 @@ export function PlayerProfile({ onConvert, onCalibrate }: PlayerProfileProps) {
                 {GAME_SENSITIVITY_PROFILES.map((game) => <button type="button" role="option" aria-selected={gameFilter === game.id} key={game.id} onClick={() => { setGameFilter(game.id); setFilterOpen(false) }}>{game.name}</button>)}
               </div>}
             </div>
-            <button className="profile-v1-add" type="button" onClick={openNewPreset}><Plus size={16} /> {text.add}</button>
+            <button className="profile-v1-add" type="button" disabled={presetDisabled} onClick={openNewPreset}><Plus size={16} /> {text.add}</button>
           </div>
         </header>
-        {profile.presets.length === 0 ? <div className="profile-v1-empty"><Crosshair size={24} /><h2>{text.emptyTitle}</h2><p>{text.emptyText}</p><button className="primary-button" type="button" onClick={openNewPreset}><Plus size={16} /> {text.addSensitivity}</button></div>
+        {sync.status !== 'ready' && profile.presets.length === 0 ? null : profile.presets.length === 0 ? <div className="profile-v1-empty"><Crosshair size={24} /><h2>{text.emptyTitle}</h2><p>{text.emptyText}</p><button className="primary-button" type="button" disabled={presetDisabled} onClick={openNewPreset}><Plus size={16} /> {text.addSensitivity}</button></div>
           : <div className="profile-v1-grid">{filteredPresets.map((preset) => {
             const game = GAME_SENSITIVITY_PROFILE_BY_ID[preset.gameId]
             const cm360 = calculatePresetCm360(preset)
             const canCalibrate = CALIBRATOR_GAMES.has(preset.gameId)
             return <article className={`profile-preset-card${preset.isPrimary ? ' primary' : ''}`} key={preset.id}>
-              <header><div className="profile-preset-game"><GameBadge gameId={preset.gameId} selected={preset.isPrimary} /><div><small>{preset.name || game.name}</small><strong>{game.shortName}</strong></div></div>{preset.isPrimary ? <b><Star size={12} /> {text.primary}</b> : <button type="button" onClick={() => setPrimary(preset.id)}><Star size={13} /> {text.setPrimary}</button>}<MoreVertical size={17} aria-hidden="true" /></header>
+              <header><div className="profile-preset-game"><GameBadge gameId={preset.gameId} selected={preset.isPrimary} /><div><small>{preset.name || game.name}</small><strong>{game.shortName}</strong></div></div>{preset.isPrimary ? <b><Star size={12} /> {text.primary}</b> : <button type="button" disabled={presetDisabled} onClick={() => setPrimary(preset.id)}><Star size={13} /> {text.setPrimary}</button>}<MoreVertical size={17} aria-hidden="true" /></header>
               <dl><div><dt>{text.sensitivity}</dt><dd>{preset.sensitivity}</dd></div><div><dt>{text.dpi}</dt><dd>{preset.dpi}</dd></div><div className="profile-preset-distance"><dt>CM / 360</dt><dd title={cm360 === null ? text.unavailableHint : undefined}>{cm360 === null ? text.unavailable : `${cm360.toFixed(2)} cm/360`}</dd></div></dl>
-              <footer><button className="profile-preset-action" type="button" onClick={() => openPreset(preset)}><Edit3 size={14} /> {text.edit}</button><button className="profile-preset-action" type="button" onClick={() => onCalibrate(preset)} disabled={!canCalibrate} title={!canCalibrate ? text.calibratorUnavailable : undefined}><Gauge size={14} /> {text.calibrate}</button><button className="profile-preset-action profile-preset-convert" type="button" onClick={() => onConvert(preset)}><RefreshCw size={14} /> {text.convert}</button><button className="profile-preset-action profile-preset-remove" type="button" onClick={() => setPendingRemove(preset)} aria-label={text.remove}><Trash2 size={14} /></button></footer>
+              <footer><button className="profile-preset-action" type="button" disabled={presetDisabled} onClick={() => openPreset(preset)}><Edit3 size={14} /> {text.edit}</button><button className="profile-preset-action" type="button" onClick={() => onCalibrate(preset)} disabled={!canCalibrate} title={!canCalibrate ? text.calibratorUnavailable : undefined}><Gauge size={14} /> {text.calibrate}</button><button className="profile-preset-action profile-preset-convert" type="button" onClick={() => onConvert(preset)}><RefreshCw size={14} /> {text.convert}</button><button className="profile-preset-action profile-preset-remove" type="button" disabled={presetDisabled} onClick={() => { setError(''); setPendingRemove(preset) }} aria-label={text.remove}><Trash2 size={14} /></button></footer>
             </article>
-          })}<button className="profile-v1-add-tile" type="button" onClick={openNewPreset}><Plus size={24} /><strong>{text.addTileTitle}</strong><span>{text.addTileText}</span></button>{filteredPresets.length === 0 && <p className="profile-v1-no-results">{text.noResults}</p>}</div>}
+          })}<button className="profile-v1-add-tile" type="button" disabled={presetDisabled} onClick={openNewPreset}><Plus size={24} /><strong>{text.addTileTitle}</strong><span>{text.addTileText}</span></button>{filteredPresets.length === 0 && <p className="profile-v1-no-results">{text.noResults}</p>}</div>}
       </section>
     </div>
 
     {identityOpen && <div className="modal-backdrop"><section className="profile-v1-modal" role="dialog" aria-modal="true" aria-labelledby="identity-modal-title"><button className="modal-close" type="button" onClick={() => setIdentityOpen(false)} aria-label={text.cancel}><X size={18} /></button><span className="profile-v1-label">{text.identity}</span><h2 id="identity-modal-title">{text.editIdentity}</h2><label>{text.nickname}<input value={identityDraft.nickname} maxLength={24} onChange={(event) => setIdentityDraft({ ...identityDraft, nickname: event.target.value })} /></label><div className="profile-v1-avatar-field"><span>{text.avatar}</span><div className="profile-avatar-picker">{XENSI_AVATARS.map((avatar) => <button key={avatar.id} type="button" className={identityDraft.avatarId === avatar.id ? 'selected' : ''} onClick={() => setIdentityDraft({ ...identityDraft, avatarId: avatar.id as AvatarId })} aria-label={avatar.label} aria-pressed={identityDraft.avatarId === avatar.id}><AvatarArtwork avatarId={avatar.id} size="picker" selected={identityDraft.avatarId === avatar.id} /></button>)}</div></div><footer><button className="secondary-button" type="button" onClick={() => setIdentityOpen(false)}>{text.cancel}</button><button className="primary-button" type="button" onClick={saveIdentity}><Check size={15} /> {text.save}</button></footer></section></div>}
 
-    {presetDraft && <div className="modal-backdrop"><section className="profile-v1-modal profile-v1-preset-modal" role="dialog" aria-modal="true" aria-labelledby="preset-modal-title"><button className="modal-close" type="button" onClick={() => setPresetDraft(null)} aria-label={text.cancel}><X size={18} /></button><span className="profile-v1-label">{text.sensitivities}</span><h2 id="preset-modal-title">{presetDraft.id ? text.editPreset : text.addPreset}</h2><div className="profile-v1-form-grid"><div className="profile-v1-modal-game"><span>{text.game}</span><button type="button" aria-haspopup="listbox" aria-expanded={presetGameOpen} onClick={() => setPresetGameOpen((open) => !open)}>{GAME_SENSITIVITY_PROFILE_BY_ID[presetDraft.gameId].name}<ChevronRight size={14} /></button>{presetGameOpen && <div role="listbox" aria-label={text.game}>{GAME_SENSITIVITY_PROFILES.map((game) => <button type="button" role="option" aria-selected={presetDraft.gameId === game.id} key={game.id} onClick={() => { setPresetDraft({ ...presetDraft, gameId: game.id }); setPresetGameOpen(false) }}>{game.name}</button>)}</div>}</div><label>{text.presetName}<input value={presetDraft.name} maxLength={32} onChange={(event) => setPresetDraft({ ...presetDraft, name: event.target.value })} /></label><label>{text.sensitivity}<input inputMode="decimal" value={presetDraft.sensitivity} onChange={(event) => setPresetDraft({ ...presetDraft, sensitivity: event.target.value })} /></label><label>{text.dpi}<input inputMode="numeric" value={presetDraft.dpi} onChange={(event) => setPresetDraft({ ...presetDraft, dpi: event.target.value })} /></label></div><label className="profile-v1-primary-toggle"><input type="checkbox" checked={presetDraft.isPrimary} onChange={(event) => setPresetDraft({ ...presetDraft, isPrimary: event.target.checked })} /><Star size={15} /> {text.setPrimary}</label>{error && <p className="profile-v1-error">{error}</p>}<footer><button className="secondary-button" type="button" onClick={() => setPresetDraft(null)}>{text.cancel}</button><button className="primary-button" type="button" onClick={savePreset}><Check size={15} /> {text.save}</button></footer></section></div>}
+    {presetDraft && <div className="modal-backdrop"><section className="profile-v1-modal profile-v1-preset-modal" role="dialog" aria-modal="true" aria-labelledby="preset-modal-title"><button className="modal-close" type="button" onClick={() => setPresetDraft(null)} aria-label={text.cancel}><X size={18} /></button><span className="profile-v1-label">{text.sensitivities}</span><h2 id="preset-modal-title">{presetDraft.id ? text.editPreset : text.addPreset}</h2><div className="profile-v1-form-grid"><div className="profile-v1-modal-game"><span>{text.game}</span><button type="button" aria-haspopup="listbox" aria-expanded={presetGameOpen} onClick={() => setPresetGameOpen((open) => !open)}>{GAME_SENSITIVITY_PROFILE_BY_ID[presetDraft.gameId].name}<ChevronRight size={14} /></button>{presetGameOpen && <div role="listbox" aria-label={text.game}>{GAME_SENSITIVITY_PROFILES.map((game) => <button type="button" role="option" aria-selected={presetDraft.gameId === game.id} key={game.id} onClick={() => { setPresetDraft({ ...presetDraft, gameId: game.id }); setPresetGameOpen(false) }}>{game.name}</button>)}</div>}</div><label>{text.presetName}<input value={presetDraft.name} maxLength={32} onChange={(event) => setPresetDraft({ ...presetDraft, name: event.target.value })} /></label><label>{text.sensitivity}<input inputMode="decimal" value={presetDraft.sensitivity} onChange={(event) => setPresetDraft({ ...presetDraft, sensitivity: event.target.value })} /></label><label>{text.dpi}<input inputMode="numeric" value={presetDraft.dpi} onChange={(event) => setPresetDraft({ ...presetDraft, dpi: event.target.value })} /></label></div><label className="profile-v1-primary-toggle"><input type="checkbox" checked={presetDraft.isPrimary} onChange={(event) => setPresetDraft({ ...presetDraft, isPrimary: event.target.checked })} /><Star size={15} /> {text.setPrimary}</label>{error && <p className="profile-v1-error">{error}</p>}<footer><button className="secondary-button" type="button" onClick={() => setPresetDraft(null)}>{text.cancel}</button><button className="primary-button" type="button" disabled={presetDisabled} onClick={savePreset}><Check size={15} /> {text.save}</button></footer></section></div>}
 
-    {pendingRemove && <div className="modal-backdrop"><section className="profile-v1-modal profile-v1-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="remove-preset-title" aria-describedby="remove-preset-description"><button className="modal-close" type="button" onClick={() => setPendingRemove(null)} aria-label={text.cancel}><X size={18} /></button><span className="profile-v1-label">{text.remove}</span><h2 id="remove-preset-title">{text.confirmRemoveTitle}</h2><p id="remove-preset-description">{text.confirmRemoveText}</p><footer><button className="secondary-button" type="button" onClick={() => setPendingRemove(null)}>{text.cancel}</button><button className="primary-button" type="button" onClick={() => removePreset(pendingRemove.id)}><Trash2 size={15} /> {text.remove}</button></footer></section></div>}
+    {pendingRemove && <div className="modal-backdrop"><section className="profile-v1-modal profile-v1-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="remove-preset-title" aria-describedby="remove-preset-description"><button className="modal-close" type="button" onClick={() => setPendingRemove(null)} aria-label={text.cancel}><X size={18} /></button><span className="profile-v1-label">{text.remove}</span><h2 id="remove-preset-title">{text.confirmRemoveTitle}</h2><p id="remove-preset-description">{text.confirmRemoveText}</p>{sync.error && <p role="alert" className="profile-v1-error">{t('presets.syncFailure')}</p>}<footer><button className="secondary-button" type="button" onClick={() => setPendingRemove(null)}>{text.cancel}</button><button className="primary-button" type="button" disabled={presetDisabled} onClick={() => removePreset(pendingRemove.id)}><Trash2 size={15} /> {text.remove}</button></footer></section></div>}
   </section>
 }

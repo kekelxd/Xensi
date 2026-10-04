@@ -52,7 +52,8 @@ describe('custom routine config', () => {
 
     expect(routine.name).toBe('Minha rotina')
     expect(routine.gameId).toBe('valorant')
-    expect(routine.items.map((item) => item.id)).toEqual(['a', 'b'])
+    expect(routine.items.map((item) => item.id)).toEqual(['a', 'b', 'bad'])
+    expect(validateRoutine(routine)).toContain('mode')
     expect(routine.items[0]).toMatchObject({ modeId: 'sniper-reaction', durationSeconds: 300, difficulty: 'medium', order: 0 })
     expect(routine.items[1]).toMatchObject({ modeId: 'tracking', durationSeconds: 60, difficulty: 'adaptive', order: 1 })
     expect(supportsRoutineDifficulty('sniper-reaction', 'adaptive')).toBe(false)

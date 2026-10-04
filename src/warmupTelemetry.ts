@@ -1,11 +1,15 @@
 import type { WarmupExercise } from './warmupConfig'
 import type { summarizeSniper } from './sniperReaction'
 import type { SessionContext } from './playerProfileStore'
+import type { MicroFlickMetrics } from './microFlick'
 
 export type WarmupMetrics = {
+  sessionStatus?: 'completed' | 'invalid' | 'interrupted'
+  comparisonSignature?: string
   completedAt?: string
   sessionContext?: SessionContext
   sniper?: ReturnType<typeof summarizeSniper>
+  micro?: MicroFlickMetrics
   score: number
   accuracy: number
   hits: number
@@ -53,8 +57,11 @@ export function getAimBiasLabel(x = 0, y = 0) {
 export function toWarmupSessionSummary(metrics: WarmupMetrics): WarmupSessionSummary {
   return {
     completedAt: metrics.completedAt ?? new Date().toISOString(),
+    ...(metrics.sessionStatus ? { sessionStatus: metrics.sessionStatus } : {}),
+    ...(metrics.comparisonSignature ? { comparisonSignature: metrics.comparisonSignature } : {}),
     ...(metrics.sessionContext ? { sessionContext: { ...metrics.sessionContext } } : {}),
     ...(metrics.sniper ? { sniper: metrics.sniper } : {}),
+    ...(metrics.micro ? { micro: metrics.micro } : {}),
     score: metrics.score,
     accuracy: metrics.accuracy,
     hits: metrics.hits,

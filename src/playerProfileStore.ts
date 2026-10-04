@@ -19,6 +19,7 @@ export interface PlayerProfileData {
   nickname: string
   avatarId: AvatarId
   presets: SensitivityPreset[]
+  presetStorageVersion?: 1
 }
 
 type LegacyGamePreset = { id?: unknown; dpi?: unknown; sensitivity?: unknown }
@@ -66,12 +67,10 @@ function migrateLegacyGames(games: LegacyGamePreset[], now: string) {
   }, index, now)).filter((preset): preset is SensitivityPreset => preset !== null)
 }
 
-export function ensureSinglePrimary(presets: SensitivityPreset[]) {
-  const primaryIds = new Map<GameSensitivityProfileId, string>()
-  for (const preset of presets) {
-    if (!primaryIds.has(preset.gameId) || preset.isPrimary && !presets.find(item => item.id === primaryIds.get(preset.gameId))?.isPrimary) primaryIds.set(preset.gameId, preset.id)
-  }
-  return presets.map(preset => ({ ...preset, isPrimary: preset.id === primaryIds.get(preset.gameId) }))
+export function ensureSinglePrimary(presets: SensitivityPreset[], fallbackToFirst = true) {
+  const explicitIndex = presets.findIndex(preset => preset.isPrimary)
+  const primaryIndex = explicitIndex < 0 && fallbackToFirst ? 0 : explicitIndex
+  return presets.map((preset, index) => ({ ...preset, isPrimary: index === primaryIndex }))
 }
 
 export function parsePlayerProfile(raw: string | null, now = new Date().toISOString()): PlayerProfileData {
@@ -84,7 +83,8 @@ export function parsePlayerProfile(raw: string | null, now = new Date().toISOStr
     return {
       nickname: typeof parsed.nickname === 'string' && parsed.nickname.trim() ? parsed.nickname.trim() : 'xensi_dev',
       avatarId: isAvatarId(parsed.avatarId) ? parsed.avatarId : DEFAULT_AVATAR,
-      presets: ensureSinglePrimary(sourcePresets),
+      presets: ensureSinglePrimary(sourcePresets, parsed.presetStorageVersion !== 1),
+      ...(parsed.presetStorageVersion === 1 ? { presetStorageVersion: 1 as const } : {}),
     }
   } catch {
     return { nickname: 'xensi_dev', avatarId: DEFAULT_AVATAR, presets: [] }

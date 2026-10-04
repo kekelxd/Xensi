@@ -28,6 +28,8 @@ import { AppNavigation } from './AppNavigation'
 import type { WarmupExercise } from './warmupConfig'
 import { AuthScreen } from './AuthPages'
 import { initializeAuth, type AuthMode } from './authService'
+import { PresetSyncStatus } from './PresetSyncStatus'
+import { usePresetState } from './useSensitivityPreset'
 import {
   APP_BASE_PATH,
   authRoutePath,
@@ -73,6 +75,7 @@ function Metric({ label, value, suffix, tone }: { label: string, value: string, 
 }
 
 function App() {
+  const presetState = usePresetState()
   const { locale, setLocale, t } = useI18n()
   const arenaRef = useRef<TrackingArenaHandle>(null)
   const phaseRemainingMsRef = useRef(3000)
@@ -485,8 +488,9 @@ function App() {
           </div>
         )}
       </header>
+      <PresetSyncStatus />
 
-      {view === 'home' ? <Home onNavigate={navigateView} /> : view === 'about' || view === 'privacy' || view === 'terms' || view === 'contact' ? <InstitutionalPage page={view} onNavigate={navigateView} /> : view === 'analysis' ? <Analysis section={analysisSection} onStartTraining={() => navigateView('warmup')} /> : view === 'profile' ? <PlayerProfile onConvert={(preset) => { setConverterPreset(preset); navigateView('converter', { preserveLaunchPreset: true }) }} onCalibrate={(preset) => { setFinderPreset(preset); navigateView('calibration', { preserveLaunchPreset: true }) }} /> : view === 'routine' ? <Routine /> : view === 'warmup' ? <Warmup key={warmupEntry ?? 'hub'} initialExercise={warmupEntry} onExerciseChange={(exercise) => navigateView('warmup', { warmupEntry: exercise })} /> : view === 'calibration' ? <SensitivityFinderModal initialPreset={finderPreset ? { ...finderPreset, gameId: finderPreset.gameId as GameId } : null} /> : view === 'diagnostics' ? <DiagnosticLanding onNavigate={navigateView} /> : showLegacyCalibration ? calibrationStarted ? <><section className="workspace">
+      {view === 'home' ? <Home onNavigate={navigateView} /> : view === 'about' || view === 'privacy' || view === 'terms' || view === 'contact' ? <InstitutionalPage page={view} onNavigate={navigateView} /> : view === 'analysis' ? <Analysis section={analysisSection} onStartTraining={() => navigateView('warmup')} /> : view === 'profile' ? <PlayerProfile key={presetState.userId ?? 'guest'} onConvert={(preset) => { setConverterPreset(preset); navigateView('converter', { preserveLaunchPreset: true }) }} onCalibrate={(preset) => { setFinderPreset(preset); navigateView('calibration', { preserveLaunchPreset: true }) }} /> : view === 'routine' ? <Routine key={presetState.userId ?? 'guest'} /> : view === 'warmup' ? <Warmup key={`${presetState.userId ?? 'guest'}:${warmupEntry ?? 'hub'}`} initialExercise={warmupEntry} onExerciseChange={(exercise) => navigateView('warmup', { warmupEntry: exercise })} /> : view === 'calibration' ? <SensitivityFinderModal initialPreset={finderPreset ? { ...finderPreset, gameId: finderPreset.gameId as GameId } : null} /> : view === 'diagnostics' ? <DiagnosticLanding onNavigate={navigateView} /> : showLegacyCalibration ? calibrationStarted ? <><section className="workspace">
         <aside className="metrics-rail">
           <div className="rail-heading"><Activity size={15} /> {t('calibration.live')}</div>
           <Metric label={t('common.accuracy')} value={format(metrics.accuracy)} suffix="%" tone="#8dfbd3" />

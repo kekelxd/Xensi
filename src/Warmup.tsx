@@ -13,12 +13,17 @@ import type { CrosshairStyle } from './TrackingArena'
 import { calculateWarmupAccuracy, getWarmupPointerGain, WARMUP_DIFFICULTIES, WARMUP_DURATION, type FixedWarmupDifficulty, type WarmupDifficulty, type WarmupExercise } from './warmupConfig'
 import { useI18n, type TranslationKey } from './i18n'
 import { clampAimCoordinate, requestStablePointerLock, sanitizePointerMovement } from './pointerInput'
-import { EXERCISES, EXERCISE_CATEGORIES, type ExerciseCategory } from './warmupExercises'
+import { EXERCISES, EXERCISE_CATEGORIES, supportsExerciseDifficulty, type ExerciseCategory } from './warmupExercises'
 import { SniperReaction, summarizeSniper } from './sniperReaction'
 import './sniperReaction.css'
-import { createEmptyWarmupMetrics, getAimBiasLabel, getAimDiagnosis, getWarmupRecommendation, readWarmupSession, readWarmupSessionHistory, toWarmupSessionSummary, writeWarmupSession, type WarmupMetrics, type WarmupSessionSummary } from './warmupTelemetry'
-import { evaluatePersonalBest, formatPersonalBestValue, type PersonalBestResult } from './personalBests'
+import { createEmptyWarmupMetrics, getAimBiasLabel, getAimDiagnosis, getWarmupRecommendation, type WarmupMetrics, type WarmupSessionSummary } from './warmupTelemetry'
+import { exerciseConfig, sessionSummary, type ExerciseConfig, type SessionReason } from './trainingSession'
+import { getSessionRepository } from './sessionRepository'
+import { useSessionRecorder } from './useSessionRecorder'
+import { formatPersonalBestValue, type PersonalBestResult } from './personalBests'
+import { usePersonalBestFeedback } from './usePersonalBestFeedback'
 import { PERSONAL_BEST_COPY } from './personalBestCopy'
+import { MicroFlick, MICRO_FLICK_PB_REQUIREMENTS } from './microFlick'
 
 export type { WarmupMetrics } from './warmupTelemetry'
 
@@ -82,6 +87,19 @@ function signed(value: number, suffix = '') {
 
 function WarmupReport({ metrics, previous, exercise, onSelectRecommendation }: { metrics: WarmupMetrics, previous: WarmupSessionSummary | null, exercise: WarmupExercise, onSelectRecommendation: (exercise: WarmupExercise) => void }) {
   const { t } = useI18n()
+  if (metrics.micro) {
+    const micro = metrics.micro
+    return <div className="warmup-report"><div className="report-metrics-grid">
+      <div><span>{t('common.accuracy')}</span><strong>{format(micro.accuracy, 1)}%</strong></div>
+      <div><span>{t('micro.acquisition')}</span><strong>{micro.meanAcquisitionTimeMs === null ? '—' : `${format(micro.meanAcquisitionTimeMs)} ms`}</strong></div>
+      <div><span>{t('micro.median')}</span><strong>{micro.medianAcquisitionTimeMs === null ? '—' : `${format(micro.medianAcquisitionTimeMs)} ms`}</strong></div>
+      <div><span>{t('micro.hits')}</span><strong>{micro.hits}</strong></div>
+      <div><span>{t('micro.misses')}</span><strong>{micro.misses}</strong></div>
+      <div><span>{t('micro.rate')}</span><strong>{format(micro.targetsPerSecond, 2)}</strong></div>
+      <div><span>{t('micro.distance')}</span><strong>{micro.meanFlickDistancePx === null ? '—' : `${format(micro.meanFlickDistancePx, 1)} px`}</strong></div>
+      <div><span>{t('micro.overshoot')}</span><strong>{micro.meanOvershootPx === null ? '—' : `${format(micro.meanOvershootPx, 1)} px`}</strong></div>
+    </div><p>{t('micro.pbRequirements', { accuracy: MICRO_FLICK_PB_REQUIREMENTS.minAccuracy, hits: MICRO_FLICK_PB_REQUIREMENTS.minHits })}</p></div>
+  }
   const trackingExercise = isTrackingExercise(exercise)
   const diagnosis = getAimDiagnosis(metrics, exercise)
   const recommendationId = getWarmupRecommendation(metrics, exercise)
@@ -153,12 +171,12 @@ function PersonalBestFeedback({ result, exercise, gameLabel }: { result: Persona
   const { t, locale } = useI18n()
   const copy = PERSONAL_BEST_COPY[locale]
   if (result.status === 'none') return null
-  const metricLabel = result.definition.primaryMetric === 'reactionTimeMs' ? t('sniper.best') : result.definition.primaryMetric === 'accuracy' ? t('common.accuracy') : t('common.score')
-  const context = result.current.sessionContext
+  const metricLabel = result.definition.primaryMetric === 'meanAcquisitionTimeMs' ? t('micro.acquisition') : result.definition.primaryMetric === 'bestReactionMs' ? t('sniper.best') : result.definition.primaryMetric === 'accuracy' ? t('common.accuracy') : t('common.score')
+  const context = result.current.context
   return <section className={`personal-best-feedback personal-best-${result.status}`} aria-live="polite">
     <div className="personal-best-heading"><Target size={17} /><span>{result.status === 'first' ? copy.first : copy.new}</span></div>
-    <div className="personal-best-main"><strong>{exercise === 'sniper-reaction' ? 'Sniper Reaction' : metricLabel}</strong><b>{formatPersonalBestValue(result)}</b>{result.delta !== null && <small>{result.definition.direction === 'higher' ? '↑' : '↓'} {result.delta.toFixed(result.definition.precision)} {result.definition.unit === 'milliseconds' ? 'ms' : result.definition.unit === 'percent' ? '%' : ''}</small>}</div>
-    {result.previousValue !== null && <div className="personal-best-previous"><span>{copy.previous}</span><strong>{result.previousValue.toFixed(result.definition.precision)} {result.definition.unit === 'milliseconds' ? 'ms' : result.definition.unit === 'percent' ? '%' : ''}</strong></div>}
+    <div className="personal-best-main"><strong>{exercise === 'sniper-reaction' ? 'Sniper Reaction' : metricLabel}</strong><b aria-label={copy.newBest}>{formatPersonalBestValue(result, locale)}</b>{result.delta !== null && <small>{result.definition.direction === 'higher' ? '↑' : '↓'} {formatPersonalBestValue({ definition: result.definition, value: result.delta }, locale)}</small>}</div>
+    {result.previousValue !== null && <div className="personal-best-previous"><span>{copy.previous}</span><strong>{formatPersonalBestValue({ definition: result.definition, value: result.previousValue }, locale)}</strong></div>}
     {context && <small className="personal-best-context">{gameLabel} · {context.sensitivity} · {context.dpi} DPI</small>}
   </section>
 }
@@ -182,14 +200,18 @@ type ArenaProps = {
   onMetrics: (metrics: WarmupMetrics) => void
   onComplete: (metrics: WarmupMetrics) => void
   onPointerLockChange: (locked: boolean) => void
+  recordingDifficulty?: WarmupDifficulty
+  onSessionStart?: (config: ExerciseConfig) => void
+  onSessionInvalid?: (reason: SessionReason) => void
 }
 
 export type ArenaHandle = { requestPointerLock: () => void }
 
-export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupArena({ phase, countdown, exercise, difficulty, durationSeconds = WARMUP_DURATION, crosshair, pointerGain, sessionId, sensitivityLabel, instruction, metrics, progressLabel, completionOverlay, exitFullscreenOnComplete = true, releasePointerLockOnComplete = true, onMetrics, onComplete, onPointerLockChange }, ref) {
+export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupArena({ phase, countdown, exercise, difficulty, durationSeconds = WARMUP_DURATION, crosshair, pointerGain, sessionId, sensitivityLabel, instruction, metrics, progressLabel, completionOverlay, exitFullscreenOnComplete = true, releasePointerLockOnComplete = true, onMetrics, onComplete, onPointerLockChange, recordingDifficulty, onSessionStart, onSessionInvalid }, ref) {
   const { t } = useI18n()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const sniperRef = useRef<SniperReaction | null>(null)
+  const microRef = useRef<MicroFlick | null>(null)
   const translateRef = useRef(t)
   useEffect(() => { translateRef.current = t }, [t])
   const [pointerLocked, setPointerLocked] = useState(false)
@@ -206,6 +228,15 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
   const releasePointerLockOnCompleteRef = useRef(releasePointerLockOnComplete)
   const onMetricsRef = useRef(onMetrics)
   const onCompleteRef = useRef(onComplete)
+  const recordingRef = useRef({ difficulty, recordingDifficulty, onSessionStart, onSessionInvalid })
+  useEffect(() => { recordingRef.current = { difficulty, recordingDifficulty, onSessionStart, onSessionInvalid } }, [difficulty, recordingDifficulty, onSessionStart, onSessionInvalid])
+  const recordStart = (width: number, height: number) => {
+    const recording = recordingRef.current
+    const snapshot = exerciseConfig(exerciseRef.current, recording.recordingDifficulty ?? recording.difficulty,
+      recording.difficulty === 'adaptive' ? 'medium' : recording.difficulty, durationSecondsRef.current, width, height, crosshairRef.current)
+    if (snapshot.micro && microRef.current) snapshot.micro.seed = microRef.current.seed
+    recording.onSessionStart?.(snapshot)
+  }
   const stateRef = useRef({
     aimX: 0, aimY: 0, visualAimX: 0, visualAimY: 0,
     targetX: 0, targetY: 0, destinationX: 0, destinationY: 0,
@@ -278,7 +309,10 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
         pointerLockedAtRef.current = now
       } else {
         pointerLockedAtRef.current = 0
-        if (pointerLockedRef.current && phaseRef.current === 'playing') inputPausedAtRef.current = performance.now()
+        if (pointerLockedRef.current && phaseRef.current === 'playing') {
+          inputPausedAtRef.current = performance.now()
+          if (stateRef.current.startedAt && !stateRef.current.complete) recordingRef.current.onSessionInvalid?.('pointer_lock_lost')
+        }
       }
       pointerLockedRef.current = locked
       setPointerLocked(locked)
@@ -298,8 +332,17 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
       if (!movement) return
       state.aimX = clampAimCoordinate(state.aimX + movement.x, canvas.clientWidth)
       state.aimY = clampAimCoordinate(state.aimY + movement.y, canvas.clientHeight)
+      microRef.current?.sampleAim({ x: state.aimX, y: state.aimY })
     }
     const handleShot = (event: MouseEvent) => {
+      if (microRef.current) {
+        const state = stateRef.current, now = performance.now()
+        if (event.button === 0 && phaseRef.current === 'playing' && document.pointerLockElement === canvas
+          && state.startedAt && !state.complete && now - state.startedAt < durationSecondsRef.current * 1000) {
+          microRef.current.shoot(now - state.startedAt, { x: state.aimX, y: state.aimY })
+        }
+        return
+      }
       if (exerciseRef.current === 'sniper-reaction') {
         if (event.button !== 0 || phaseRef.current !== 'playing' || document.pointerLockElement !== canvas) return
         const state = stateRef.current
@@ -356,6 +399,7 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
       const state = stateRef.current
       const oldWidth = state.width || rect.width
       const oldHeight = state.height || rect.height
+      if (state.startedAt && !state.complete && (Math.round(oldWidth) !== Math.round(rect.width) || Math.round(oldHeight) !== Math.round(rect.height))) recordingRef.current.onSessionInvalid?.('configuration_changed')
       state.aimX = state.aimX ? state.aimX * rect.width / oldWidth : rect.width / 2
       state.aimY = state.aimY ? state.aimY * rect.height / oldHeight : rect.height / 2
       state.visualAimX = state.visualAimX ? state.visualAimX * rect.width / oldWidth : state.aimX
@@ -399,12 +443,47 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
         state.visualAimY += (state.aimY - state.visualAimY) * aimBlend
       }
 
+      if (exercise === 'micro_flick') {
+        const micro = microRef.current
+        if (micro) {
+          if (phaseRef.current === 'playing' && pointerLockedRef.current && !state.complete) {
+            if (!state.startedAt) { state.startedAt = time; recordStart(width, height) }
+            const elapsed = time - state.startedAt, duration = durationSecondsRef.current * 1000
+            const remaining = Math.max(0, (duration - elapsed) / 1000)
+            if (remaining > 0) micro.update(elapsed, width, height, { x: state.aimX, y: state.aimY })
+            if (time - state.lastMetricsAt >= 100 || remaining <= 0) {
+              const summary = micro.summary(Math.min(duration, elapsed))
+              const next = { ...createEmptyWarmupMetrics(durationSecondsRef.current), micro: summary, remaining,
+                hits: summary.hits, shots: summary.shots, accuracy: summary.accuracy,
+                reactionTimeMs: summary.meanAcquisitionTimeMs ?? 0, clickErrors: summary.misses, overshootCount: summary.overshootCount }
+              state.lastMetricsAt = time; onMetricsRef.current(next)
+              if (remaining <= 0) {
+                state.complete = true; micro.stop()
+                if (releasePointerLockOnCompleteRef.current) document.exitPointerLock?.()
+                if (exitFullscreenOnCompleteRef.current && document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
+                onCompleteRef.current(next)
+              }
+            }
+          }
+          ctx.strokeStyle = 'rgba(255,255,255,.10)'; ctx.lineWidth = 1
+          ctx.beginPath(); ctx.arc(width / 2, height / 2, Math.min(width, height) * micro.rules.referenceRadius, 0, Math.PI * 2); ctx.stroke()
+          if (micro.target && !state.complete) {
+            ctx.fillStyle = '#ff7251'; ctx.beginPath(); ctx.arc(micro.target.x, micro.target.y, micro.target.radius, 0, Math.PI * 2); ctx.fill()
+            ctx.fillStyle = 'rgba(255,255,255,.72)'; ctx.beginPath(); ctx.arc(micro.target.x, micro.target.y, micro.target.radius * .24, 0, Math.PI * 2); ctx.fill()
+          }
+          const feedback = time - state.startedAt < micro.feedbackUntil ? micro.feedback : null
+          drawCrosshair(ctx, state.aimX, state.aimY, crosshairRef.current, feedback === 'hit' ? '#8dfbd3' : feedback === 'miss' ? '#ff7251' : '#f4f2eb')
+        }
+        frame = requestAnimationFrame(render)
+        return
+      }
+
       if (exercise === 'sniper-reaction') {
         const sniper = sniperRef.current
         const scale = Math.min(width, height)
         if (sniper) {
           if (phaseRef.current === 'playing' && pointerLockedRef.current && !state.complete) {
-            if (!state.startedAt) state.startedAt = time
+            if (!state.startedAt) { state.startedAt = time; recordStart(width, height) }
             const elapsed = time - state.startedAt
             const remaining = Math.max(0, durationSecondsRef.current - elapsed / 1000)
             if (remaining > 0) sniper.update(elapsed)
@@ -449,6 +528,7 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
       if (phaseRef.current === 'playing' && pointerLockedRef.current) {
         if (!state.startedAt) {
           state.startedAt = time
+          recordStart(width, height)
           state.targetVisibleAt = state.targetVisibleAt.map((visibleAt) => visibleAt || time)
         }
         if (exercise === 'tracking') {
@@ -614,7 +694,7 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
       frame = requestAnimationFrame(render)
     }
     frame = requestAnimationFrame(render)
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); sniperRef.current?.stop() }
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); sniperRef.current?.stop(); microRef.current?.stop() }
   }, [])
 
   useEffect(() => {
@@ -638,7 +718,8 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
     })
     inputPausedAtRef.current = 0
     sniperRef.current = exerciseRef.current === 'sniper-reaction' ? new SniperReaction(difficulty === 'adaptive' ? 'medium' : difficulty) : null
-    placeTarget()
+    microRef.current = exerciseRef.current === 'micro_flick' ? new MicroFlick(difficulty === 'adaptive' ? 'medium' : difficulty) : null
+    if (!microRef.current) placeTarget()
     if (exerciseRef.current === 'gridshot') { placeTarget(0, 1); placeTarget(0, 2) }
   }, [sessionId, difficulty])
 
@@ -648,7 +729,7 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
       <canvas ref={canvasRef} className="warmup-arena" tabIndex={0} onMouseDown={() => active && void requestStablePointerLock(canvasRef.current)} />
       {active && (
         <div className="warmup-hud">
-          <div><span>{t('common.score')}</span><strong>{metrics.score}</strong></div>
+          <div><span>{t(exercise === 'micro_flick' ? 'micro.hits' : 'common.score')}</span><strong>{exercise === 'micro_flick' ? metrics.hits : metrics.score}</strong></div>
           <div><span>{t('common.accuracy')}</span><strong>{format(metrics.accuracy)}<small>%</small></strong></div>
           <div><span>{t('common.time')}</span><strong>{format(metrics.remaining, 1)}<small>s</small></strong></div>
           <div><span>{t('common.sensitivity')}</span><strong>{sensitivityLabel}</strong></div>
@@ -670,9 +751,11 @@ export function Warmup({
   initialExercise?: WarmupExercise | null
   onExerciseChange?: (exercise: WarmupExercise | null) => void
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const arenaRef = useRef<ArenaHandle>(null)
   const [phase, setPhase] = useState<WarmupPhase>(initialExercise ? 'setup' : 'hub')
+  const recorder = useSessionRecorder()
+  const sessions = getSessionRepository()
   const setupRef = useRef<HTMLElement>(null)
   useDialogFocus(setupRef, phase === 'setup')
   const [setupStep, setSetupStep] = useState<SetupStep>(1)
@@ -696,7 +779,7 @@ export function Warmup({
   const activePreview = sniperFocused ? 'sniper-reaction' : previewExercise
   const [metrics, setMetrics] = useState<WarmupMetrics>(() => createEmptyWarmupMetrics(WARMUP_DURATION))
   const [previousSession, setPreviousSession] = useState<WarmupSessionSummary | null>(null)
-  const [personalBest, setPersonalBest] = useState<PersonalBestResult | null>(null)
+  const { result: personalBest, unavailable: pbUnavailable, reset: resetPersonalBest, evaluate: evaluateSavedPB } = usePersonalBestFeedback()
 
   const game = GAME_BY_ID[selectedGame]
   const parsedSensitivity = parsePositiveNumberInput(sensitivity)
@@ -726,7 +809,7 @@ export function Warmup({
   }, [phase, sessionId, inputReady])
 
   const openSetup = (nextExercise: WarmupExercise) => {
-    if (nextExercise === 'sniper-reaction' && difficulty === 'adaptive') setDifficulty('medium')
+    if (!supportsExerciseDifficulty(nextExercise, difficulty)) setDifficulty('medium')
     setPreviewExercise(null)
     setSniperFocused(false)
     setExercise(nextExercise)
@@ -740,7 +823,7 @@ export function Warmup({
     if (!validSetup || normalizedSensitivity === null || parsedDpi === null) return
     sessionContext.current = createSessionContext(selectedGame, normalizedSensitivity, Math.round(parsedDpi), config.draft.presetId)
     sessionContext.current.configuration = { difficulty: effectiveDifficulty, durationSeconds: WARMUP_DURATION }
-    setPersonalBest(null)
+    resetPersonalBest()
     setSensitivity(String(normalizedSensitivity))
     setDpi(String(Math.round(parsedDpi)))
     setInputReady(false)
@@ -753,7 +836,7 @@ export function Warmup({
   }
 
   const repeat = () => {
-    setPersonalBest(null)
+    resetPersonalBest()
     setInputReady(false)
     setMetrics(createEmptyWarmupMetrics(WARMUP_DURATION))
     flushSync(() => {
@@ -764,7 +847,7 @@ export function Warmup({
   }
 
   const playNextRound = () => {
-    setPersonalBest(null)
+    resetPersonalBest()
     setInputReady(false)
     setMetrics(createEmptyWarmupMetrics(WARMUP_DURATION))
     flushSync(() => {
@@ -775,17 +858,17 @@ export function Warmup({
   }
 
   const completeWarmup = (result: WarmupMetrics) => {
-    const withContext = { ...result, sessionContext: sessionContext.current }
-    const currentSummary = toWarmupSessionSummary(withContext)
-    const history = readWarmupSessionHistory(window.localStorage, exercise)
-    setPersonalBest(evaluatePersonalBest(exercise, currentSummary, history))
-    setPreviousSession(readWarmupSession(window.localStorage, exercise))
-    writeWarmupSession(window.localStorage, exercise, withContext)
+    const saved = recorder.complete(result)
+    const withContext = { ...result, sessionContext: sessionContext.current, ...(saved ? sessionSummary(saved) : { sessionStatus: 'invalid' as const }) }
+    const history = sessions.history(exercise)
+    if (saved) evaluateSavedPB(saved)
+    setPreviousSession(history[0] ?? null)
     setMetrics(withContext)
     setPhase('result')
   }
 
   const exitToHub = () => {
+    recorder.abort('manual_abort')
     document.exitPointerLock?.()
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
     setInputReady(false)
@@ -861,7 +944,7 @@ export function Warmup({
                   <SensitivityConfigFields draft={config.draft} presets={config.presets} onSelectPreset={config.selectPreset} onSensitivityChange={setSensitivity} onDpiChange={setDpi} sensitivityInvalid={parsedSensitivity === null} dpiInvalid={parsedDpi === null}>
                     <div className="warmup-config-label">{t('warmup.difficulty')}</div>
                     <div className="warmup-difficulty" role="radiogroup" aria-label={t('warmup.difficulty')}>
-                      {(Object.keys(WARMUP_DIFFICULTIES) as WarmupDifficulty[]).filter(level => exercise !== 'sniper-reaction' || level !== 'adaptive').map((level) => (
+                      {(Object.keys(WARMUP_DIFFICULTIES) as WarmupDifficulty[]).filter(level => supportsExerciseDifficulty(exercise, level)).map((level) => (
                         <button type="button" key={level} className={difficulty === level ? 'selected' : ''} aria-pressed={difficulty === level} onClick={() => { setDifficulty(level); if (level === 'adaptive') setAdaptiveLevel('medium') }}>
                           <i aria-hidden="true" /> <strong>{t(`difficulty.${level}` as TranslationKey)}</strong><small>{t(`difficulty.${level}Description` as TranslationKey)}</small>
                         </button>
@@ -896,8 +979,9 @@ export function Warmup({
               <div className="panel-label">{t('warmup.reportTitle')}</div>
               <h2>{exerciseConfig.name}</h2>
               <p>{difficultyLabel} · {exercise === 'sniper-reaction' ? '' : `${game.label} · `}{WARMUP_DURATION}s</p>
-              <div className="warmup-result-score"><span>{t('common.score')}</span><strong>{metrics.score}</strong></div>
+              <div className="warmup-result-score"><span>{t(metrics.micro ? 'micro.acquisition' : 'common.score')}</span><strong>{metrics.micro ? metrics.micro.meanAcquisitionTimeMs === null ? '—' : `${format(metrics.micro.meanAcquisitionTimeMs)} ms` : metrics.score}</strong></div>
               {personalBest && <PersonalBestFeedback result={personalBest} exercise={exercise} gameLabel={game.label} />}
+              {pbUnavailable && <p role="status">{PERSONAL_BEST_COPY[locale].unavailable}</p>}
               <WarmupReport metrics={metrics} previous={previousSession} exercise={exercise} onSelectRecommendation={openSetup} />
               <div className="warmup-next-hint">
                 {t('warmup.fixedNextHint', { level: difficultyLabel })}
@@ -928,7 +1012,13 @@ export function Warmup({
         sensitivityLabel={`${exercise === 'sniper-reaction' ? '' : `${game.shortLabel} `}${format(normalizedSensitivity ?? 0, 3)}`}
         instruction={t(exerciseConfig.instruction)}
         metrics={metrics}
-        onMetrics={setMetrics}
+        onMetrics={next => { recorder.sample(next); setMetrics(next) }}
+        recordingDifficulty={difficulty}
+        onSessionStart={snapshot => {
+          const state = sessions.getSnapshot()
+          if (state.status !== 'auth-loading' && sessionContext.current) recorder.start(state.userId, exercise, sessionContext.current, snapshot)
+        }}
+        onSessionInvalid={reason => recorder.invalidate(reason)}
         onComplete={completeWarmup}
         onPointerLockChange={setInputReady}
       />

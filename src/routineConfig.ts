@@ -34,19 +34,20 @@ export type RoutineValidationIssue =
   | 'duration'
   | 'difficulty'
 
-const VALID_MODES = new Set<WarmupExercise>(['switch', 'tracking', 'flick', 'reflex', 'gridshot', 'strafetrack', 'sniper-reaction'])
+import { EXERCISES, supportsExerciseDifficulty } from './warmupExercises'
+const VALID_MODES = new Set<WarmupExercise>(EXERCISES.map(exercise => exercise.id))
 const VALID_DIFFICULTIES = new Set<WarmupDifficulty>(['easy', 'medium', 'hard', 'adaptive'])
 
 const now = () => new Date().toISOString()
-const fallbackId = () => `routine-${Date.now()}-${Math.random().toString(16).slice(2)}`
-export const createRoutineId = () => globalThis.crypto?.randomUUID?.() ?? fallbackId()
+export const createRoutineId = () => crypto.randomUUID()
+export const isRoutineModeAvailable = (modeId: string) => VALID_MODES.has(modeId as WarmupExercise)
 
 export function isRoutineDurationSeconds(value: unknown): value is RoutineItemDuration {
   return typeof value === 'number' && ROUTINE_ITEM_DURATIONS.includes(value as RoutineItemDuration)
 }
 
 export function supportsRoutineDifficulty(modeId: WarmupExercise, difficulty: WarmupDifficulty) {
-  return VALID_DIFFICULTIES.has(difficulty) && !(modeId === 'sniper-reaction' && difficulty === 'adaptive')
+  return VALID_DIFFICULTIES.has(difficulty) && supportsExerciseDifficulty(modeId, difficulty)
 }
 
 export function createRoutineItem(modeId: WarmupExercise, order = 0): CustomRoutineItem {
@@ -72,7 +73,7 @@ export function formatRoutineDuration(seconds: number) {
 function normalizeRoutineItem(value: unknown, index: number): CustomRoutineItem | null {
   if (!value || typeof value !== 'object') return null
   const candidate = value as Partial<CustomRoutineItem>
-  if (!candidate.modeId || !VALID_MODES.has(candidate.modeId)) return null
+  if (typeof candidate.modeId !== 'string' || !candidate.modeId.trim()) return null
   const difficulty = candidate.difficulty && supportsRoutineDifficulty(candidate.modeId, candidate.difficulty)
     ? candidate.difficulty
     : 'medium'
@@ -88,7 +89,7 @@ function normalizeRoutineItem(value: unknown, index: number): CustomRoutineItem 
 export function createDefaultRoutine(gameId: GameSensitivityProfileId = 'cs2', presetId?: string): CustomRoutine {
   const timestamp = now()
   return {
-    id: 'routine-custom-primary',
+    id: createRoutineId(),
     name: 'Warmup competitivo',
     gameId,
     ...(presetId ? { presetId } : {}),

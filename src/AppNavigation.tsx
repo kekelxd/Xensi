@@ -97,8 +97,9 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
 
   useEffect(() => {
     let active = true
-    void initializeAuth().then((state) => {
+    void initializeAuth().then(() => {
       if (!active) return
+      const state = readAuthSessionState()
       setAuthState(state)
       if (state.status === 'authenticated') setNavProfile(state.profile)
     })

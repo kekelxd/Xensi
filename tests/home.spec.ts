@@ -55,9 +55,11 @@ test.describe('XENSI home v3', () => {
   })
 
   test('uses saved training, preset and routine data in the continuation cards', async ({ page }) => {
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
+      const { getSessionRepository } = await import('/src/sessionRepository.ts')
+      const { exerciseConfig, comparisonSignature, sessionMetrics } = await import('/src/trainingSession.ts')
       const now = new Date().toISOString()
-      window.localStorage.setItem('sensi-warmup-session:v1:gridshot', JSON.stringify({
+      const metrics = {
         completedAt: now,
         score: 1280,
         accuracy: 92,
@@ -70,7 +72,14 @@ test.describe('XENSI home v3', () => {
         bestTrackingStreakMs: 0,
         overshootCount: 3,
         correctionCount: 8,
-      }))
+      }
+      const config = exerciseConfig('gridshot', 'medium', 'medium', 60, 1440, 900, 'dot')
+      await getSessionRepository().append({ kind: 'session', value: {
+        id: crypto.randomUUID(), userId: null, exerciseId: 'gridshot', startedAt: new Date(Date.parse(now) - 60000).toISOString(), finishedAt: now,
+        durationMs: 60000, status: 'completed', invalidReason: null, routineId: null, routineRunId: null, routineStepId: null, presetId: null,
+        context: { gameId: 'cs2', sensitivity: .68, dpi: 800 }, config, metrics: sessionMetrics('gridshot', { ...metrics, remaining: 0 }),
+        comparisonSignature: comparisonSignature('gridshot', config), schemaVersion: 1, exerciseVersion: 1,
+      } })
       window.localStorage.setItem('xensi-player-profile', JSON.stringify({
         nickname: 'xensi_dev',
         avatarId: 'cat-focus',
@@ -96,7 +105,8 @@ test.describe('XENSI home v3', () => {
         createdAt: now,
         updatedAt: now,
       }]))
-      window.dispatchEvent(new Event('storage'))
+      window.dispatchEvent(new Event('xensi-profile-updated'))
+      window.dispatchEvent(new Event('xensi-routines-updated'))
     })
 
     const progress = page.locator('.xensi-home-v3-progress')

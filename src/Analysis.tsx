@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
-import { Activity, CalendarDays, Crosshair, MousePointer2, RotateCcw, Trophy } from 'lucide-react'
+import { Activity, CalendarDays, Crosshair, MousePointer2, RotateCcw } from 'lucide-react'
 import { readCalibrationHistory, type CalibrationSessionSummary } from './calibration'
 import { GAME_BY_ID, GAMES, type GameConfig } from './games'
-import { getPersonalBestValue, PERSONAL_BEST_DEFINITIONS, type PersonalBestDefinition } from './personalBests'
+import { PersonalBestPanel } from './PersonalBestPanel'
 import { EXERCISES, type WarmupExerciseDefinition } from './warmupExercises'
-import { readWarmupSessionHistory, type WarmupSessionSummary } from './warmupTelemetry'
+import { type WarmupSessionSummary } from './warmupTelemetry'
+import { useSessionState } from './sessionRepository'
+import { sessionSummary, type TrainingSession, type SessionStatus } from './trainingSession'
 import { useI18n, type Locale } from './i18n'
 import type { AnalysisSection } from './AppNavigation'
 import type { GameSensitivityProfileId } from './gameSensitivityProfiles'
@@ -296,10 +298,12 @@ function dateTimeLabel(value: string | null, locale: Locale) {
   return new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
 }
 
-function readWarmupEntries(storage: Storage) {
-  return EXERCISES.flatMap((exercise) =>
-    readWarmupSessionHistory(storage, exercise.id).map((session, index) => ({ exercise, session, index })),
-  )
+function readWarmupEntries(sessions: TrainingSession[]) {
+  return EXERCISES.flatMap(exercise => {
+    const valid = sessions.filter(s => s.exerciseId === exercise.id && s.status === 'completed')
+    const signature = valid[0]?.comparisonSignature
+    return valid.filter(s => signature && s.comparisonSignature === signature).map(sessionSummary).filter(s => s !== null).map((session, index) => ({ exercise, session, index }))
+  })
 }
 
 function getGameLabel(gameId?: GameSensitivityProfileId) {
@@ -341,8 +345,8 @@ function calibrationToPoints(game: GameConfig, session: CalibrationSessionSummar
   ]
 }
 
-function collectAnalysisData(storage: Storage) {
-  const warmupEntries = readWarmupEntries(storage)
+function collectAnalysisData(storage: Storage, sessions: TrainingSession[], labels: Record<SessionStatus, string>) {
+  const warmupEntries = readWarmupEntries(sessions)
   const calibrationEntries = GAMES.flatMap((game) => {
     const sessions = readCalibrationHistory(storage, game.id)
     return sessions.map((session, index) => ({ game, session, index, previous: sessions[index + 1] }))
@@ -352,12 +356,13 @@ function collectAnalysisData(storage: Storage) {
     ...calibrationEntries.flatMap(({ game, session, index, previous }) => calibrationToPoints(game, session, index, previous)),
   ].filter(point => Number.isFinite(point.value))
   const recents: RecentSession[] = [
-    ...warmupEntries.map(({ exercise, session, index }) => ({
-      id: `${exercise.id}-${index}`,
-      completedAt: validDate(session.completedAt),
-      title: exercise.name,
-      metricLine: exercise.id === 'sniper-reaction' && session.reactionTimeMs > 0 ? `${format(session.reactionTimeMs)} ms · ${format(session.accuracy, 1)}%` : `${format(session.accuracy, 1)}% · ${session.sessionContext?.configuration?.difficulty ?? 'Normal'}`,
-      presetLine: session.sessionContext ? `${getGameLabel(session.sessionContext.gameId) ?? session.sessionContext.gameId} · ${format(session.sessionContext.sensitivity, 3)} · ${session.sessionContext.dpi} DPI` : null,
+    ...sessions.map(record => ({
+      id: record.id,
+      completedAt: record.finishedAt,
+      title: EXERCISES.find(e => e.id === record.exerciseId)?.name ?? record.exerciseId,
+      metricLine: record.status !== 'completed' || !record.metrics ? labels[record.status] :
+        `${format(record.metrics.accuracy, 1)}% · ${record.config?.effectiveDifficulty ?? ''}`,
+      presetLine: record.context ? `${getGameLabel(record.context.gameId) ?? record.context.gameId} · ${format(record.context.sensitivity, 3)} · ${record.context.dpi} DPI` : null,
     })),
     ...calibrationEntries.map(({ game, session }) => ({
       id: session.id,
@@ -422,26 +427,6 @@ function chartPoints(points: AnalysisPoint[]) {
   })
   const line = nodes.map(node => `${node.x.toFixed(1)},${node.y.toFixed(1)}`).join(' ')
   return { line, area: `22,278 ${line} 678,278`, nodes }
-}
-
-function derivePersonalBests(warmupEntries: ReturnType<typeof readWarmupEntries>) {
-  return EXERCISES.map((exercise) => {
-    const definition = PERSONAL_BEST_DEFINITIONS[exercise.id]
-    const candidates = warmupEntries
-      .filter(entry => entry.exercise.id === exercise.id)
-      .map(entry => ({ session: entry.session, value: getPersonalBestValue(entry.session, definition) }))
-      .filter((entry): entry is { session: WarmupSessionSummary; value: number } => entry.value !== null)
-      .sort((left, right) => definition.direction === 'higher' ? right.value - left.value : left.value - right.value)
-    const best = candidates[0]
-    if (!best) return null
-    const second = candidates[1]
-    return { exercise, definition, value: best.value, delta: second ? Math.abs(best.value - second.value) : null, completedAt: validDate(best.session.completedAt) }
-  }).filter((entry): entry is { exercise: WarmupExerciseDefinition; definition: PersonalBestDefinition; value: number; delta: number | null; completedAt: string | null } => entry !== null).slice(0, 4)
-}
-
-function formatPersonalBest(definition: PersonalBestDefinition, value: number) {
-  const normalized = value.toFixed(definition.precision)
-  return definition.unit === 'milliseconds' ? `${normalized} ms` : definition.unit === 'percent' ? `${normalized}%` : normalized
 }
 
 function Methodology({ locale }: { locale: Locale }) {
@@ -516,13 +501,16 @@ function Methodology({ locale }: { locale: Locale }) {
 }
 
 export function Analysis({ section, onStartTraining }: Props) {
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
   const text = copy[locale]
   const [period, setPeriod] = useState<PeriodKey>('7d')
   const [metric, setMetric] = useState<MetricKey>('accuracy')
   const [showAllRecent, setShowAllRecent] = useState(false)
   const [hoveredPoint, setHoveredPoint] = useState<AnalysisPoint | null>(null)
-  const data = useMemo(() => collectAnalysisData(window.localStorage), [])
+  const sessions = useSessionState()
+  const data = useMemo(() => collectAnalysisData(window.localStorage, sessions.status === 'ready' ? sessions.items : [], {
+    completed: t('sessions.completed'), invalid: t('sessions.invalid'), interrupted: t('sessions.interrupted'),
+  }), [sessions, t])
 
   if (section === 'methodology') return <Methodology locale={locale} />
 
@@ -530,7 +518,6 @@ export function Analysis({ section, onStartTraining }: Props) {
   const chartMetricPoints = filterPeriod(data.points.filter(point => point.metric === metric), period)
   const chart = chartPoints(chartMetricPoints)
   const metricStates = METRICS.map((item) => ({ ...item, ...currentAndPrevious(data.points, item.key, period) }))
-  const bests = derivePersonalBests(data.warmupEntries)
   const rangeText = comparisonRange(period, locale)
 
   return <section className="analysis-workspace analysis-dashboard">
@@ -604,16 +591,7 @@ export function Analysis({ section, onStartTraining }: Props) {
         </article>
       </div>
 
-      <article className="analysis-panel analysis-pb-panel">
-        <div><h2>{text.personalBests}</h2><Trophy size={17} /></div>
-        {bests.length ? <div className="analysis-pb-list">
-          {bests.map((best) => <section key={best.exercise.id}>
-            <span>{best.exercise.name}</span>
-            <strong>{formatPersonalBest(best.definition, best.value)}</strong>
-            <small>{best.delta === null ? dateLabel(best.completedAt, locale) : `${best.definition.direction === 'lower' ? '↓' : '↑'} ${formatPersonalBest(best.definition, best.delta)}`}</small>
-          </section>)}
-        </div> : <p className="analysis-empty">{text.waiting}</p>}
-      </article>
+      <PersonalBestPanel />
 
       <article className="analysis-panel analysis-recent-panel">
         <div><h2>{text.sessions}</h2><button type="button" onClick={() => setShowAllRecent((value) => !value)}>{text.fullHistory}</button></div>

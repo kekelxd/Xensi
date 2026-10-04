@@ -48,6 +48,7 @@ export const WARMUP_EXERCISE_ROUTES: Record<WarmupExercise, string> = {
   gridshot: 'gridshot',
   strafetrack: 'strafetrack',
   'sniper-reaction': 'sniper',
+  micro_flick: 'micro-flick',
 }
 
 const WARMUP_EXERCISE_BY_ROUTE = new Map(

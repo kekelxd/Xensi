@@ -35,6 +35,8 @@ test.describe('XENSI auth routes', () => {
     await expect(page.getByText('Lembrar de mim')).toHaveCount(0)
     await expect(page.locator('.app-header')).toHaveCount(0)
 
+    await page.evaluate(async () => { await document.fonts.ready })
+    await expect.poll(() => page.locator('.xensi-auth-shell').evaluate(element => element.getAnimations().filter(animation => animation.playState === 'running').length)).toBe(0)
     const card = await page.locator('.xensi-auth-card').boundingBox()
     const viewport = page.viewportSize()
     expect(card).not.toBeNull()

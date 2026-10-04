@@ -41,9 +41,9 @@ test.describe('Personal best feedback', () => {
     await expect(page.locator('.personal-best-feedback')).toContainText('PRIMEIRO RECORDE')
     await expect(page.locator('.personal-best-feedback')).toContainText('Score')
 
-    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('sensi-warmup-session:v1:switch')!))
-    expect(saved.history).toHaveLength(1)
-    expect(saved.history[0].sessionContext.configuration).toMatchObject({ difficulty: 'easy', durationSeconds: 60 })
+    const saved = await page.evaluate(async () => (await import('/src/sessionRepository.ts')).getSessionRepository().database.sessions(null))
+    expect(saved).toHaveLength(1)
+    expect(saved[0].config).toMatchObject({ effectiveDifficulty: 'easy', durationSeconds: 60 })
 
     await page.locator('.warmup-result-modal').getByRole('button', { name: 'Repetir' }).click()
     await expect.poll(() => page.evaluate(() => document.pointerLockElement?.tagName)).toBe('CANVAS')
@@ -65,7 +65,7 @@ test.describe('Personal best feedback', () => {
     await expect(page.locator('.personal-best-feedback')).toHaveCount(0)
 
     await page.reload()
-    const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('sensi-warmup-session:v1:switch')!))
-    expect(persisted.history).toHaveLength(3)
+    const persisted = await page.evaluate(async () => (await import('/src/sessionRepository.ts')).getSessionRepository().database.sessions(null))
+    expect(persisted).toHaveLength(3)
   })
 })

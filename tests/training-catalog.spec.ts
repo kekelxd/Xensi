@@ -11,9 +11,9 @@ test.describe('Training catalog categories', () => {
     await expect(page.getByText('Aquecimento FPS', { exact: true })).toHaveCount(0)
     const filters = page.getByRole('group', { name: 'Filtrar por habilidade' })
     const cards = page.locator('.warmup-exercises > button')
-    await expect(cards).toHaveCount(7)
+    await expect(cards).toHaveCount(8)
     for (const [filter, names] of [
-      ['Precisão', ['Target Switch', 'Target Shooting', 'Gridshot']],
+      ['Precisão', ['Target Switch', 'Target Shooting', 'Micro Flick', 'Gridshot']],
       ['Tracking', ['Tracking', 'Strafetrack']],
       ['Reação', ['Reflex', 'Sniper Reaction']],
     ] as const) {
@@ -36,11 +36,11 @@ test.describe('Training catalog categories', () => {
     }
     await filters.getByRole('button', { name: /Todos/ }).focus()
     await page.keyboard.press('Enter')
-    await expect(cards).toHaveCount(7)
+    await expect(cards).toHaveCount(8)
     await page.keyboard.press('Tab')
     await expect(filters.getByRole('button', { name: /Precisão/ })).toBeFocused()
     await page.keyboard.press('Space')
-    await expect(cards).toHaveCount(3)
+    await expect(cards).toHaveCount(4)
     await filters.getByRole('button', { name: /Todos/ }).click()
     await page.mouse.move(0, 0)
     const width = page.viewportSize()!.width
@@ -67,7 +67,7 @@ test.describe('Training catalog categories', () => {
       await page.goto('./')
       await page.locator('.xensi-reference-hero').getByRole('button', { name: start, exact: true }).click()
       await page.locator('.warmup-category-filters').getByRole('button', { name: new RegExp(category) }).click()
-      await expect(page.locator('.warmup-exercises > button')).toHaveCount(3)
+      await expect(page.locator('.warmup-exercises > button')).toHaveCount(4)
     }
   })
 

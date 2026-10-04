@@ -29,18 +29,20 @@ import {
 } from './routineConfig'
 import {
   calculatePresetCm360,
-  readPlayerProfile,
   type SensitivityPreset,
 } from './playerProfileStore'
+import { usePlayerProfile } from './useSensitivityPreset'
+import { useRoutineState } from './useRoutineState'
 import { SiteFooter } from './SiteFooter'
-import { readWarmupSession, type WarmupSessionSummary } from './warmupTelemetry'
+import { type WarmupSessionSummary } from './warmupTelemetry'
+import { useSessionState } from './sessionRepository'
+import { sessionSummary } from './trainingSession'
 import type { WarmupExercise } from './warmupConfig'
 import type { AppView } from './routes'
 
 export type HomeDestination = AppView
 type Props = { onNavigate: (destination: HomeDestination) => void }
 
-const WARMUP_EXERCISES: WarmupExercise[] = ['switch', 'tracking', 'flick', 'reflex', 'gridshot', 'strafetrack', 'sniper-reaction']
 
 const exerciseNames: Record<WarmupExercise, string> = {
   switch: 'Target Switch',
@@ -50,6 +52,7 @@ const exerciseNames: Record<WarmupExercise, string> = {
   gridshot: 'Gridshot',
   strafetrack: 'Strafetrack',
   'sniper-reaction': 'Sniper Reaction',
+  micro_flick: 'Micro Flick',
 }
 
 const copy = {
@@ -214,22 +217,13 @@ type HomeSummary = {
   savedRoutine: CustomRoutine | null
 }
 
-function getTimestamp(value?: string) {
-  return value ? new Date(value).getTime() || 0 : 0
-}
-
-function readHomeSummary(storage: Storage): HomeSummary {
-  const warmups = WARMUP_EXERCISES.flatMap((exercise) => {
-    const session = readWarmupSession(storage, exercise)
-    return session ? [{ ...session, exercise }] : []
-  }).sort((left, right) => getTimestamp(right.completedAt) - getTimestamp(left.completedAt))
+function readHomeSummary(storage: Storage, presets: SensitivityPreset[]): HomeSummary {
   const calibrations = GAMES.flatMap((game) => readCalibrationHistory(storage, game.id).map((session) => ({ ...session, game })))
     .sort((left, right) => right.completedAt.localeCompare(left.completedAt))
-  const profile = readPlayerProfile(storage)
-  const activePreset = profile.presets.find((preset) => preset.isPrimary) ?? profile.presets[0] ?? null
+  const activePreset = presets.find(preset => preset.isPrimary) ?? presets[0] ?? null
   const savedRoutine = readRoutineLibrary(storage, activePreset?.gameId ?? 'cs2')[0] ?? null
   return {
-    latestTraining: warmups[0] ?? null,
+    latestTraining: null,
     latestCalibration: calibrations[0] ?? null,
     activePreset,
     savedRoutine,
@@ -484,20 +478,32 @@ function HomeEcosystem({ onNavigate }: Props) {
 }
 
 export function Home({ onNavigate }: Props) {
-  const [summary, setSummary] = useState<HomeSummary>(() => readHomeSummary(window.localStorage))
+  const profile = usePlayerProfile()
+  const routines = useRoutineState()
+  const sessions = useSessionState()
+  const [summary, setSummary] = useState<HomeSummary>(() => readHomeSummary(window.localStorage, profile.presets))
   const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   useEffect(() => {
-    const refresh = () => setSummary(readHomeSummary(window.localStorage))
+    const refresh = () => setSummary(readHomeSummary(window.localStorage, profile.presets))
+    refresh()
     window.addEventListener('storage', refresh)
     window.addEventListener('xensi-profile-updated', refresh)
     return () => {
       window.removeEventListener('storage', refresh)
       window.removeEventListener('xensi-profile-updated', refresh)
     }
-  }, [])
+  }, [profile.presets])
 
-  const stableSummary = useMemo(() => summary, [summary])
+  const stableSummary = useMemo(() => ({ ...summary,
+    latestTraining: (() => {
+      const latest = sessions.status === 'ready' ? sessions.items.find(s => s.status === 'completed') : null
+      const result = latest ? sessionSummary(latest) : null
+      return result && latest ? { ...result, exercise: latest.exerciseId } : null
+    })(),
+    activePreset: profile.presets.find(preset => preset.isPrimary) ?? profile.presets[0] ?? null,
+    savedRoutine: routines.status === 'ready' ? routines.items[0] ?? null : null,
+  }), [summary, profile.presets, routines, sessions])
 
   return <main className="xensi-home xensi-reference xensi-home-v3">
     <div className="xensi-home-v3-shell">

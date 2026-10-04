@@ -16,10 +16,10 @@ describe('shared sensitivity presets', () => {
     expect(selectGamePreset([a], 'valorant')).toBeNull()
     expect(selectGamePreset([b], 'cs2')).toEqual(b)
   })
-  it('migrates to one primary per game and preserves IDs and values', () => {
+  it('migrates to one primary across games and preserves IDs and values', () => {
     const values = [a, b, { ...a, id: 'v', gameId: 'valorant' as const, isPrimary: false }]
     const result = parsePlayerProfile(JSON.stringify({ presets: values }))
-    expect(result.presets.map(p => p.isPrimary)).toEqual([true, false, true])
+    expect(result.presets.map(p => p.isPrimary)).toEqual([true, false, false])
     expect(result.presets.map(p => p.id)).toEqual(['a', 'b', 'v'])
     expect(ensureSinglePrimary(result.presets)).toEqual(result.presets)
   })

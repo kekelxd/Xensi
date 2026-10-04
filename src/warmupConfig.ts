@@ -3,7 +3,7 @@ import { getAimGain } from './aimModel'
 
 export type WarmupDifficulty = 'easy' | 'medium' | 'hard' | 'adaptive'
 export type FixedWarmupDifficulty = Exclude<WarmupDifficulty, 'adaptive'>
-export type WarmupExercise = 'switch' | 'tracking' | 'flick' | 'reflex' | 'gridshot' | 'strafetrack' | 'sniper-reaction'
+export type WarmupExercise = 'switch' | 'tracking' | 'flick' | 'reflex' | 'gridshot' | 'strafetrack' | 'sniper-reaction' | 'micro_flick'
 
 export type WarmupDifficultyConfig = {
   label: string

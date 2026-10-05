@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
-  testDir: './tests', testMatch: ['preset-sync.spec.ts', 'routine-sync.spec.ts', 'session-sync.spec.ts', 'personal-best-sync.spec.ts'], fullyParallel: true,
+  testDir: './tests', testMatch: ['preset-sync.spec.ts', 'routine-sync.spec.ts', 'session-sync.spec.ts', 'personal-best-sync.spec.ts', 'analysis-sync.spec.ts'], fullyParallel: true,
   use: { baseURL: 'http://127.0.0.1:5175/', screenshot: 'only-on-failure' },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },

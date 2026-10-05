@@ -4,6 +4,7 @@ export type Locale = 'pt' | 'en' | 'es'
 type Params = Record<string, string | number>
 
 const pt = {
+  'analysisV1.bestReaction': 'Melhor tempo de reação', 'analysisV1.medianReaction': 'Mediana de reação',
   'warmup.microFlick.name': 'Micro Flick',
   'warmup.microFlick.description': 'Treine microajustes rápidos e precisos em alvos próximos.',
   'warmup.microFlick.instruction': 'Faça pequenos ajustes rápidos e acerte o alvo com precisão.',
@@ -193,6 +194,7 @@ export type TranslationKey = keyof typeof pt
 
 const en: Record<TranslationKey, string> = {
   ...pt,
+  'analysisV1.bestReaction': 'Best reaction time', 'analysisV1.medianReaction': 'Median reaction time',
   'warmup.microFlick.name': 'Micro Flick',
   'warmup.microFlick.description': 'Train fast, precise micro-adjustments on nearby targets.',
   'warmup.microFlick.instruction': 'Make fast micro-adjustments and hit the target accurately.',
@@ -380,6 +382,7 @@ const en: Record<TranslationKey, string> = {
 
 const es: Record<TranslationKey, string> = {
   ...pt,
+  'analysisV1.bestReaction': 'Mejor tiempo de reacción', 'analysisV1.medianReaction': 'Mediana de reacción',
   'warmup.microFlick.name': 'Micro Flick',
   'warmup.microFlick.description': 'Entrena microajustes rápidos y precisos en objetivos cercanos.',
   'warmup.microFlick.instruction': 'Haz pequeños ajustes rápidos y acierta el objetivo con precisión.',

@@ -45,6 +45,7 @@ export function runRow(r: RoutineRun) {
     finished_at: r.finishedAt, duration_ms: r.durationMs, status: r.status, invalid_reason: r.invalidReason, schema_version: r.schemaVersion }
 }
 export interface SessionCloud {
+  remove(owner: string, id: string): Promise<void>
   fetch(owner: string, options?: { days?: 7 | 30 | 90; exercise?: TrainingSession['exerciseId']; offset?: number; limit?: number }): Promise<TrainingSession[]>
   append(owner: string, documents: SessionDocument[]): Promise<TrainingSession[]>
 }
@@ -56,6 +57,12 @@ export async function sessionClientFor(owner: string) {
   return client
 }
 export const sessionCloud: SessionCloud = {
+  async remove(owner, id) {
+    const client = await sessionClientFor(owner)
+    const { data, error } = await client.from('training_sessions').delete().eq('user_id',owner).eq('id',id).select('id')
+    if (error || data?.length !== 1) throw error ?? new Error('Session delete not confirmed')
+    await sessionClientFor(owner)
+  },
   async fetch(owner, options = {}) {
     const client = await sessionClientFor(owner)
     const limit = Math.min(300, Math.max(1, options.limit ?? 300)), offset = Math.max(0, options.offset ?? 0)

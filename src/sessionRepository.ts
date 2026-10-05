@@ -46,6 +46,16 @@ export class SessionRepository extends AccountCollectionRepository<TrainingSessi
     super(storage, persistence, offerStorage)
   }
   getSnapshot = () => this.getCollectionSnapshot()
+  async remove(session: TrainingSession) {
+    const owner = session.userId
+    if (this.state.status !== 'ready' || this.state.userId !== owner) throw new Error('Account changed')
+    await this.writes
+    if (owner) { await this.flush(owner); await this.cloud.remove(owner,session.id) }
+    if (this.state.userId !== owner) throw new Error('Account changed')
+    await this.database.remove(owner,session.id)
+    this.onSaved()
+    await this.refresh()
+  }
   history(exercise: TrainingSession['exerciseId']) {
     return this.state.items.filter(s => s.exerciseId === exercise && s.status === 'completed').map(sessionSummary).filter(s => s !== null)
   }

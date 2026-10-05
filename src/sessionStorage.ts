@@ -14,6 +14,7 @@ export interface SessionStorage {
   sessions(owner: string | null): Promise<TrainingSession[]>
   runs(owner: string | null): Promise<RoutineRun[]>
   save(document: SessionDocument, enqueue: boolean): Promise<void>
+  remove(owner: string | null, id: string): Promise<void>
   active(document: ActiveDocument): Promise<void>
   recover(owner: string | null, tabId: string): Promise<void>
   pending(owner: string): Promise<SessionDocument[]>
@@ -91,6 +92,12 @@ export class IndexedSessionStorage implements SessionStorage {
     })
   }
   runs(owner: string | null) { return this.transaction(owner, 'readonly', items => items.filter(item => item.kind === 'run').map(item => item.value as RoutineRun)) }
+  async remove(owner: string | null, id: string) {
+    await this.transaction(owner, 'readwrite', (_items, store) => {
+      store.delete(`${scope(owner)}:session:${id}`)
+      store.delete(`${scope(owner)}:pending:session:${id}`)
+    })
+  }
   async save(document: SessionDocument, enqueue: boolean) {
     const owner = document.value.userId
     await this.transaction(owner, 'readwrite', (items, store) => {

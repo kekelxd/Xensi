@@ -50,16 +50,18 @@ export type ExerciseMetricDefinition = {
   exerciseVersion: number
   pbSupported: boolean
   pbRequirements?: { minAccuracy: number; minHits: number }
+  analysisMetrics?: readonly AnalysisMetricKey[]
 }
+export type AnalysisMetricKey = ExerciseMetricDefinition['primaryMetric'] | 'hits' | 'medianReactionMs' | 'medianAcquisitionTimeMs' | 'meanOvershootPx' | 'targetsPerSecond'
 export const SESSION_REGISTRY: Record<WarmupExercise, ExerciseMetricDefinition> = {
-  switch: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true },
+  switch: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true, analysisMetrics: ['accuracy', 'hits'] },
   tracking: { primaryMetric: 'accuracy', unit: 'percent', direction: 'higher', precision: 1, exerciseVersion: 1, pbSupported: true },
-  flick: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true },
-  reflex: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true },
-  gridshot: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true },
+  flick: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true, analysisMetrics: ['accuracy', 'hits'] },
+  reflex: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true, analysisMetrics: ['accuracy', 'hits'] },
+  gridshot: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true, analysisMetrics: ['accuracy', 'hits'] },
   strafetrack: { primaryMetric: 'accuracy', unit: 'percent', direction: 'higher', precision: 1, exerciseVersion: 1, pbSupported: true },
-  'sniper-reaction': { primaryMetric: 'bestReactionMs', unit: 'milliseconds', direction: 'lower', precision: 0, exerciseVersion: 1, pbSupported: true },
-  micro_flick: { primaryMetric: 'meanAcquisitionTimeMs', unit: 'milliseconds', direction: 'lower', precision: 0, exerciseVersion: 1, pbSupported: true, pbRequirements: MICRO_FLICK_PB_REQUIREMENTS },
+  'sniper-reaction': { primaryMetric: 'bestReactionMs', unit: 'milliseconds', direction: 'lower', precision: 0, exerciseVersion: 1, pbSupported: true, analysisMetrics: ['accuracy', 'hits', 'medianReactionMs'] },
+  micro_flick: { primaryMetric: 'meanAcquisitionTimeMs', unit: 'milliseconds', direction: 'lower', precision: 0, exerciseVersion: 1, pbSupported: true, pbRequirements: MICRO_FLICK_PB_REQUIREMENTS, analysisMetrics: ['accuracy', 'hits', 'medianAcquisitionTimeMs', 'meanOvershootPx', 'targetsPerSecond'] },
 }
 
 export function exerciseConfig(exercise: WarmupExercise, difficulty: WarmupDifficulty, effectiveDifficulty: FixedWarmupDifficulty, durationSeconds: number, width: number, height: number, crosshair: string): ExerciseConfig {

@@ -16,6 +16,7 @@ class MemoryHistory implements SessionStorage {
   async runs(owner: string | null) { return [...this.data.values()].filter(d => d.kind === 'run' && d.value.userId === owner).map(d => d.value as RoutineRun) }
   async save(doc: SessionDocument, enqueue: boolean) { this.data.set(this.key(doc), structuredClone(doc)); if (enqueue) this.queue.set(this.key(doc), structuredClone(doc)) }
   async active(doc: ActiveDocument) { this.anchors.push(doc) }
+  async remove(owner: string | null, id: string) { this.data.delete(`${owner}:session:${id}`); this.queue.delete(`${owner}:session:${id}`) }
   async recover() {}
   async pending(owner: string) { return [...this.queue.values()].filter(d => d.value.userId === owner) }
   async acknowledge(owner: string, docs: SessionDocument[]) { for (const doc of docs) if (doc.value.userId === owner && JSON.stringify(this.queue.get(this.key(doc))) === JSON.stringify(doc)) this.queue.delete(this.key(doc)) }
@@ -31,6 +32,7 @@ function setup() {
   const database = new MemoryHistory(), remote = new Map<string, TrainingSession>()
   const failure = { offline: false, responseLost: false }
   const cloud: SessionCloud = {
+    remove: vi.fn(async (owner: string,id: string) => { if (failure.offline) throw new Error('Offline'); if (remote.get(id)?.userId !== owner) throw new Error('Wrong owner'); remote.delete(id) }),
     fetch: vi.fn(async (owner: string) => [...remote.values()].filter(s => s.userId === owner)),
     append: vi.fn(async (owner: string, documents: SessionDocument[]) => {
       if (failure.offline) throw new Error('Offline')
@@ -51,6 +53,33 @@ function record(repository: SessionRepository, owner: string | null) {
   return recorder.complete({ ...createEmptyWarmupMetrics(60), score: 100, hits: 1, shots: 1, accuracy: 100, remaining: 0 })!
 }
 describe('Sessions account repository', () => {
+  it('deletes only the current guest session and preserves account data', async () => {
+    const f = setup(); await f.repository.connect(guest)
+    const session = record(f.repository, null)
+    const other = { ...session, userId: 'a' }
+    await f.database.save({ kind: 'session', value: other }, false)
+    await vi.waitFor(() => expect(f.repository.getById(session.id)).not.toBeNull())
+    await f.repository.remove(session)
+    expect(f.repository.getAll()).toEqual([])
+    expect(await f.database.sessions('a')).toHaveLength(1)
+    expect(f.cloud.remove).not.toHaveBeenCalled()
+  })
+  it('confirms cloud deletion before removing the owner cache and rejects other owners', async () => {
+    const f = setup(); await f.repository.connect(account('a'))
+    const session = record(f.repository, 'a')
+    await vi.waitFor(() => expect(f.remote.has(session.id)).toBe(true))
+    f.failure.offline = true
+    await expect(f.repository.remove(session)).rejects.toThrow('Offline')
+    expect(f.repository.getById(session.id)).not.toBeNull()
+    f.failure.offline = false
+    await f.repository.remove(session)
+    expect(f.remote.has(session.id)).toBe(false)
+    expect(f.repository.getAll()).toEqual([])
+    expect(await f.database.pending('a')).toEqual([])
+    await f.repository.connect(account('b'))
+    await expect(f.repository.remove(session)).rejects.toThrow()
+    expect(f.cloud.remove).toHaveBeenCalledTimes(2)
+  })
   it('preserves guest history across reload and never uploads without explicit consent', async () => {
     const f = setup(); await f.repository.connect(guest)
     const session = record(f.repository, null)

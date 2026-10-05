@@ -26,6 +26,20 @@ export async function mockCloud(context: BrowserContext, initial: Row[] = []) {
     if (url.pathname === '/auth/v1/logout') return respond({})
     if (url.pathname === '/auth/v1/user') return respond({ id: owner, email: 'a@example.invalid' })
     if (url.pathname === '/rest/v1/profiles') return respond({ nickname: owner === userA ? 'Account A' : 'Account B', avatar_id: 'dog-happy' })
+    if (url.pathname.endsWith('/xensi_analysis_v1')) {
+      if (body.expected_user_id !== owner) return respond({ message: 'Session changed' }, 403)
+      const result = await context.pages()[0].evaluate(async ({ rows, body, owner }) => {
+        const { buildAnalysis } = await import('/src/analysisService.ts')
+        const { parseCloudSession, sessionRow } = await import('/src/sessionCloud.ts')
+        const query = { period: body.period_days === null ? 'all' : `${body.period_days}d`, exercise: body.target_exercise ?? 'all',
+          variant: body.target_signature ? JSON.stringify([body.target_exercise,body.target_version,body.target_signature]) : null,
+          metric: body.metric_key, now: Date.parse(body.as_of) }
+        const data = buildAnalysis(rows.filter((r: {user_id:string})=>r.user_id===owner).map((r: unknown)=>parseCloudSession(r,owner)),owner,query)
+        return { ...data, selected: data.recent[0] ? sessionRow(data.recent[0]) : null,
+          points: data.points.map(sessionRow), recent: data.recent.map(sessionRow), variants: data.variants.map(v=>({session:sessionRow(v.session),count:v.count})) }
+      }, { rows:state.sessions, body, owner })
+      return respond(result)
+    }
     if (url.pathname.endsWith('/xensi_personal_best_sessions')) {
       state.pbCalls++
       if (body.expected_user_id !== owner) return respond({ message: 'Session changed' }, 403)
@@ -56,7 +70,16 @@ export async function mockCloud(context: BrowserContext, initial: Row[] = []) {
       }
       return respond([...winners.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(body.page_offset, body.page_offset + body.page_size).map(([, s]) => s))
     }
-    if (url.pathname === '/rest/v1/training_sessions') return respond(state.sessions.filter(row => row.user_id === owner).sort((a, b) => String(b.finished_at).localeCompare(String(a.finished_at))).slice(0, 300))
+    if (url.pathname === '/rest/v1/training_sessions') {
+      if (request.method()==='DELETE') {
+        if (state.failWrites) return respond({message:'Delete failed'},503)
+        const id=url.searchParams.get('id')?.replace('eq.','')
+        const removed=state.sessions.filter(s=>s.user_id===owner&&s.id===id)
+        state.sessions=state.sessions.filter(s=>!removed.includes(s))
+        return respond(removed.map(s=>({id:s.id})))
+      }
+      return respond(state.sessions.filter(row => row.user_id === owner).sort((a, b) => String(b.finished_at).localeCompare(String(a.finished_at))).slice(0, 300))
+    }
     if (url.pathname.endsWith('/xensi_get_training_routines')) {
       if (state.delayRoutineFetch) await new Promise(resolve => setTimeout(resolve, 350))
       return respond(state.routineRows.filter(row => row.user_id === owner))

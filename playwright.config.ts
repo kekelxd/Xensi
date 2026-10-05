@@ -13,7 +13,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
-  testIgnore: ['**/preset-sync.spec.ts', '**/routine-sync.spec.ts', '**/session-sync.spec.ts', '**/personal-best-sync.spec.ts'],
+  testIgnore: ['**/preset-sync.spec.ts', '**/routine-sync.spec.ts', '**/session-sync.spec.ts', '**/personal-best-sync.spec.ts', '**/analysis-sync.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

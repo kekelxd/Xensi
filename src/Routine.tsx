@@ -1,3 +1,4 @@
+import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Circle, Copy, Crosshair, Dot, GripVertical, Layers3, LogOut, MoreHorizontal, Pencil, Play, Plus, RotateCcw, Save, Sparkles, Trash2, X, type LucideIcon } from 'lucide-react'
@@ -505,8 +506,7 @@ export function Routine() {
         </div>}
       </section>
 
-      {renameTarget && <div className="modal-backdrop">
-        <section className="modal routine-action-modal" role="dialog" aria-modal="true" aria-label={t('routines.renameTitle')}>
+      <MotionDialog open={Boolean(renameTarget)} className="modal-backdrop">{renameTarget && (<MotionDialogPanel className="modal routine-action-modal" role="dialog" aria-modal="true" aria-label={t('routines.renameTitle')}>
           <button className="modal-close" onClick={() => setRenameTarget(null)} aria-label={t('common.close')}><X size={18} /></button>
           <Pencil size={20} className="modal-icon" />
           <h2>{t('routines.renameTitle')}</h2>
@@ -517,11 +517,9 @@ export function Routine() {
             <button className="secondary-button" type="button" onClick={() => setRenameTarget(null)}>{t('routines.cancel')}</button>
             <button className="primary-button" type="button" disabled={sync.busy || !renameValue.trim()} onClick={confirmRenameRoutine}><Save size={14} /> {t('routines.saveName')}</button>
           </div>
-        </section>
-      </div>}
+        </MotionDialogPanel>)}</MotionDialog>
 
-      {deleteTarget && <div className="modal-backdrop">
-        <section className="modal routine-action-modal" role="dialog" aria-modal="true" aria-label={t('routines.deleteTitle')}>
+      <MotionDialog open={Boolean(deleteTarget)} className="modal-backdrop">{deleteTarget && (<MotionDialogPanel className="modal routine-action-modal" role="dialog" aria-modal="true" aria-label={t('routines.deleteTitle')}>
           <button className="modal-close" onClick={() => setDeleteTarget(null)} aria-label={t('common.close')}><X size={18} /></button>
           <Trash2 size={20} className="modal-icon" />
           <h2>{t('routines.deleteQuestion')}</h2>{sync.error && <p role="alert" className="profile-v1-error">{t(sync.error === 'import' ? 'routines.importFailure' : 'routines.saveFailure')}</p>}
@@ -530,8 +528,7 @@ export function Routine() {
             <button className="secondary-button" type="button" onClick={() => setDeleteTarget(null)}>{t('routines.cancel')}</button>
             <button className="primary-button danger-button" type="button" disabled={sync.busy} onClick={confirmDeleteRoutine}><Trash2 size={14} /> {t('routines.delete')}</button>
           </div>
-        </section>
-      </div>}
+        </MotionDialogPanel>)}</MotionDialog>
     </section>
   }
 
@@ -646,8 +643,7 @@ export function Routine() {
         </section>
       </div>
 
-      {addOpen && <div className="modal-backdrop">
-        <section className="modal routine-add-modal" role="dialog" aria-modal="true" aria-label={t('routine.addExercise')}>
+      <MotionDialog open={Boolean(addOpen)} className="modal-backdrop">{addOpen && (<MotionDialogPanel className="modal routine-add-modal" role="dialog" aria-modal="true" aria-label={t('routine.addExercise')}>
           <button className="modal-close" onClick={() => setAddOpen(false)} aria-label={t('common.close')}><X size={18} /></button>
           <Plus size={20} className="modal-icon" />
           <h2>{t('routine.addExercise')}</h2>
@@ -668,8 +664,7 @@ export function Routine() {
             <button className="secondary-button" type="button" onClick={() => setAddOpen(false)}>{t('common.close')}</button>
             <button className="primary-button" type="button" onClick={addItem}><Plus size={14} /> {t('routine.addExercise')}</button>
           </div>
-        </section>
-      </div>}
+        </MotionDialogPanel>)}</MotionDialog>
     </section>
   }
 

@@ -1,0 +1,54 @@
+/* Values are supplied from xensiMotion in main.tsx. Scope gestures to pilot UI. */
+.warmup-category-filters button { position: relative; transition: color var(--motion-fast) var(--motion-easeStandard), background-color var(--motion-fast) var(--motion-easeStandard), border-color var(--motion-fast) var(--motion-easeStandard); }
+.warmup-category-filters button[aria-pressed='true'] { text-decoration: none; }
+.warmup-category-filters .xensi-active-indicator { position: absolute; bottom: 3px; left: 12px; right: 12px; height: 2px; background: var(--accent); border-radius: 1px; pointer-events: none; }
+.xensi-motion-cards { position: relative; }
+.xensi-motion-cards > button { transition: border-color var(--motion-fast) var(--motion-easeStandard), background-color var(--motion-fast) var(--motion-easeStandard); }
+.xensi-motion-cards > button:hover { transform: none; box-shadow: none; border-color: rgba(255,114,81,.5); }
+.xensi-motion-cards > button.preview-active > svg { transform: none; }
+.xensi-preview-layer { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.xensi-preview-layer .warmup-preview { animation: none; }
+.xensi-motion-cards > button > :is(strong, small, i) { position: relative; z-index: 5; pointer-events: none; }
+.xensi-motion-cards > button .warmup-preview { background-color: #090c12; }
+.xensi-motion-cards > button .warmup-preview::after { inset: 0; background: linear-gradient(180deg, rgba(7,9,13,.52), rgba(7,9,13,.38) 38%, rgba(7,9,13,.9) 80%); }
+.xensi-motion-cards > button > i { transition: color var(--motion-interaction) var(--motion-easeOut), translate var(--motion-interaction) var(--motion-easeOut); }
+.xensi-motion-cards > button.preview-active > i { color: #b9ffe8; translate: 2px 0; }
+.xensi-motion-cards > button.preview-active { border-color: var(--accent); }
+.xensi-motion-cards .preview-meta { display: none; }
+.xensi-motion-backdrop { backdrop-filter: none; }
+.xensi-motion-dialog { animation: none; }
+:is(.xensi-motion-dialog, .xensi-navigation) :is(.primary-button, .secondary-button, .icon-button, .modal-close, .xensi-login-trigger) {
+  transition: color var(--motion-fast) var(--motion-easeStandard), background-color var(--motion-fast) var(--motion-easeStandard), border-color var(--motion-fast) var(--motion-easeStandard), opacity var(--motion-fast) var(--motion-easeStandard), scale var(--motion-instant) var(--motion-easeOut);
+}
+:is(.xensi-motion-dialog, .xensi-navigation) :is(.primary-button, .secondary-button, .icon-button, .modal-close, .xensi-login-trigger):enabled:active { scale: .985; }
+.xensi-nav-dropdown > button { transition: color var(--motion-fast) var(--motion-easeStandard), background-color var(--motion-fast) var(--motion-easeStandard); }
+.xensi-nav-dropdown > button:hover, .xensi-nav-dropdown > button:focus-visible { transform: none; }
+.xensi-primary-nav > button::after, .xensi-primary-nav > .xensi-nav-menu-group > button::after { display: none; }
+.xensi-primary-nav .xensi-active-indicator { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--nav-red, #ff4657); box-shadow: 0 0 12px rgba(255,70,87,.4); pointer-events: none; }
+.xensi-primary-nav > button, .xensi-nav-menu-group > button { transition: color var(--motion-interaction) var(--motion-easeStandard), background-color var(--motion-interaction) var(--motion-easeStandard); }
+.xensi-nav-menu-group > button[aria-expanded='true'] { background: rgba(255,79,88,.045); }
+.xensi-metric-transition { position: relative; display: inline-block; overflow: clip; vertical-align: bottom; font-variant-numeric: tabular-nums; }
+.xensi-metric-transition::before { content: attr(data-metric); visibility: hidden; }
+strong .xensi-metric-transition, strong .xensi-metric-transition > span { font: inherit; color: inherit; letter-spacing: inherit; text-transform: none; }
+.xensi-metric-value { position: absolute; inset: 0; white-space: nowrap; }
+.analysis-pb-panel details[open] > dl { animation: xensiDisclosureIn var(--motion-interaction) var(--motion-easeOut) both; }
+@keyframes xensiDisclosureIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.xensi-home-loading { min-height: 540px; display: grid; place-items: center; }
+.xensi-home-loading span { width: 34px; height: 2px; background: var(--accent); }
+/* Snapshots contain presentation only: no outgoing React tree or duplicated game loop. */
+[data-page-motion], .analysis-workspace, .profile-v1-shell, .converter-workspace, .diagnostic-hub-workspace, .content-page-shell { view-transition-name: xensi-content; }
+::view-transition { pointer-events: none; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-group(xensi-content) { animation-duration: var(--motion-slow); animation-timing-function: var(--motion-easeOut); }
+::view-transition-old(xensi-content) { animation: xensiPageOut var(--motion-fast) var(--motion-easeStandard) both; }
+::view-transition-new(xensi-content) { animation: xensiPageIn var(--motion-slow) var(--motion-easeOut) both; }
+@keyframes xensiPageOut { to { opacity: 0; transform: translateY(-8px); } }
+@keyframes xensiPageIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .analysis-pb-panel details[open] > dl { animation: none; }
+  .xensi-motion-cards > button > i { transition: none; translate: none; }
+  .xensi-preview-layer .warmup-preview, .xensi-preview-layer .warmup-preview * { animation: none !important; }
+  .warmup-category-filters button, .xensi-motion-cards > button, .xensi-motion-cards > button > svg, .xensi-nav-dropdown > button,
+  :is(.xensi-motion-dialog, .xensi-navigation) :is(.primary-button, .secondary-button, .icon-button, .modal-close, .xensi-login-trigger) { transition: none; }
+  :is(.xensi-motion-dialog, .xensi-navigation) :is(.primary-button, .secondary-button, .icon-button, .modal-close, .xensi-login-trigger):enabled:active { scale: 1; }
+}

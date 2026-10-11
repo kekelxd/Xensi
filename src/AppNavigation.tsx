@@ -1,3 +1,6 @@
+import { LayoutGroup } from 'motion/react'
+import { ActiveIndicator, MotionDropdown } from './design/MotionSurfaces'
+import { useXensiMotion } from './design/motion'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, BarChart3, ChevronDown, Crosshair, Gamepad2, Gauge, Info, Languages, MonitorUp, Mouse, Settings2, SlidersHorizontal, UserRound } from 'lucide-react'
 import { initializeAuth, readAuthSessionState, signOut, type AuthSessionState } from './authService'
@@ -58,6 +61,7 @@ function readNavProfile() {
 
 export function AppNavigation({ view, analysisSection, locale, disabled, onLocaleChange, onNavigate, onLogin, onAnalysisSection }: Props) {
   const text = labels[locale]
+  const { reduced } = useXensiMotion()
   const shellRef = useRef<HTMLDivElement>(null)
   const menuTriggerRefs = useRef<Partial<Record<MenuName, HTMLButtonElement | null>>>({})
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
@@ -139,7 +143,7 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
       const navigation = trigger?.closest<HTMLElement>('.xensi-primary-nav')
       if (!trigger || !navigation || navigation.scrollWidth <= navigation.clientWidth) return
       const left = trigger.offsetLeft - (navigation.clientWidth - trigger.offsetWidth) / 2
-      navigation.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
+      navigation.scrollTo({ left: Math.max(0, left), behavior: reduced ? 'instant' : 'smooth' })
     })
   }
   const toggle = (menu: MenuName) => {
@@ -168,49 +172,49 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
   return <div className="xensi-navigation" ref={shellRef}>
     <XensiLogo as="button" onClick={() => navigate('home')} disabled={disabled} />
 
-    <nav className="xensi-primary-nav" aria-label="XENSI">
-      <button type="button" className={view === 'home' ? 'active' : ''} onClick={() => navigate('home')} disabled={disabled}>{text.home}</button>
+    <LayoutGroup id="navbar"><nav className="xensi-primary-nav" aria-label="XENSI">
+      <button type="button" className={view === 'home' ? 'active' : ''} onClick={() => navigate('home')} disabled={disabled}>{text.home}{(view === 'home') && <ActiveIndicator />}</button>
       <div className="xensi-nav-menu-group">
-        <button ref={(node) => { menuTriggerRefs.current.train = node }} type="button" className={view === 'warmup' || view === 'routine' ? 'active' : ''} onClick={() => toggle('train')} onKeyDown={(event) => openFromKeyboard('train', event)} disabled={disabled} aria-haspopup="menu" aria-expanded={openMenu === 'train'}>{text.train}<ChevronDown size={13} /></button>
-        {openMenu === 'train' && <div className="xensi-nav-dropdown xensi-training-dropdown" data-menu="train" role="menu" aria-label={text.train} onKeyDown={navigateMenuWithKeyboard}>
+        <button ref={(node) => { menuTriggerRefs.current.train = node }} type="button" className={view === 'warmup' || view === 'routine' ? 'active' : ''} onClick={() => toggle('train')} onKeyDown={(event) => openFromKeyboard('train', event)} disabled={disabled} aria-haspopup="menu" aria-expanded={openMenu === 'train'}>{text.train}{(view === 'warmup' || view === 'routine') && <ActiveIndicator />}<ChevronDown size={13} /></button>
+        <MotionDropdown open={openMenu === 'train'} className="xensi-nav-dropdown xensi-training-dropdown" data-menu="train" role="menu" aria-label={text.train} onKeyDown={navigateMenuWithKeyboard}>
           <button type="button" role="menuitem" onClick={() => navigate('warmup')}><Crosshair size={18} /><span><b>{text.minigames}</b><small>{text.minigamesDescription}</small></span></button>
           <button type="button" role="menuitem" onClick={() => navigate('routine')}><SlidersHorizontal size={18} /><span><b>{text.routines}</b><small>{text.routinesDescription}</small></span></button>
-        </div>}
+        </MotionDropdown>
       </div>
       <div className="xensi-nav-menu-group">
-        <button ref={(node) => { menuTriggerRefs.current.calibrate = node }} type="button" className={view === 'calibration' ? 'active' : ''} onClick={() => toggle('calibrate')} onKeyDown={(event) => openFromKeyboard('calibrate', event)} disabled={disabled} aria-haspopup="menu" aria-expanded={openMenu === 'calibrate'}>{text.calibrate}<ChevronDown size={13} /></button>
-        {openMenu === 'calibrate' && <div className="xensi-nav-dropdown xensi-calibrate-dropdown" data-menu="calibrate" role="menu" aria-label={text.calibrate} onKeyDown={navigateMenuWithKeyboard}>
+        <button ref={(node) => { menuTriggerRefs.current.calibrate = node }} type="button" className={view === 'calibration' ? 'active' : ''} onClick={() => toggle('calibrate')} onKeyDown={(event) => openFromKeyboard('calibrate', event)} disabled={disabled} aria-haspopup="menu" aria-expanded={openMenu === 'calibrate'}>{text.calibrate}{(view === 'calibration') && <ActiveIndicator />}<ChevronDown size={13} /></button>
+        <MotionDropdown open={openMenu === 'calibrate'} className="xensi-nav-dropdown xensi-calibrate-dropdown" data-menu="calibrate" role="menu" aria-label={text.calibrate} onKeyDown={navigateMenuWithKeyboard}>
           <span className="xensi-nav-dropdown-label">{text.calibrate}</span>
           <button type="button" role="menuitem" className="is-primary" onClick={() => navigate('calibration')}><Crosshair size={15} /><span><b>{text.calibration}</b><small>{text.calibrationDescription}</small></span></button>
           <button type="button" role="menuitem" className={view === 'analysis' && analysisSection === 'calibration-history' ? 'active is-secondary' : 'is-secondary'} aria-current={view === 'analysis' && analysisSection === 'calibration-history' ? 'page' : undefined} onClick={() => selectAnalysis('calibration-history')}><BarChart3 size={15} /><span><b>{text.history}</b><small>{text.historyDescription}</small></span></button>
           <i className="xensi-nav-dropdown-divider" aria-hidden="true" />
           <button type="button" role="menuitem" className={view === 'analysis' && analysisSection === 'methodology' ? 'active is-documentation' : 'is-documentation'} aria-current={view === 'analysis' && analysisSection === 'methodology' ? 'page' : undefined} onClick={() => selectAnalysis('methodology')}><Info size={15} /><span><b>{text.method}</b><small>{text.methodDescription}</small></span></button>
-        </div>}
+        </MotionDropdown>
       </div>
-      <button type="button" className={view === 'converter' ? 'active' : ''} onClick={() => navigate('converter')} disabled={disabled}>{text.convert}</button>
+      <button type="button" className={view === 'converter' ? 'active' : ''} onClick={() => navigate('converter')} disabled={disabled}>{text.convert}{(view === 'converter') && <ActiveIndicator />}</button>
       <div className="xensi-nav-menu-group">
-        <button ref={(node) => { menuTriggerRefs.current.diagnostic = node }} type="button" className={diagnosticActive ? 'active' : ''} onClick={() => toggle('diagnostic')} onKeyDown={(event) => openFromKeyboard('diagnostic', event)} disabled={disabled} aria-haspopup="menu" aria-expanded={openMenu === 'diagnostic'} aria-current={diagnosticActive ? 'page' : undefined}>{text.diagnostic}<ChevronDown size={13} /></button>
-        {openMenu === 'diagnostic' && <div className="xensi-nav-dropdown xensi-diagnostic-dropdown" data-menu="diagnostic" role="menu" aria-label={text.diagnostic} onKeyDown={navigateMenuWithKeyboard}>
+        <button ref={(node) => { menuTriggerRefs.current.diagnostic = node }} type="button" className={diagnosticActive ? 'active' : ''} onClick={() => toggle('diagnostic')} onKeyDown={(event) => openFromKeyboard('diagnostic', event)} disabled={disabled} aria-haspopup="menu" aria-expanded={openMenu === 'diagnostic'} aria-current={diagnosticActive ? 'page' : undefined}>{text.diagnostic}{(diagnosticActive) && <ActiveIndicator />}<ChevronDown size={13} /></button>
+        <MotionDropdown open={openMenu === 'diagnostic'} className="xensi-nav-dropdown xensi-diagnostic-dropdown" data-menu="diagnostic" role="menu" aria-label={text.diagnostic} onKeyDown={navigateMenuWithKeyboard}>
           <span className="xensi-nav-dropdown-label">{text.diagnostic}</span>
           <button type="button" role="menuitem" className={view === 'polling' ? 'active' : ''} aria-current={view === 'polling' ? 'page' : undefined} onClick={() => navigate('polling')}><Gauge size={16} /><span><b>{text.polling}</b><small>{text.pollingDescription}</small></span></button>
           <button type="button" role="menuitem" className={view === 'buttons' ? 'active' : ''} aria-current={view === 'buttons' ? 'page' : undefined} onClick={() => navigate('buttons')}><Mouse size={16} /><span><b>{text.input}</b><small>{text.inputDescription}</small></span></button>
           <button type="button" role="menuitem" className={view === 'refresh-rate' ? 'active' : ''} aria-current={view === 'refresh-rate' ? 'page' : undefined} onClick={() => navigate('refresh-rate')}><MonitorUp size={16} /><span><b>{text.refresh}</b><small>{text.refreshDescription}</small></span></button>
           <button type="button" role="menuitem" className={view === 'controller-drift' ? 'active' : ''} aria-current={view === 'controller-drift' ? 'page' : undefined} onClick={() => navigate('controller-drift')}><Gamepad2 size={16} /><span><b>{text.drift}</b><small>{text.driftDescription}</small></span></button>
-        </div>}
+        </MotionDropdown>
       </div>
-      <button type="button" className={view === 'analysis' ? 'active' : ''} onClick={() => selectAnalysis('overview')} disabled={disabled}>{text.analysis}</button>
-    </nav>
+      <button type="button" className={view === 'analysis' ? 'active' : ''} onClick={() => selectAnalysis('overview')} disabled={disabled}>{text.analysis}{(view === 'analysis') && <ActiveIndicator />}</button>
+    </nav></LayoutGroup>
 
     <div className="xensi-nav-actions">
       {authState.status === 'loading' ? <div className="xensi-auth-skeleton" aria-label="Carregando sessão" /> : authState.status === 'authenticated' ? <div className="xensi-nav-menu-group">
         <button ref={(node) => { menuTriggerRefs.current.profile = node }} type="button" className={`xensi-user-trigger ${view === 'profile' ? 'active' : ''}`} onClick={() => toggle('profile')} disabled={disabled} aria-haspopup="menu" aria-expanded={openMenu === 'profile'}><AvatarArtwork avatarId={navProfile.avatarId} size="sm" /><b>{navProfile.nickname}</b><ChevronDown size={13} /></button>
-        {profileMenuOpen && <div className="xensi-nav-dropdown xensi-nav-dropdown-right xensi-profile-dropdown">
+        <MotionDropdown open={profileMenuOpen} className="xensi-nav-dropdown xensi-nav-dropdown-right xensi-profile-dropdown">
           <button type="button" onClick={() => navigate('profile')}><UserRound size={15} /><span><b>{text.profile}</b></span></button>
           <button type="button" onClick={() => navigate('profile')}><Settings2 size={15} /><span><b>{text.settings}</b></span></button>
           <label><Languages size={15} /><select value={locale} onChange={(event) => onLocaleChange(event.target.value as Locale)} aria-label={text.settings}><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select></label>
           <i />
           <button type="button" onClick={logout}><span><b>{text.logout}</b></span></button>
-        </div>}
+        </MotionDropdown>
       </div> : <button type="button" className="xensi-login-trigger" onClick={onLogin} disabled={disabled} aria-label="Login"><UserRound size={16} /><span>LOGIN</span><ArrowRight size={15} /></button>}
     </div>
   </div>

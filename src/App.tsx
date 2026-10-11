@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { navigateWithPageMotion } from './design/pageMotion'
+import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Activity, Circle, Crosshair, Dot, MousePointer2, Plus, Settings2, Target, X, type LucideIcon } from 'lucide-react'
 import { buildCalibrationReport, calculateRoundResult, createCalibrationSessionSummary, getTargetSpeed, isCalibrationComplete, readCalibrationHistory, ROUND_DURATION, ROUND_WARMUP, selectValidationCandidateIds, writeCalibrationSession, type CalibrationSessionSummary, type RoundCapture, type RoundIssue, type RoundResult, type TargetSpeedMode } from './calibration'
@@ -18,7 +20,7 @@ import { Warmup } from './Warmup'
 import { Routine } from './Routine'
 import { CalibrationLanding } from './CalibrationLanding'
 import { CalibrationReportView } from './CalibrationReport'
-import { Home } from './Home'
+const Home = lazy(() => import('./Home').then(module => ({ default: module.Home })))
 import { InstitutionalPage } from './InstitutionalPage'
 import { DiagnosticLanding } from './DiagnosticLanding'
 import { PlayerProfile, type ProfilePresetLaunch } from './PlayerProfile'
@@ -80,6 +82,7 @@ function App() {
   const arenaRef = useRef<TrackingArenaHandle>(null)
   const phaseRemainingMsRef = useRef(3000)
   const [view, setView] = useState<AppView>(() => readRouteStateFromLocation().view)
+  const currentViewRef = useRef(view)
   const [authRoute, setAuthRoute] = useState<AuthMode | null>(() => readRouteStateFromLocation().authRoute)
   const [analysisSection, setAnalysisSection] = useState<AnalysisSection>(() => readRouteStateFromLocation().analysisSection)
   const [warmupEntry, setWarmupEntry] = useState<WarmupExercise | null>(() => readRouteStateFromLocation().warmupEntry)
@@ -121,11 +124,13 @@ function App() {
     setWarmupEntry(routeState.warmupEntry)
   }
 
+  useEffect(() => { currentViewRef.current = view }, [view])
+
   useEffect(() => {
     const syncRouteFromLocation = () => {
       const routeState = readRouteStateFromLocation()
       if (routeState.shouldReplace) window.history.replaceState({}, '', routeState.canonicalPath)
-      applyRouteState(routeState)
+      navigateWithPageMotion(() => applyRouteState(routeState), currentViewRef.current, routeState.view, false)
     }
     syncRouteFromLocation()
     window.addEventListener('popstate', syncRouteFromLocation)
@@ -452,8 +457,10 @@ function App() {
   ) => {
     if (next === 'converter' && !options.preserveLaunchPreset) setConverterPreset(null)
     if (next === 'calibration' && !options.preserveLaunchPreset) setFinderPreset(null)
+    // Keep URL/history immediate, including clicks that interrupt a snapshot capture.
     window.history.pushState({}, '', viewRoutePath(next, options))
-    applyRouteState(readRouteStateFromLocation())
+    const routeState = readRouteStateFromLocation()
+    navigateWithPageMotion(() => applyRouteState(routeState), view, next, active)
   }
 
   const completeAuth = () => {
@@ -490,7 +497,7 @@ function App() {
       </header>
       <PresetSyncStatus />
 
-      {view === 'home' ? <Home onNavigate={navigateView} /> : view === 'about' || view === 'privacy' || view === 'terms' || view === 'contact' ? <InstitutionalPage page={view} onNavigate={navigateView} /> : view === 'analysis' ? <Analysis section={analysisSection} onStartTraining={() => navigateView('warmup')} /> : view === 'profile' ? <PlayerProfile key={presetState.userId ?? 'guest'} onConvert={(preset) => { setConverterPreset(preset); navigateView('converter', { preserveLaunchPreset: true }) }} onCalibrate={(preset) => { setFinderPreset(preset); navigateView('calibration', { preserveLaunchPreset: true }) }} /> : view === 'routine' ? <Routine key={presetState.userId ?? 'guest'} /> : view === 'warmup' ? <Warmup key={`${presetState.userId ?? 'guest'}:${warmupEntry ?? 'hub'}`} initialExercise={warmupEntry} onExerciseChange={(exercise) => navigateView('warmup', { warmupEntry: exercise })} /> : view === 'calibration' ? <SensitivityFinderModal initialPreset={finderPreset ? { ...finderPreset, gameId: finderPreset.gameId as GameId } : null} /> : view === 'diagnostics' ? <DiagnosticLanding onNavigate={navigateView} /> : showLegacyCalibration ? calibrationStarted ? <><section className="workspace">
+      {view === 'home' ? <Suspense fallback={<div className="xensi-home-loading" role="status" aria-label="XENSI"><span /></div>}><Home onNavigate={navigateView} /></Suspense> : view === 'about' || view === 'privacy' || view === 'terms' || view === 'contact' ? <InstitutionalPage page={view} onNavigate={navigateView} /> : view === 'analysis' ? <Analysis section={analysisSection} onStartTraining={() => navigateView('warmup')} /> : view === 'profile' ? <PlayerProfile key={presetState.userId ?? 'guest'} onConvert={(preset) => { setConverterPreset(preset); navigateView('converter', { preserveLaunchPreset: true }) }} onCalibrate={(preset) => { setFinderPreset(preset); navigateView('calibration', { preserveLaunchPreset: true }) }} /> : view === 'routine' ? <Routine key={presetState.userId ?? 'guest'} /> : view === 'warmup' ? <Warmup key={`${presetState.userId ?? 'guest'}:${warmupEntry ?? 'hub'}`} initialExercise={warmupEntry} onExerciseChange={(exercise) => navigateView('warmup', { warmupEntry: exercise })} /> : view === 'calibration' ? <SensitivityFinderModal initialPreset={finderPreset ? { ...finderPreset, gameId: finderPreset.gameId as GameId } : null} /> : view === 'diagnostics' ? <DiagnosticLanding onNavigate={navigateView} /> : showLegacyCalibration ? calibrationStarted ? <><section className="workspace">
         <aside className="metrics-rail">
           <div className="rail-heading"><Activity size={15} /> {t('calibration.live')}</div>
           <Metric label={t('common.accuracy')} value={format(metrics.accuracy)} suffix="%" tone="#8dfbd3" />
@@ -576,9 +583,7 @@ function App() {
         <div className="dpi-status">{t('calibration.physicalProfile', { dpi: confirmedDpi, fov: confirmedHorizontalFov })}</div>
       </footer></> : <CalibrationLanding rounds={`${BASE_CANDIDATE_MULTIPLIERS.length * CALIBRATION_REPETITIONS}+${VALIDATION_FINALIST_COUNT * VALIDATION_REPETITIONS}`} seconds={ROUND_DURATION} onStart={start} /> : view === 'converter' ? <SensitivityConverter initialPreset={converterPreset} /> : view === 'polling' ? <PollingRateTest /> : view === 'buttons' ? <MouseButtonTest /> : view === 'refresh-rate' ? <RefreshRateTest /> : <ControllerDriftTest />}
 
-      {view === 'calibration' && setupOpen && (
-        <div className="modal-backdrop">
-          <section className="modal setup-modal calibration-setup-modal">
+      <MotionDialog open={Boolean(view === 'calibration' && setupOpen)} className="modal-backdrop">{view === 'calibration' && setupOpen && (<MotionDialogPanel className="modal setup-modal calibration-setup-modal">
             <button className="modal-close" onClick={closeSetup} aria-label={t('common.close')}><X size={18} /></button>
             <Settings2 size={22} className="modal-icon" />
             <h2>{t('calibration.setupTitle')}</h2>
@@ -644,13 +649,9 @@ function App() {
                 ? <button className="primary-button" onClick={() => setSetupStep((setupStep + 1) as CalibrationSetupStep)} disabled={setupStep === 2 && (parsedSensitivityInput === null || parsedDpiInput === null || fovPreview === null || !setupCanCalibrate)}>{t('warmup.next')}</button>
                 : <button className="primary-button" onClick={saveSetup} disabled={parsedSensitivityInput === null || parsedDpiInput === null || fovPreview === null || !setupCanCalibrate}>{startAfterSetup ? t('calibration.saveStart') : t('calibration.save')}</button>}
             </div>
-          </section>
-        </div>
-      )}
+          </MotionDialogPanel>)}</MotionDialog>
 
-      {view === 'calibration' && resultOpen && (
-        <div className="modal-backdrop calibration-result-backdrop">
-          <section className="modal result-modal calibration-result-modal" role="dialog" aria-modal="true" aria-labelledby="calibration-result-title">
+      <MotionDialog open={Boolean(view === 'calibration' && resultOpen)} className="modal-backdrop calibration-result-backdrop">{view === 'calibration' && resultOpen && (<MotionDialogPanel className="modal result-modal calibration-result-modal" role="dialog" aria-modal="true" aria-labelledby="calibration-result-title">
             <button className="modal-close" onClick={() => setResultOpen(false)} aria-label={t('common.close')}><X size={18} /></button>
             <Target size={24} className="modal-icon" />
             <div className="panel-label">{t('common.result')}</div>
@@ -670,9 +671,7 @@ function App() {
               onRedo={reset}
               onClose={() => setResultOpen(false)}
             />}
-          </section>
-        </div>
-      )}
+          </MotionDialogPanel>)}</MotionDialog>
     </main>
   )
 }

@@ -1,3 +1,5 @@
+import { AnimatedMetric } from './design/AnimatedMetric'
+import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshCw, X, Play, Trash2 } from 'lucide-react'
 import { useI18n } from './i18n'
@@ -66,17 +68,17 @@ function AnalysisDashboard({ onStartTraining }: Props) {
     {state.status==='loading'?<p className="av1-state" role="status">{copy.loading}</p>:state.status==='error'?<p className="av1-state" role="alert">{copy.error}</p>:data&&<>
       {!data.total?<div className="av1-empty"><h2>{copy.empty}</h2><p>{copy.emptyText}</p>{onStartTraining&&<button className="primary-button" onClick={onStartTraining}><Play size={15}/>{copy.train}</button>}</div>:<>
       <div className="analysis-v1-summary" aria-label={copy.title}>
-        {metric&&<><div><span>{copy[metric.aggregation]}</span><strong>{formatAnalysisValue(aggregateValue(data.current,metric),metric,locale)}</strong></div>
-        <div><span>{copy.primaryPB}</span><strong>{pb&&primary?formatAnalysisValue(pb.value,primary,locale):'—'}</strong><small>{!pb?copy.noPB:primary?t(primary.label):''}</small></div>
-        <div><span>{copy.variation}</span><strong>{data.current.variation===null?'—':formatAnalysisValue(data.current.variation,{unit:'%',precision:1},locale)}</strong></div></>}
-        <div><span>{copy.count}</span><strong>{new Intl.NumberFormat(locale).format(data.total)}</strong></div>
+        {metric&&<><div><span>{copy[metric.aggregation]}</span><strong><AnimatedMetric value={aggregateValue(data.current,metric)} format={value => formatAnalysisValue(value,metric,locale)} /></strong></div>
+        <div><span>{copy.primaryPB}</span><strong><AnimatedMetric value={pb?.value ?? null} format={value => primary ? formatAnalysisValue(value,primary,locale) : '—'} /></strong><small>{!pb?copy.noPB:primary?t(primary.label):''}</small></div>
+        <div><span>{copy.variation}</span><strong><AnimatedMetric value={data.current.variation} format={value => formatAnalysisValue(value,{unit:'%',precision:1},locale)} /></strong></div></>}
+        <div><span>{copy.count}</span><strong><AnimatedMetric value={data.total} format={value => new Intl.NumberFormat(locale).format(value ?? 0)} /></strong></div>
         {!metric&&<div><span>{copy.overview}</span><strong>{options.length}</strong></div>}
       </div>
       <section className="av1-section"><h2>{copy.chart}{metric&&<small>{t(metric.label)}</small>}</h2>{metric?data.points.length?<AnalysisChart key={JSON.stringify(query)} sessions={data.points} metric={metric} pb={metric.key===primary?.key&&pb?pb.value:null} onDetails={openDetails}/>:<p className="av1-state">{copy.noMetric}</p>:<p className="av1-state">{copy.select}</p>}
         {data.pointCount>300&&<p className="av1-note">{copy.limited}</p>}
       </section>
       {metric&&<section className="av1-section av1-period"><h2>{copy.comparison}</h2>{period==='all'?<p>{copy.noComparison}</p>:<>
-        <div><span>{copy.current}<strong>{formatAnalysisValue(aggregateValue(data.current,metric),metric,locale)}</strong><small>{data.current.count} {copy.count.toLowerCase()}</small></span>
+        <div><span>{copy.current}<strong><AnimatedMetric value={aggregateValue(data.current,metric)} format={value => formatAnalysisValue(value,metric,locale)} /></strong><small>{data.current.count} {copy.count.toLowerCase()}</small></span>
         <span>{copy.previous}<strong>{formatAnalysisValue(aggregateValue(data.previous,metric),metric,locale)}</strong><small>{data.previous.count} {copy.count.toLowerCase()}</small></span>
         <span className={change===null||change===0?'':change>0?'positive':'negative'}>{change===null?copy.insufficient:`${change>0?'+':''}${formatAnalysisValue(change,{unit:'%',precision:1},locale)}`}</span></div></>}
       </section>}
@@ -86,8 +88,7 @@ function AnalysisDashboard({ onStartTraining }: Props) {
         {data.recent.map(s=>{const m=getAnalysisMetrics(s.exerciseId)[0];return <button key={s.id} type="button" onClick={()=>openDetails(s)}><span><b>{labels.exerciseName(s)}</b><small>{s.config!.spatial ? `${s.config!.spatial.roundCount} ${t('spatial.rounds')} · HRTF` : `${s.config!.durationSeconds}s · ${t(`difficulty.${s.config!.difficulty}`)}`}</small></span><strong>{formatAnalysisValue(getMetricValue(s,m),m,locale)}</strong><time dateTime={s.finishedAt}>{labels.date(s)}</time></button>})}
       </div></section>
     </>}
-    {shownDetails&&<div className="modal-backdrop" onClick={()=>setDetails(null)} onKeyDown={e=>{if(e.key==='Escape')setDetails(null)}}>
-      <section className="modal av1-details" role="dialog" aria-modal="true" aria-label={copy.details} onClick={e=>e.stopPropagation()} onKeyDown={e=>{
+    <MotionDialog open={Boolean(shownDetails)} className="modal-backdrop" onClick={()=>setDetails(null)} onKeyDown={e=>{if(e.key==='Escape')setDetails(null)}}>{shownDetails && (<MotionDialogPanel className="modal av1-details" role="dialog" aria-modal="true" aria-label={copy.details} onClick={e=>e.stopPropagation()} onKeyDown={e=>{
         if (e.key !== 'Tab') return
         const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')]
         const first = buttons[0], last = buttons[buttons.length - 1]
@@ -100,7 +101,6 @@ function AnalysisDashboard({ onStartTraining }: Props) {
         <AnalysisSessionContext session={shownDetails}/>
         {deleteError&&<p role="alert">{copy.deleteError}</p>}
         <button className="secondary-button" disabled={deleting} onClick={()=>void removeSession()}><Trash2 size={16}/>{copy.deleteSession}</button>
-      </section>
-    </div>}
+      </MotionDialogPanel>)}</MotionDialog>
   </section>
 }

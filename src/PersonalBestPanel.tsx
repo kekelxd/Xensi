@@ -1,3 +1,4 @@
+import { AnimatedMetric } from './design/AnimatedMetric'
 import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { getPersonalBestService, usePersonalBests } from './personalBestService'
@@ -36,7 +37,7 @@ export function PersonalBestPanel({ exercise, variant }: { exercise?: TrainingSe
           ]
           return <section key={best.key} data-session-id={best.sessionId}>
             <span>{EXERCISES.find(exercise => exercise.id === best.exerciseId)?.name}</span>
-            <strong>{formatPersonalBestValue({ definition: SESSION_REGISTRY[best.exerciseId], value: best.value }, locale)}</strong>
+            <strong><AnimatedMetric value={best.value} format={value => formatPersonalBestValue({ definition: SESSION_REGISTRY[best.exerciseId], value: value ?? best.value }, locale)} /></strong>
             <small>{config.spatial ? `${config.spatial.roundCount} ${t('spatial.rounds')} · HRTF · FOV ${config.spatial.horizontalFov}°` : `${config.durationSeconds}s · ${t(`difficulty.${config.difficulty}`)}`} · v{best.exerciseVersion}</small>
             <time dateTime={best.achievedAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(best.achievedAt))}</time>
             <details><summary>{copy.configuration}</summary><dl>{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>

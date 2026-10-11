@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useState, type ComponentType, type CSSProperties } from 'react'
+import { useHomeLighting } from './design/useHomeLighting'
+import { motion, useReducedMotion } from 'motion/react'
+import { HomeReveal, HomeRevealItem, TechnicalTitle } from './design/HomeMotion'
+import { xensiMotion } from './design/motion'
+import { useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from 'react'
 import {
   ArrowRight,
   BarChart3,
@@ -257,14 +261,16 @@ function IconBadge({ icon: Icon }: { icon: LucideIcon }) {
 function HomeHero({ onNavigate }: Props) {
   const { locale } = useI18n()
   const current = copy[locale]
+  const reduced = useReducedMotion()
 
-  return <section className="xensi-reference-hero xensi-home-v3-hero" aria-labelledby="home-title">
+  return <section className="xensi-reference-hero xensi-home-v3-hero" aria-labelledby="home-title" data-home-hero data-light-surface>
+    <motion.div className="xensi-hero-atmosphere" aria-hidden="true" initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reduced ? 0 : xensiMotion.durations.cinematic }}><div className="xensi-hero-light" /><div className="xensi-hero-calibration-line" /></motion.div>
     <div className="xensi-reference-copy xensi-home-v3-hero-copy">
-      <h1 id="home-title"><span>{current.heroTitleOne}</span><span>{current.heroTitleTwo}</span></h1>
-      <p>{current.heroDescription}</p>
+      <h1 id="home-title"><TechnicalTitle>{current.heroTitleOne}</TechnicalTitle><TechnicalTitle index={1}>{current.heroTitleTwo}</TechnicalTitle></h1>
+      <motion.p initial={reduced ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : xensiMotion.durations.reveal, delay: reduced ? 0 : xensiMotion.hero.description, ease: xensiMotion.easings.easeOut }}>{current.heroDescription}</motion.p>
       <div className="xensi-home-v3-actions">
-        <button type="button" className="xensi-home-v3-primary" onClick={() => onNavigate('warmup')}>{current.primaryCta}<ArrowRight size={18} /></button>
-        <button type="button" className="xensi-home-v3-secondary" onClick={() => onNavigate('buttons')}>{current.secondaryCta}<Mouse size={17} /></button>
+        <motion.button initial={reduced ? false : { opacity: 0.25, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : xensiMotion.durations.interaction, delay: reduced ? 0 : xensiMotion.hero.actions + 0 * xensiMotion.hero.actionGap, ease: xensiMotion.easings.easeOut }} whileTap={reduced ? undefined : { scale: .985 }} type="button" className="xensi-home-v3-primary" onClick={() => onNavigate('warmup')}>{current.primaryCta}<ArrowRight size={18} /></motion.button>
+        <motion.button initial={reduced ? false : { opacity: 0.25, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : xensiMotion.durations.interaction, delay: reduced ? 0 : xensiMotion.hero.actions + 1 * xensiMotion.hero.actionGap, ease: xensiMotion.easings.easeOut }} whileTap={reduced ? undefined : { scale: .985 }} type="button" className="xensi-home-v3-secondary" onClick={() => onNavigate('buttons')}>{current.secondaryCta}<Mouse size={17} /></motion.button>
       </div>
     </div>
   </section>
@@ -296,7 +302,8 @@ function PathCard({
   const featureIcons = accent === 'coral'
     ? [Target, SlidersHorizontal, RefreshCw, BarChart3]
     : [Mouse, Crosshair, Monitor, Gamepad2]
-  return <article className={`xensi-home-v3-path-card is-${accent}`}>
+  return <HomeRevealItem className={`xensi-home-v3-path-card is-${accent}`} data-light-surface>
+    <span className="xensi-edge-light" aria-hidden="true" />
     <div className="xensi-home-v3-path-main">
       <IconBadge icon={Icon} />
       <h3>{title}</h3>
@@ -321,13 +328,13 @@ function PathCard({
         </li>
       })}
     </ul>
-  </article>
+  </HomeRevealItem>
 }
 
 function HomePathways({ onNavigate }: Props) {
   const { locale } = useI18n()
   const current = copy[locale]
-  return <section className="xensi-home-v3-section xensi-home-v3-pathways" aria-labelledby="home-path-title">
+  return <HomeReveal className="xensi-home-v3-section xensi-home-v3-pathways" aria-labelledby="home-path-title">
     <div className="xensi-home-v3-section-head xensi-home-v3-split-head">
       <div>
         <span>{current.pathKicker}</span>
@@ -350,7 +357,7 @@ function HomePathways({ onNavigate }: Props) {
         onItemClick={onNavigate}
       />
     </div>
-  </section>
+  </HomeReveal>
 }
 
 function ProgressCard({
@@ -372,7 +379,7 @@ function ProgressCard({
   onClick: () => void
   empty?: boolean
 }) {
-  return <article className={`xensi-home-v3-progress-card ${empty ? 'is-empty' : ''}`}>
+  return <HomeRevealItem className={`xensi-home-v3-progress-card ${empty ? 'is-empty' : ''}`}>
     <header><IconBadge icon={icon} /><span>{label}</span></header>
     <h3>{title}</h3>
     <p>{description}</p>
@@ -380,7 +387,7 @@ function ProgressCard({
       {rows.map(([term, value]) => <div key={term}><dt>{term}</dt><dd>{value}</dd></div>)}
     </dl>}
     <button type="button" onClick={onClick}>{cta}<ArrowRight size={15} /></button>
-  </article>
+  </HomeRevealItem>
 }
 
 function buildTrainingRows(training: LastTraining | null, locale: Locale): Array<[string, string]> {
@@ -415,7 +422,7 @@ function HomeProgress({ summary, onNavigate }: { summary: HomeSummary; onNavigat
   const presetGame = summary.activePreset ? GAME_SENSITIVITY_PROFILE_BY_ID[summary.activePreset.gameId] : null
   const cm360 = summary.activePreset ? calculatePresetCm360(summary.activePreset) : null
 
-  return <section className="xensi-home-v3-section xensi-home-v3-progress" aria-labelledby="home-progress-title">
+  return <HomeReveal className="xensi-home-v3-section xensi-home-v3-progress" aria-labelledby="home-progress-title">
     <div className="xensi-home-v3-section-head">
       <span>{current.progressKicker}</span>
       <h2 id="home-progress-title">{current.progressTitle}</h2>
@@ -452,14 +459,14 @@ function HomeProgress({ summary, onNavigate }: { summary: HomeSummary; onNavigat
         onClick={() => onNavigate('routine')}
       />
     </div>
-  </section>
+  </HomeReveal>
 }
 
 function HomeEcosystem({ onNavigate }: Props) {
   const { locale } = useI18n()
   const current = copy[locale]
   const icons: Array<ComponentType<{ size?: number }>> = [BarChart3, Sparkles, Gamepad2, Zap]
-  return <section className="xensi-home-v3-section xensi-home-v3-ecosystem" id="ecossistema" aria-labelledby="home-ecosystem-title">
+  return <HomeReveal className="xensi-home-v3-section xensi-home-v3-ecosystem" id="ecossistema" aria-labelledby="home-ecosystem-title">
     <div className="xensi-home-v3-ecosystem-copy">
       <h2 id="home-ecosystem-title">{current.ecosystemTitle}</h2>
       <p>{current.ecosystemDescription}</p>
@@ -468,17 +475,19 @@ function HomeEcosystem({ onNavigate }: Props) {
     <div className="xensi-home-v3-pillars">
       {current.pillars.map(([title, description], index) => {
         const Icon = icons[index]
-        return <article key={title} style={{ '--item-index': index } as CSSProperties}>
+        return <HomeRevealItem key={title} style={{ '--item-index': index } as CSSProperties}>
           <Icon size={19} />
           <h3>{title}</h3>
           <p>{description}</p>
-        </article>
+        </HomeRevealItem>
       })}
     </div>
-  </section>
+  </HomeReveal>
 }
 
 export function Home({ onNavigate }: Props) {
+  const homeRef = useRef<HTMLElement>(null)
+  useHomeLighting(homeRef)
   const profile = usePlayerProfile()
   const routines = useRoutineState()
   const sessions = useSessionState()
@@ -506,9 +515,9 @@ export function Home({ onNavigate }: Props) {
     savedRoutine: routines.status === 'ready' ? routines.items[0] ?? null : null,
   }), [summary, profile.presets, routines, sessions])
 
-  return <main className="xensi-home xensi-reference xensi-home-v3">
+  return <main ref={homeRef} className="xensi-home xensi-reference xensi-home-v3 xensi-premium-home">
     <div className="xensi-home-v3-shell">
-      <div className="xensi-home-v3-content">
+      <div className="xensi-home-v3-content" data-page-motion>
         <HomeHero onNavigate={onNavigate} />
         <HomePathways onNavigate={onNavigate} />
         <HomeProgress summary={stableSummary} onNavigate={onNavigate} />

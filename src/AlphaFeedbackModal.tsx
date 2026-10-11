@@ -1,3 +1,4 @@
+import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Bug, Lightbulb, MessageSquareText, Send, X } from 'lucide-react'
 import {
@@ -110,7 +111,6 @@ export function AlphaFeedbackModal({ open, onClose }: AlphaFeedbackModalProps) {
     window.setTimeout(() => titleRef.current?.focus(), 0)
   }, [open])
 
-  if (!open) return null
 
   const closeWhenSafe = () => {
     if (!sending) onClose()
@@ -164,8 +164,8 @@ export function AlphaFeedbackModal({ open, onClose }: AlphaFeedbackModalProps) {
   }
 
   return (
-    <div className="modal-backdrop alpha-feedback-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeWhenSafe() }}>
-      <section
+    <MotionDialog open={open} className="modal-backdrop alpha-feedback-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeWhenSafe() }}>
+      <MotionDialogPanel
         ref={dialogRef}
         className="modal alpha-feedback-modal"
         role="dialog"
@@ -235,7 +235,7 @@ export function AlphaFeedbackModal({ open, onClose }: AlphaFeedbackModalProps) {
             <button type="submit" className="primary-button" disabled={locked}><Send size={14} />{sending ? text.sending : text.submit}</button>
           </footer>
         </form>
-      </section>
-    </div>
+      </MotionDialogPanel>
+    </MotionDialog>
   )
 }

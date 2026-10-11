@@ -1,3 +1,8 @@
+import { AnimatedMetric } from './design/AnimatedMetric'
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
+import { ActiveIndicator, MotionExerciseCard } from './design/MotionSurfaces'
+import { useXensiMotion } from './design/motion'
+import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import { Activity, ArrowLeft, ArrowRight, Crosshair, Dot, Circle, Plus, LogOut, MousePointer2, Play, RotateCcw, Settings2, Sparkles, Target, TrendingUp, X, type LucideIcon } from 'lucide-react'
@@ -777,6 +782,7 @@ export function Warmup({
   const [sessionId, setSessionId] = useState(0)
   const [previewExercise, setPreviewExercise] = useState<WarmupExercise | null>(null)
   const [category, setCategory] = useState<ExerciseCategory | 'all'>('all')
+  const motionSettings = useXensiMotion()
   const visibleExercises = EXERCISES.filter(item => category === 'all' || item.category === category)
   const [sniperFocused, setSniperFocused] = useState(false)
   const activePreview = sniperFocused ? 'sniper-reaction' : previewExercise
@@ -889,24 +895,31 @@ export function Warmup({
           <h1>{t('warmup.title')}</h1>
           <p>{t('warmup.subtitle')}</p>
         </div>
-        <div className="warmup-category-filters" role="group" aria-label={t('warmup.categories')}>
+        <LayoutGroup id="train-filters"><div className="warmup-category-filters" role="group" aria-label={t('warmup.categories')}>
           {(['all', ...Object.keys(EXERCISE_CATEGORIES)] as Array<ExerciseCategory | 'all'>).map(value => (
             <button key={value} type="button" aria-pressed={category === value} onClick={() => {
               setCategory(value)
               setPreviewExercise(null)
               setSniperFocused(false)
             }}>
+              {category === value && <ActiveIndicator />}
               {t(value === 'all' ? 'warmup.category.all' : EXERCISE_CATEGORIES[value])}
               <span>{value === 'all' ? EXERCISES.length : EXERCISES.filter(item => item.category === value).length}</span>
             </button>
           ))}
         </div>
-        <div className="warmup-exercises">
+        </LayoutGroup>
+        <div className="warmup-exercises xensi-motion-cards">
+          <AnimatePresence initial={false} mode="popLayout">
           {visibleExercises.map((item) => {
             const Icon = item.icon
             return (
-              <button
+              <MotionExerciseCard
                 key={item.id}
+                layout={motionSettings.reduced ? false : "position"}
+                initial="closed" animate="open" exit="closed"
+                variants={motionSettings.cardVariants}
+                transition={{ layout: motionSettings.layout }}
                 type="button"
                 className={activePreview === item.id ? 'preview-active' : ''}
                 onPointerEnter={() => setPreviewExercise(item.id)}
@@ -919,18 +932,17 @@ export function Warmup({
                 onClick={() => openSetup(item.id)}
               >
                 <Icon size={26} />
-                {activePreview === item.id && <ExercisePreview exercise={item.id} name={item.name} />}
+                <AnimatePresence>{activePreview === item.id && <motion.div className="xensi-preview-layer" initial="closed" animate="open" exit="closed" variants={motionSettings.fadeVariants}><ExercisePreview exercise={item.id} name={item.name} /></motion.div>}</AnimatePresence>
                 <strong>{item.name}</strong>
                 <small>{t(item.description)}</small>
                 <i>{t('warmup.configure')} <Play size={13} /></i>
-              </button>
+              </MotionExerciseCard>
             )
           })}
+          </AnimatePresence>
         </div>
 
-        {phase === 'setup' && (
-          <div className="modal-backdrop">
-            <section ref={setupRef} className="modal setup-modal warmup-setup-modal" role="dialog" aria-modal="true" aria-label={t('warmup.configureExercise', { exercise: exerciseConfig.name })} onKeyDown={event => { if (event.key === 'Escape') exitToHub() }}>
+        <MotionDialog open={Boolean(phase === 'setup')} className="modal-backdrop">{phase === 'setup' && (<MotionDialogPanel ref={setupRef} className="modal setup-modal warmup-setup-modal" role="dialog" aria-modal="true" aria-label={t('warmup.configureExercise', { exercise: exerciseConfig.name })} onKeyDown={event => { if (event.key === 'Escape') exitToHub() }}>
               <button className="modal-close" onClick={exitToHub} aria-label={t('common.close')}><X size={18} /></button>
               <Settings2 size={20} className="modal-icon" />
               <h2>{t('warmup.configureExercise', { exercise: exerciseConfig.name })}</h2>
@@ -973,18 +985,14 @@ export function Warmup({
                   ? <button className="primary-button" onClick={() => { setStepDirection(1); setSetupStep((setupStep + 1) as SetupStep) }} disabled={setupStep === 2 && !validSetup}>{t('warmup.next')} <ArrowRight size={15} /></button>
                   : <button className="primary-button" onClick={start} disabled={!validSetup}><Play size={15} /> {t('warmup.start')}</button>}
               </div>
-            </section>
-          </div>
-        )}
+            </MotionDialogPanel>)}</MotionDialog>
 
-        {phase === 'result' && (
-          <div className="modal-backdrop">
-            <section className="modal warmup-result-modal">
+        <MotionDialog open={Boolean(phase === 'result')} className="modal-backdrop">{phase === 'result' && (<MotionDialogPanel className="modal warmup-result-modal">
               <Sparkles size={22} className="modal-icon" />
               <div className="panel-label">{t('warmup.reportTitle')}</div>
               <h2>{exerciseConfig.name}</h2>
               <p>{difficultyLabel} · {exercise === 'sniper-reaction' ? '' : `${game.label} · `}{WARMUP_DURATION}s</p>
-              <div className="warmup-result-score"><span>{t(metrics.micro ? 'micro.acquisition' : 'common.score')}</span><strong>{metrics.micro ? metrics.micro.meanAcquisitionTimeMs === null ? '—' : `${format(metrics.micro.meanAcquisitionTimeMs)} ms` : metrics.score}</strong></div>
+              <div className="warmup-result-score"><span>{t(metrics.micro ? 'micro.acquisition' : 'common.score')}</span><strong><AnimatedMetric value={metrics.micro ? metrics.micro.meanAcquisitionTimeMs : metrics.score} format={value => value === null ? '—' : metrics.micro ? `${format(value)} ms` : String(value)} /></strong></div>
               {personalBest && <PersonalBestFeedback result={personalBest} exercise={exercise} gameLabel={game.label} />}
               {pbUnavailable && <p role="status">{PERSONAL_BEST_COPY[locale].unavailable}</p>}
               <WarmupReport metrics={metrics} previous={previousSession} exercise={exercise} onSelectRecommendation={openSetup} />
@@ -996,9 +1004,7 @@ export function Warmup({
                 <button className="secondary-button" onClick={repeat}><RotateCcw size={15} /> {t('warmup.repeat')}</button>
                 <button className="primary-button" onClick={playNextRound}>{t('warmup.nextRound')} <ArrowRight size={15} /></button>
               </div>
-            </section>
-          </div>
-        )}
+            </MotionDialogPanel>)}</MotionDialog>
       </section>
     )
   }

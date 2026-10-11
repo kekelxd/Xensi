@@ -159,9 +159,13 @@ test.describe('XENSI home v3', () => {
   test('has hover transitions and no horizontal page overflow', async ({ page }) => {
     const pathCard = page.locator('.xensi-home-v3-path-card').first()
     await pathCard.hover()
-    await expect(pathCard).toHaveCSS('transition-duration', /0\.2s/)
-    const iconTransform = await pathCard.locator('.xensi-home-v3-icon').evaluate((element) => getComputedStyle(element).transform)
-    expect(iconTransform).not.toBe('none')
+    if (test.info().project.use.isMobile) {
+      await pathCard.getByRole('button', { name: 'Explorar treinos' }).focus()
+    } else {
+      await expect(pathCard).toHaveAttribute('data-light-active', 'true')
+    }
+    await expect(pathCard.locator('.xensi-edge-light')).toHaveCSS('opacity', '1')
+    await expect(pathCard.getByRole('button', { name: 'Explorar treinos' })).toBeVisible()
 
     const sizes = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }))
     expect(sizes.content).toBeLessThanOrEqual(sizes.viewport)

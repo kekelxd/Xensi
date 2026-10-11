@@ -1,0 +1,64 @@
+/* Home-only presentation layer; loaded with the lazy Home chunk. */
+.xensi-premium-home { --light-coral: 255, 79, 88; --light-cool: 87, 134, 145; }
+.xensi-premium-home .xensi-home-v3-hero-copy,
+.xensi-premium-home .xensi-home-v3-path-card,
+.xensi-premium-home .xensi-home-v3-progress-card,
+.xensi-premium-home .xensi-home-v3-pillars article { animation: none; }
+.xensi-hero-atmosphere { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.xensi-hero-light { position: absolute; width: min(900px, 90vw); height: 650px; left: 35%; top: -20%; background: radial-gradient(ellipse at center, rgba(var(--light-coral), .20), rgba(var(--light-cool), .055) 44%, transparent 68%); translate: var(--light-dx, 0px) var(--light-dy, 0px); transition: translate var(--motion-reveal) var(--motion-easeOut); animation: xensiAmbientDrift 18s ease-in-out infinite alternate; }
+.xensi-hero-calibration-line { position: absolute; top: 22%; left: 55%; width: min(200px, 22vw); height: 1px; background: linear-gradient(90deg, transparent, rgba(var(--light-coral), .55), transparent); transform-origin: left; animation: xensiLineDeploy var(--motion-cinematic) var(--motion-easeOut) both; }
+.xensi-premium-home[data-ambient-paused='true'] .xensi-hero-light { animation-play-state: paused; }
+.xensi-premium-home .xensi-technical-mask { display: block; padding-bottom: .08em; margin-bottom: -.08em; }
+.xensi-premium-home .xensi-home-v3-path-card { position: relative; isolation: isolate; transition: border-color var(--motion-interaction) var(--motion-easeStandard); }
+.xensi-premium-home .xensi-home-v3-path-card::after { display: none; }
+.xensi-premium-home .xensi-home-v3-path-card > :not(.xensi-edge-light) { position: relative; z-index: 1; }
+.xensi-edge-light { position: absolute; z-index: 0; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; background: radial-gradient(440px circle at var(--pointer-x, 50%) var(--pointer-y, 50%), rgba(var(--light-coral), .16), transparent 70%); transition: opacity var(--motion-reveal) var(--motion-easeOut); }
+.xensi-edge-light::before { position: absolute; inset: 0; padding: 1px; border-radius: inherit; content: ''; background: radial-gradient(220px circle at var(--pointer-x, 50%) var(--pointer-y, 50%), rgba(var(--light-coral), .85), transparent 80%); mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; }
+.xensi-home-v3-path-card.is-mint .xensi-edge-light { background: radial-gradient(400px circle at var(--pointer-x, 50%) var(--pointer-y, 50%), rgba(var(--light-cool), .18), transparent 70%); }
+.xensi-home-v3-path-card.is-mint .xensi-edge-light::before { background: radial-gradient(220px circle at var(--pointer-x, 50%) var(--pointer-y, 50%), rgba(166, 191, 200, .55), transparent 80%); }
+.xensi-premium-home [data-light-active='true'] > .xensi-edge-light,
+.xensi-premium-home .xensi-home-v3-path-card:focus-within > .xensi-edge-light { opacity: 1; }
+.xensi-premium-home .xensi-home-v3-path-card .xensi-home-v3-icon { transform: none; transition: translate var(--motion-layout) var(--motion-easeOut), background-color var(--motion-interaction) var(--motion-easeStandard); }
+.xensi-premium-home .xensi-home-v3-path-card:is(:hover, :focus-within) .xensi-home-v3-icon { translate: 0 -3px; }
+.xensi-premium-home .xensi-home-v3-actions button { position: relative; overflow: hidden; isolation: isolate; transition: background-color var(--motion-interaction) var(--motion-easeStandard), border-color var(--motion-interaction) var(--motion-easeStandard); }
+.xensi-premium-home .xensi-home-v3-actions button::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,.22), transparent 80%); transform: translateX(-130%); transition: transform var(--motion-reveal) var(--motion-easeOut); }
+.xensi-premium-home .xensi-home-v3-actions button:is(:hover, :focus-visible)::after { transform: translateX(130%); }
+.xensi-premium-home .xensi-home-v3-actions button svg { transition: translate var(--motion-layout) var(--motion-easeOut); }
+.xensi-premium-home .xensi-home-v3-actions button:hover svg { translate: calc(2px + var(--light-dx, 0px) * .045) calc(var(--light-dy, 0px) * .045); }
+.xensi-premium-home .xensi-home-v3-path-main button svg,
+.xensi-premium-home .xensi-home-v3-progress-card button svg { transition: transform var(--motion-interaction) var(--motion-easeOut); }
+.xensi-premium-home .xensi-home-v3-path-main button:is(:hover, :focus-visible) svg,
+.xensi-premium-home .xensi-home-v3-progress-card button:is(:hover, :focus-visible) svg { transform: translateX(4px); }
+@keyframes xensiAmbientDrift { from { transform: translate3d(-24px,-8px,0); } to { transform: translate3d(24px,16px,0); } }
+@keyframes xensiLineDeploy { from { opacity: 0; transform: scaleX(0); } to { opacity: 1; transform: scaleX(1); } }
+/* Keep the existing photo composition readable when desktop rules win the cascade. */
+@media (max-width: 1000px) {
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-hero { grid-template-columns: minmax(0, 1fr); }
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-split-head { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-split-head p { text-align: left; }
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-path-grid,
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-progress-grid,
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-ecosystem { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-hero { padding: 48px 24px; min-height: 500px; gap: 0; }
+  .xensi-premium-home.xensi-home-v3 .xensi-reference-copy h1 { font-size: clamp(2.2rem, 9.2vw, 3.1rem); }
+  .xensi-premium-home.xensi-home-v3 .xensi-reference-copy p { font-size: 16px; }
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-actions { flex-wrap: wrap; }
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-actions button { width: 100%; min-width: 0; }
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-section { width: calc(100% - 48px); }
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-path-card { padding: 24px; }
+  .xensi-premium-home.xensi-home-v3 .xensi-home-v3-pillars { grid-template-columns: minmax(0, 1fr); }
+}
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .xensi-premium-home .xensi-hero-light { animation: none; translate: none; }
+  .xensi-premium-home .xensi-hero-calibration-line { animation: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xensi-premium-home .xensi-home-v3-path-card .xensi-home-v3-icon,
+  .xensi-premium-home .xensi-home-v3-actions button svg,
+  .xensi-premium-home .xensi-home-v3-path-main button svg,
+  .xensi-premium-home .xensi-home-v3-progress-card button svg { transition: none; translate: none; transform: none; }
+  .xensi-premium-home .xensi-home-v3-actions button::after { display: none; }
+  .xensi-premium-home .xensi-edge-light { transition: none; }
+}

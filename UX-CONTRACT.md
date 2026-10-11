@@ -19,6 +19,7 @@
 
 - Project design context: `DESIGN.md`.
 - Runtime design-system source: `src/styles.css`.
+- Canonical motion source: `src/design/motion.ts`; CSS mapping: `src/main.tsx`; Home presentation: `src/design/HomeMotion.tsx`, `useHomeLighting.ts`, `premium-motion.css`.
 - Token drift gate: update `DESIGN.md` whenever shared XENSI home tokens or interaction states change.
 - Supported themes: dark only.
 
@@ -29,6 +30,7 @@
 | Select/Listbox | Native `select` with XENSI styling | `src/App.tsx`, `src/styles.css` | native | keyboard + locale labels |
 | Form | Local controlled React state | feature modules | setup / profile edit | unit + browser flow |
 | Scrollbar | Global stylesheet | `src/styles.css` | home document scroller | computed style + browser |
+| Motion | Motion for React + scoped CSS | `src/design/` | Home expression / tool feedback / reduced motion | rapid navigation, focus, previews, Pointer Lock |
 | Toast | No shared owner yet | feature-local feedback | none until shared primitive exists | browser |
 
 ## Component behavior
@@ -43,6 +45,10 @@
 
 - App navigation changes the local route state and remains disabled while an active training session owns input.
 - Home document scrolls naturally; no page-level overflow clipping.
+- Scrollbar tracks are visually hidden by explicit user direction; native scrolling remains available.
+- Page motion updates URL/history immediately and respects the latest interrupted destination; navbar remains persistent.
+- Active sessions, Pointer Lock, and realtime input tools bypass presentation route transitions. Home lights never attach to minigames.
+- Numeric feedback presents real formatted snapshots; accessible final values are immediate.
 - At narrow screens the navigation may wrap or scroll horizontally, but primary actions and arena targets remain reachable.
 
 ## Overlays and feedback

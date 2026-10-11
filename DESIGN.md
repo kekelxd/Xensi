@@ -37,11 +37,11 @@ components:
 
 ## Overview
 
-XENSI is a hybrid product: a focused technical home that leads into practical FPS tools. It should feel like a purpose-built training room, not an esports marketing page or a corporate dashboard. The distinctive move is the live training arena: a calm technical field where targets, a crosshair, and trajectory make the product understandable before a user starts a session.
+XENSI is a hybrid product: a focused technical home that leads into practical FPS tools. It should feel like a purpose-built training room. The current Home uses the existing photographic training environment, coral headline, and two clear actions. Live minigame previews belong to the training catalog.
 
 The intended audience is competitive FPS players using a desktop browser before or between matches. The product should be direct, competent, and honest about browser limitations. It must not resemble Aim Lab, generic neon gaming landing pages, or heavy glassmorphism.
 
-Runtime tokens live in `src/styles.css`; this file records their semantic intent and values.
+Runtime visual tokens live in `src/styles.css`. Motion tokens live in `src/design/motion.ts` and are mapped to CSS variables in `src/main.tsx`; this file records their semantic intent.
 
 ## Colors
 
@@ -53,9 +53,9 @@ Space Grotesk carries focused display headings. Manrope handles instruction and 
 
 ## Layout
 
-Desktop is the primary experience. The home uses a two-column hero: explanation left, training arena right. Below it, tools use open technical surfaces with a dedicated visual area and a bottom-aligned action. At 1020px the hero and tool grid become one column; at 740px targets and metrics remain legible and touch targets remain at least 44px.
+Desktop is the primary experience. The Home hero places explanation over the existing photograph. Pathways, continuation cards, and ecosystem follow. Home grids become one column at 1000px; below 600px hero actions stack and text fits within 24px gutters. Preserve the current photo, copy, and desktop hierarchy.
 
-Document scrolling belongs to the home surface. Scrollbars use the global dark styling and remain visible and operable. Never use viewport clipping to hide sections.
+Document scrolling belongs to the home surface. Per the user's explicit direction, scrollbar tracks are visually hidden while native wheel, touch, keyboard, and document scrolling remain operable. Never use viewport clipping to hide content.
 
 ## Elevation & Depth
 
@@ -69,7 +69,7 @@ Controls use a 14px radius. Section surfaces use 22px. The arena can use 28px. T
 
 ### Foundational visual states
 
-Interactive controls use native buttons, a visible mint focus ring, a small transform-only hover lift, and a pressed scale. Disabled controls lose contrast and do not look actionable. Motion pauses when the document is hidden or its section is outside the viewport; reduced-motion users keep slow, readable arena feedback without page entrance animation.
+Interactive controls use native buttons, visible focus, hover feedback, and a pressed scale. Disabled controls lose contrast and do not look actionable. Home ambient motion pauses when the document is hidden or the hero is outside the viewport. Reduced motion removes entrances, ambient drift, and pointer lighting; focus feedback and final data remain visible.
 
 ### Buttons and actions
 
@@ -89,7 +89,13 @@ Lucide is the current source. Use its 1.8–2px outline language consistently at
 
 ### Motion
 
-Motion is short and mechanical: 160–240ms for controls, 2.8–5s for the arena loop. Animate `transform` and `opacity`; do not bind document-wide mouse movement to React state. `prefers-reduced-motion` removes nonessential entrance and hover translation while retaining slow target state feedback.
+Premium Motion V2 is expressive on Home and functional inside tools. Canonical durations: micro 140ms, interaction 240ms, layout 320ms, reveal 560ms, cinematic 900ms. Existing fast/normal/slow tokens remain compatible with V1 surfaces. Hero order: atmosphere, masked title lines, description, actions; actions remain usable during entry. Sections reveal once per Home mount through native scroll and viewport observation.
+
+Four reusable signatures: technical title reveal, scoped radial/edge light, directional CTA highlight, and shared active indicator. Home pointer lighting uses one delegated listener, cached bounds, and a throttled one-shot animation frame; no React state per pointer move. One 18s ambient transform loop pauses outside the hero and on hidden documents. Avoid moving button hitboxes.
+
+Presentation page transitions last 300ms and preserve the navbar and footer. URL/history update immediately; interrupted captures resolve to the latest destination. Training, calibration, input diagnostics, and Pointer Lock routes bypass page transitions. No second outgoing React tree remains mounted.
+
+Metric transitions show actual formatted snapshots only, with the final accessible value immediately available. No interpolated or invented readings. Gameplay rendering, timers, targeting, and realtime measurements remain outside this motion layer. Home-specific code and styles load with its lazy chunk.
 
 ### Content and data visualization
 
@@ -97,7 +103,7 @@ Write like a precise coach: name the measure, say what it means, and offer the n
 
 ## Do's and Don'ts
 
-- **Do:** let the live arena demonstrate the product before explaining every feature.
+- **Do:** preserve Home photography and use catalog previews to demonstrate training behavior.
 - **Do:** use coral for actions and targets, and mint only for a positive result.
 - **Don't:** fill the page with dashboard cards, artificial HUD labels, or oversized display type.
 - **Don't:** claim browser input is physically identical to a game engine.

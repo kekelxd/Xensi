@@ -1,3 +1,4 @@
+import { AnimatedMetric } from './design/AnimatedMetric'
 import { Activity, BrainCircuit, CheckCircle2, History, Target, TrendingUp, TriangleAlert } from 'lucide-react'
 import { type CalibrationReport, type CalibrationSessionSummary } from './calibration'
 import type { GameConfig } from './games'
@@ -215,7 +216,7 @@ export function CalibrationReportView({
           <div className="calibration-reason-grid">
             <div><span>{t('common.accuracy')}</span><strong>{format(report.bestResult.accuracy)}%</strong><small>{signed(report.bestResult.accuracy - baseline.accuracy, ' pp')} {t('calibration.vsBaseClear')}</small></div>
             <div><span>{t('common.meanError')}</span><strong>{format(report.bestResult.meanError)}px</strong><small>{signed(report.bestResult.meanError - baseline.meanError, ' px')} {t('calibration.vsBaseClear')}</small></div>
-            <div><span>{t('common.score')}</span><strong>{format(report.bestResult.score)}</strong><small>{t('calibration.scoreGapHint', { gap: format(report.scoreGap) })}</small></div>
+            <div><span>{t('common.score')}</span><strong><AnimatedMetric value={report.bestResult.score} format={value => format(value ?? report.bestResult.score)} /></strong><small>{t('calibration.scoreGapHint', { gap: format(report.scoreGap) })}</small></div>
             <div><span>{t('calibration.playerConsistency')}</span><strong>{format(report.playerConsistencyScore)}%</strong><small>{t('calibration.playerConsistencyHint')}</small></div>
           </div>
         </section>

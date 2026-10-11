@@ -46,8 +46,9 @@ inclui configurações externas ao PostgreSQL. O Storage não tinha arquivos.
 Não restaurar diretamente na produção nem executar `--clean`/DROP.
 
 As ferramentas/roteiros usados estão em `%LOCALAPPDATA%\Xensi\postgres-tools`.
-Guardar uma segunda cópia privada do diretório de backup em armazenamento
-independente continua sendo uma providência recomendada.
+Por decisão do responsável, uma segunda cópia privada foi criada em
+`%USERPROFILE%\Documents\Xensi Backups\20261011-before-squad`, com o mesmo
+SHA256 do archive original. As duas cópias ficam no mesmo computador.
 
 ## Acesso publicado no banco
 
@@ -93,8 +94,20 @@ do Auth foram preservados fora do escopo desta implantação:
 [RPC autenticada](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable) e
 [proteção de senhas](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
 
-A expiração já é verificada nas RPCs. `pg_cron` não está instalado: não foi criado
-job periódico nesta entrega; a limpeza física sem chamadas permanece pendente.
-Moderação operacional e eventual aferição etária continuam como etapas posteriores.
-Login e fluxo entre duas contas devem ser homologados no domínio publicado,
-sem redefinir senhas ou criar contas de usuários automaticamente.
+A expiração é verificada nas RPCs. Posteriormente, com autorização do responsável,
+foi aplicada `20261011185312_squad_finder_scheduled_cleanup.sql`: instala `pg_cron`
+e agenda `xensi-lfg-expiry` a cada minuto, executando a rotina existente
+`lfg_private.sweep()`. Mantém as regras de expiração/retenção já implementadas,
+com `lock_timeout=2s` e `statement_timeout=30s`, sem modificar outros jobs.
+Uma execução automática foi confirmada com status `succeeded` em 11/10/2026,
+às 15:56, horário de Brasília (18:56 UTC), duração aproximada de 10 ms.
+
+A conta do responsável foi identificada, conferida como confirmada/não suspensa
+e adicionada à lista privada de moderadores por operação administrativa.
+Nenhum e-mail/UUID pessoal foi incluído em migrations ou no repositório.
+
+O roteiro de teste entre duas contas está em
+[squad-functional-test.md](squad-functional-test.md). Esse fluxo depende dos
+logins efetuados pelo responsável, sem redefinir senhas ou criar contas
+automaticamente. A operação contínua da moderação e eventual aferição etária
+continuam como etapas posteriores.

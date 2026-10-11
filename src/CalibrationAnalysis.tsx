@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { XensiPageHeader } from './design/Primitives'
 import { readCalibrationHistory } from './calibration'
 import { GAMES } from './games'
 import { useI18n, type Locale } from './i18n'
@@ -230,7 +231,7 @@ function Methodology({ locale }: { locale: Locale }) {
   ]
 
   return <section className="analysis-workspace analysis-methodology">
-    <header><h1>{text.methodTitle}</h1><p>{text.methodSubtitle}</p></header>
+    <XensiPageHeader title={text.methodTitle} description={text.methodSubtitle} />
     <div className="analysis-method-document">
       <section className="analysis-method-section">
         <h2>{text.methodFlowTitle}</h2>
@@ -281,5 +282,5 @@ export function CalibrationAnalysis({ section }: { section: AnalysisSection }) {
   const entries = useMemo(() => GAMES.flatMap(game => readCalibrationHistory(localStorage, game.id).map((session, i, history) => ({ game, session, previous: history[i + 1] }))).sort((a,b) => b.session.completedAt.localeCompare(a.session.completedAt)), [])
   const format = (v: number) => new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(v)
   if (section === 'methodology') return <Methodology locale={locale} />
-  return <section className="analysis-workspace"><header><h1>{text.calibration}</h1></header><div className="analysis-history-grid"><article className="analysis-panel"><h2>{text.calibration}</h2>{entries.length ? entries.slice(0,12).map(({game,session,previous}) => <div className="analysis-history-row" key={session.id}><span><b>{game.shortLabel}</b><small>{new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(session.completedAt))}</small></span><strong>{format(session.sensitivity)}</strong><em>{previous && previous.sensitivity !== session.sensitivity ? `${format(previous.sensitivity)} → ${format(session.sensitivity)}` : `${format(session.confidenceScore)}%`}</em></div>) : <p>{text.emptyText}</p>}</article></div></section>
+  return <section className="analysis-workspace"><XensiPageHeader title={text.calibration} /><div className="analysis-history-grid"><article className="analysis-panel"><h2>{text.calibration}</h2>{entries.length ? entries.slice(0,12).map(({game,session,previous}) => <div className="analysis-history-row" key={session.id}><span><b>{game.shortLabel}</b><small>{new Intl.DateTimeFormat(locale,{dateStyle:'short',timeStyle:'short'}).format(new Date(session.completedAt))}</small></span><strong>{format(session.sensitivity)}</strong><em>{previous && previous.sensitivity !== session.sensitivity ? `${format(previous.sensitivity)} → ${format(session.sensitivity)}` : `${format(session.confidenceScore)}%`}</em></div>) : <p>{text.emptyText}</p>}</article></div></section>
 }

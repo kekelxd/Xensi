@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom'
 import type { AppView } from '../routes'
 import { xensiMotion } from './motion'
 
-const presentationRoutes = new Set<AppView>(['home', 'analysis', 'profile', 'diagnostics', 'converter', 'about', 'privacy', 'terms', 'contact'])
+const presentationRoutes = new Set<AppView>(['home', 'warmup', 'routine', 'calibration', 'analysis', 'profile', 'diagnostics', 'converter', 'about', 'privacy', 'terms', 'contact'])
 let generation = 0
 let current: ViewTransition | null = null
 let fallback: ReturnType<typeof animate> | null = null
@@ -13,7 +13,7 @@ export function navigateWithPageMotion(update: () => void, from: AppView, to: Ap
   current?.skipTransition()
   fallback?.complete()
   fallback = null
-  if (blocked || document.pointerLockElement || document.hidden || window.matchMedia('(prefers-reduced-motion: reduce)').matches || !presentationRoutes.has(from) || !presentationRoutes.has(to) || from === to) {
+  if (blocked || document.pointerLockElement || document.querySelector('.warmup-game-workspace, .finder-run-workspace, .spatial-hunt') || document.hidden || window.matchMedia('(prefers-reduced-motion: reduce)').matches || !presentationRoutes.has(from) || !presentationRoutes.has(to) || from === to) {
     update()
     return
   }
@@ -25,7 +25,7 @@ export function navigateWithPageMotion(update: () => void, from: AppView, to: Ap
     void transition.finished.catch(() => {}).finally(() => { if (current === transition) current = null })
   } else {
     flushSync(update)
-    const content = document.querySelector<HTMLElement>('[data-page-motion], .analysis-workspace, .profile-v1-shell, .converter-workspace, .diagnostic-hub-workspace, .content-page-shell')
+    const content = document.querySelector<HTMLElement>('[data-page-motion], .warmup-workspace, .calibration-landing-inner, .analysis-workspace, .profile-v1-shell, .converter-workspace, .diagnostic-hub-workspace, .content-page-shell')
     if (content) fallback = animate(content, { opacity: [0.5, 1], y: [12, 0] }, { duration: xensiMotion.durations.slow, ease: xensiMotion.easings.easeOut })
   }
 }

@@ -1,3 +1,4 @@
+import { XensiAppShell } from './design/XensiAppShell'
 import { navigateWithPageMotion } from './design/pageMotion'
 import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
@@ -473,7 +474,7 @@ function App() {
   }
 
   return (
-    <main className={view === 'calibration' && calibrationStarted ? 'app-shell' : 'app-shell tool-shell'}>
+    <XensiAppShell view={view} onNavigate={navigateView} className={view === 'calibration' && calibrationStarted ? 'app-shell' : 'app-shell tool-shell'}>
       <header className="app-header">
         <AppNavigation
           view={view}
@@ -496,6 +497,7 @@ function App() {
         )}
       </header>
       <PresetSyncStatus />
+      <main className="xensi-route-content">
 
       {view === 'home' ? <Suspense fallback={<div className="xensi-home-loading" role="status" aria-label="XENSI"><span /></div>}><Home onNavigate={navigateView} /></Suspense> : view === 'about' || view === 'privacy' || view === 'terms' || view === 'contact' ? <InstitutionalPage page={view} onNavigate={navigateView} /> : view === 'analysis' ? <Analysis section={analysisSection} onStartTraining={() => navigateView('warmup')} /> : view === 'profile' ? <PlayerProfile key={presetState.userId ?? 'guest'} onConvert={(preset) => { setConverterPreset(preset); navigateView('converter', { preserveLaunchPreset: true }) }} onCalibrate={(preset) => { setFinderPreset(preset); navigateView('calibration', { preserveLaunchPreset: true }) }} /> : view === 'routine' ? <Routine key={presetState.userId ?? 'guest'} /> : view === 'warmup' ? <Warmup key={`${presetState.userId ?? 'guest'}:${warmupEntry ?? 'hub'}`} initialExercise={warmupEntry} onExerciseChange={(exercise) => navigateView('warmup', { warmupEntry: exercise })} /> : view === 'calibration' ? <SensitivityFinderModal initialPreset={finderPreset ? { ...finderPreset, gameId: finderPreset.gameId as GameId } : null} /> : view === 'diagnostics' ? <DiagnosticLanding onNavigate={navigateView} /> : showLegacyCalibration ? calibrationStarted ? <><section className="workspace">
         <aside className="metrics-rail">
@@ -583,6 +585,7 @@ function App() {
         <div className="dpi-status">{t('calibration.physicalProfile', { dpi: confirmedDpi, fov: confirmedHorizontalFov })}</div>
       </footer></> : <CalibrationLanding rounds={`${BASE_CANDIDATE_MULTIPLIERS.length * CALIBRATION_REPETITIONS}+${VALIDATION_FINALIST_COUNT * VALIDATION_REPETITIONS}`} seconds={ROUND_DURATION} onStart={start} /> : view === 'converter' ? <SensitivityConverter initialPreset={converterPreset} /> : view === 'polling' ? <PollingRateTest /> : view === 'buttons' ? <MouseButtonTest /> : view === 'refresh-rate' ? <RefreshRateTest /> : <ControllerDriftTest />}
 
+      </main>
       <MotionDialog open={Boolean(view === 'calibration' && setupOpen)} className="modal-backdrop">{view === 'calibration' && setupOpen && (<MotionDialogPanel className="modal setup-modal calibration-setup-modal">
             <button className="modal-close" onClick={closeSetup} aria-label={t('common.close')}><X size={18} /></button>
             <Settings2 size={22} className="modal-icon" />
@@ -672,7 +675,7 @@ function App() {
               onClose={() => setResultOpen(false)}
             />}
           </MotionDialogPanel>)}</MotionDialog>
-    </main>
+    </XensiAppShell>
   )
 }
 

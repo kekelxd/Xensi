@@ -1,3 +1,5 @@
+import { SpotlightCard } from './design/SpotlightCard'
+import { XensiPageHeader, XensiSection } from './design/Primitives'
 import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
 import { useMemo, useState } from 'react'
 import { Check, ChevronRight, Crosshair, Download, Edit3, Gauge, MoreVertical, Plus, RefreshCw, Search, Star, Trash2, X } from 'lucide-react'
@@ -267,25 +269,19 @@ export function PlayerProfile({ onConvert, onCalibrate }: PlayerProfileProps) {
 
   return <section className="profile-v1-workspace">
     <div className="profile-v1-shell">
-      <header className="profile-v1-heading">
-        <div>
-          <h1>{text.title}</h1>
-          <p>{text.subtitle}</p>
-        </div>
-        {status && <small className="profile-v1-status"><Check size={14} /> {status}</small>}
-      </header>
+      <XensiPageHeader className="profile-v1-heading" title={text.title} description={text.subtitle} actions={status ? <small className="profile-v1-status"><Check size={14} /> {status}</small> : undefined} />
 
       <div className="profile-v1-hero-grid">
-        <article className="profile-v1-identity">
+        <SpotlightCard className="profile-v1-identity">
           <span className="profile-v1-label">{text.identity}</span>
           <div className="profile-v1-person">
             <div className="profile-v1-avatar-frame"><AvatarArtwork avatarId={profile.avatarId} size="lg" /></div>
             <div className="profile-v1-identity-copy"><h2>{profile.nickname}</h2><button type="button" onClick={openIdentity}><Edit3 size={15} /> {text.editProfile}</button></div>
           </div>
-        </article>
+        </SpotlightCard>
 
-        <article className="profile-v1-active-card">
-          <header><span className="profile-v1-label">{text.activeConfig}</span><small><i /> {text.inUseNow}</small></header>
+        <SpotlightCard className="profile-v1-active-card">
+          <header><span className="profile-v1-label">{text.activeConfig}</span>{activePreset && <small><i /> {text.inUseNow}</small>}</header>
           {activePreset && activeGame ? <>
             <div className="profile-v1-active-game"><GameBadge gameId={activePreset.gameId} selected /><h2>{activeGame.name}</h2><ChevronRight size={19} /></div>
             <dl>
@@ -298,10 +294,10 @@ export function PlayerProfile({ onConvert, onCalibrate }: PlayerProfileProps) {
               <button type="button" className="secondary-button" onClick={() => onConvert(activePreset)}><RefreshCw size={17} /> {text.convert}</button>
             </footer>
           </> : sync.status !== 'ready' ? <p role="status">{t('presets.loading')}</p> : <div className="profile-v1-active-empty"><Crosshair size={24} /><h2>{text.activeConfig}</h2><p>{text.emptyText}</p><button className="primary-button" type="button" disabled={presetDisabled} onClick={openNewPreset}><Plus size={16} /> {text.add}</button></div>}
-        </article>
+        </SpotlightCard>
       </div>
 
-      <section className="profile-v1-presets">
+      <XensiSection className="profile-v1-presets">
         {sync.status !== 'ready' && <p role="status">{t('presets.loading')}</p>}
         <header>
           <div><span className="profile-v1-label">{text.sensitivities}</span><small>{profile.presets.length}</small>
@@ -325,13 +321,13 @@ export function PlayerProfile({ onConvert, onCalibrate }: PlayerProfileProps) {
             const game = GAME_SENSITIVITY_PROFILE_BY_ID[preset.gameId]
             const cm360 = calculatePresetCm360(preset)
             const canCalibrate = CALIBRATOR_GAMES.has(preset.gameId)
-            return <article className={`profile-preset-card${preset.isPrimary ? ' primary' : ''}`} key={preset.id}>
+            return <SpotlightCard layout="position" className={`profile-preset-card${preset.isPrimary ? ' primary' : ''}`} key={preset.id}>
               <header><div className="profile-preset-game"><GameBadge gameId={preset.gameId} selected={preset.isPrimary} /><div><small>{preset.name || game.name}</small><strong>{game.shortName}</strong></div></div>{preset.isPrimary ? <b><Star size={12} /> {text.primary}</b> : <button type="button" disabled={presetDisabled} onClick={() => setPrimary(preset.id)}><Star size={13} /> {text.setPrimary}</button>}<MoreVertical size={17} aria-hidden="true" /></header>
               <dl><div><dt>{text.sensitivity}</dt><dd>{preset.sensitivity}</dd></div><div><dt>{text.dpi}</dt><dd>{preset.dpi}</dd></div><div className="profile-preset-distance"><dt>CM / 360</dt><dd title={cm360 === null ? text.unavailableHint : undefined}>{cm360 === null ? text.unavailable : `${cm360.toFixed(2)} cm/360`}</dd></div></dl>
               <footer><button className="profile-preset-action" type="button" disabled={presetDisabled} onClick={() => openPreset(preset)}><Edit3 size={14} /> {text.edit}</button><button className="profile-preset-action" type="button" onClick={() => onCalibrate(preset)} disabled={!canCalibrate} title={!canCalibrate ? text.calibratorUnavailable : undefined}><Gauge size={14} /> {text.calibrate}</button><button className="profile-preset-action profile-preset-convert" type="button" onClick={() => onConvert(preset)}><RefreshCw size={14} /> {text.convert}</button><button className="profile-preset-action profile-preset-remove" type="button" disabled={presetDisabled} onClick={() => { setError(''); setPendingRemove(preset) }} aria-label={text.remove}><Trash2 size={14} /></button></footer>
-            </article>
+            </SpotlightCard>
           })}<button className="profile-v1-add-tile" type="button" disabled={presetDisabled} onClick={openNewPreset}><Plus size={24} /><strong>{text.addTileTitle}</strong><span>{text.addTileText}</span></button>{filteredPresets.length === 0 && <p className="profile-v1-no-results">{text.noResults}</p>}</div>}
-      </section>
+      </XensiSection>
     </div>
 
     <MotionDialog open={Boolean(identityOpen)} className="modal-backdrop">{identityOpen && (<MotionDialogPanel className="profile-v1-modal" role="dialog" aria-modal="true" aria-labelledby="identity-modal-title"><button className="modal-close" type="button" onClick={() => setIdentityOpen(false)} aria-label={text.cancel}><X size={18} /></button><span className="profile-v1-label">{text.identity}</span><h2 id="identity-modal-title">{text.editIdentity}</h2><label>{text.nickname}<input value={identityDraft.nickname} maxLength={24} onChange={(event) => setIdentityDraft({ ...identityDraft, nickname: event.target.value })} /></label><div className="profile-v1-avatar-field"><span>{text.avatar}</span><div className="profile-avatar-picker">{XENSI_AVATARS.map((avatar) => <button key={avatar.id} type="button" className={identityDraft.avatarId === avatar.id ? 'selected' : ''} onClick={() => setIdentityDraft({ ...identityDraft, avatarId: avatar.id as AvatarId })} aria-label={avatar.label} aria-pressed={identityDraft.avatarId === avatar.id}><AvatarArtwork avatarId={avatar.id} size="picker" selected={identityDraft.avatarId === avatar.id} /></button>)}</div></div><footer><button className="secondary-button" type="button" onClick={() => setIdentityOpen(false)}>{text.cancel}</button><button className="primary-button" type="button" onClick={saveIdentity}><Check size={15} /> {text.save}</button></footer></MotionDialogPanel>)}</MotionDialog>

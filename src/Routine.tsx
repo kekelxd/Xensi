@@ -1,7 +1,8 @@
 import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
+import { XensiPageHeader } from './design/Primitives'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Circle, Copy, Crosshair, Dot, GripVertical, Layers3, LogOut, MoreHorizontal, Pencil, Play, Plus, RotateCcw, Save, Sparkles, Trash2, X, type LucideIcon } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Circle, Copy, Crosshair, Dot, GripVertical, LogOut, MoreHorizontal, Pencil, Play, Plus, RotateCcw, Save, Sparkles, Trash2, X, type LucideIcon } from 'lucide-react'
 import { GAME_BY_ID, GAMES, type GameId } from './games'
 import { GamePicker } from './GamePicker'
 import { SensitivityConfigFields } from './SensitivityConfigFields'
@@ -465,14 +466,7 @@ export function Routine() {
 
   if (phase === 'builder' && screen === 'library') {
     return <section className="warmup-workspace routine-workspace routine-library-workspace">
-      <div className="routine-library-hero">
-        <div>
-          <div className="panel-label"><Layers3 size={15} /> {t('routines.library')}</div>
-          <h1>{t('routines.library')}</h1>
-          <p>{t('routines.subtitle')}</p>
-        </div>
-        <button type="button" className="primary-button routine-create-button" disabled={sync.status !== 'ready' || sync.busy} onClick={createNewRoutine}><Plus size={15} /> {t('routines.createNew')}</button>
-      </div>
+      <XensiPageHeader className="routine-library-hero" title={t('routines.library')} description={t('routines.subtitle')} actions={<button type="button" className="primary-button routine-create-button" disabled={sync.status !== 'ready' || sync.busy} onClick={createNewRoutine}><Plus size={15} /> {t('routines.createNew')}</button>} />
 
       <div className="routine-library-heading"><button type="button" className="icon-button" title={t('presets.retry')} aria-label={t('presets.retry')} disabled={sync.busy} onClick={refreshLibrary}><RotateCcw size={16} /></button>{sync.userId && sync.pendingImport > 0 && <button type="button" className="icon-button" title={t('routines.import')} aria-label={t('routines.import')} onClick={() => repository.offerImport()}><Save size={16} /></button>}</div>
       {sync.error && <p role="alert" className="profile-v1-error">{t(sync.error === 'import' ? 'routines.importFailure' : 'routines.saveFailure')}</p>}
@@ -534,14 +528,7 @@ export function Routine() {
 
   if (phase === 'builder') {
     return <section className="warmup-workspace routine-workspace routine-builder-workspace" ref={setupRef}>
-      <div className="routine-builder-hero">
-        <div>
-          <div className="panel-label"><Layers3 size={15} /> {t('routine.kicker')}</div>
-          <h1>{t('routine.title')}</h1>
-          <p>{t('routine.subtitle')}</p>
-        </div>
-        <button type="button" className="secondary-button routine-back-library" onClick={() => { refreshLibrary(); setScreen('library') }}><ArrowLeft size={14} /> {t('routines.back')}</button>
-      </div>
+      <XensiPageHeader className="routine-builder-hero" title={t('routine.title')} description={t('routine.subtitle')} actions={<button type="button" className="secondary-button routine-back-library" onClick={() => { refreshLibrary(); setScreen('library') }}><ArrowLeft size={14} /> {t('routines.back')}</button>} />
 
       <div className="routine-builder-layout">
         <section className="routine-builder-context">

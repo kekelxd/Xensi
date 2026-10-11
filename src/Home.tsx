@@ -1,4 +1,5 @@
 import { useHomeLighting } from './design/useHomeLighting'
+import { SpotlightCard } from './design/SpotlightCard'
 import { motion, useReducedMotion } from 'motion/react'
 import { HomeReveal, HomeRevealItem, TechnicalTitle } from './design/HomeMotion'
 import { xensiMotion } from './design/motion'
@@ -20,7 +21,6 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react'
-import { AlphaFeedbackModal } from './AlphaFeedbackModal'
 import { readCalibrationHistory, type CalibrationSessionSummary } from './calibration'
 import { GAMES, type GameConfig } from './games'
 import { GAME_SENSITIVITY_PROFILE_BY_ID } from './gameSensitivityProfiles'
@@ -37,7 +37,6 @@ import {
 } from './playerProfileStore'
 import { usePlayerProfile } from './useSensitivityPreset'
 import { useRoutineState } from './useRoutineState'
-import { SiteFooter } from './SiteFooter'
 import { type WarmupSessionSummary } from './warmupTelemetry'
 import { useSessionState } from './sessionRepository'
 import { sessionSummary } from './trainingSession'
@@ -299,11 +298,11 @@ function PathCard({
   onItemClick?: (destination: HomeDestination) => void
   accent: 'coral' | 'mint'
 }) {
+  const reduced = useReducedMotion()
   const featureIcons = accent === 'coral'
     ? [Target, SlidersHorizontal, RefreshCw, BarChart3]
     : [Mouse, Crosshair, Monitor, Gamepad2]
-  return <HomeRevealItem className={`xensi-home-v3-path-card is-${accent}`} data-light-surface>
-    <span className="xensi-edge-light" aria-hidden="true" />
+  return <SpotlightCard delegated className={`xensi-home-v3-path-card is-${accent}`} data-light-surface variants={{ hidden: { opacity: 0, y: reduced ? 0 : 12 }, visible: { opacity: 1, y: 0 } }} transition={{ duration: reduced ? 0 : xensiMotion.durations.reveal, ease: xensiMotion.easings.easeOut }}>
     <div className="xensi-home-v3-path-main">
       <IconBadge icon={Icon} />
       <h3>{title}</h3>
@@ -328,7 +327,7 @@ function PathCard({
         </li>
       })}
     </ul>
-  </HomeRevealItem>
+  </SpotlightCard>
 }
 
 function HomePathways({ onNavigate }: Props) {
@@ -492,7 +491,6 @@ export function Home({ onNavigate }: Props) {
   const routines = useRoutineState()
   const sessions = useSessionState()
   const [summary, setSummary] = useState<HomeSummary>(() => readHomeSummary(window.localStorage, profile.presets))
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   useEffect(() => {
     const refresh = () => setSummary(readHomeSummary(window.localStorage, profile.presets))
@@ -515,7 +513,7 @@ export function Home({ onNavigate }: Props) {
     savedRoutine: routines.status === 'ready' ? routines.items[0] ?? null : null,
   }), [summary, profile.presets, routines, sessions])
 
-  return <main ref={homeRef} className="xensi-home xensi-reference xensi-home-v3 xensi-premium-home">
+  return <section ref={homeRef} className="xensi-home xensi-reference xensi-home-v3 xensi-premium-home">
     <div className="xensi-home-v3-shell">
       <div className="xensi-home-v3-content" data-page-motion>
         <HomeHero onNavigate={onNavigate} />
@@ -523,8 +521,6 @@ export function Home({ onNavigate }: Props) {
         <HomeProgress summary={stableSummary} onNavigate={onNavigate} />
         <HomeEcosystem onNavigate={onNavigate} />
       </div>
-      <SiteFooter onFeedback={() => setFeedbackOpen(true)} onNavigate={onNavigate} />
     </div>
-    <AlphaFeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-  </main>
+  </section>
 }

@@ -1,4 +1,6 @@
-import { ArrowRight, Gamepad2, Gauge, MonitorUp, Mouse, Radar } from 'lucide-react'
+import { ArrowRight, Gamepad2, Gauge, MonitorUp, Mouse } from 'lucide-react'
+import { SpotlightCard } from './design/SpotlightCard'
+import { XensiPageHeader } from './design/Primitives'
 import { useI18n } from './i18n'
 import type { AppView } from './routes'
 
@@ -59,17 +61,13 @@ export function DiagnosticLanding({ onNavigate }: Props) {
   const current = copy[locale]
 
   return <section className="diagnostic-tool-workspace diagnostic-hub-workspace">
-    <header className="diagnostic-tool-heading diagnostic-hub-heading">
-      <div className="panel-label"><Radar size={15} /> {current.kicker}</div>
-      <h1>{current.title}</h1>
-      <p>{current.description}</p>
-    </header>
+    <XensiPageHeader className="diagnostic-tool-heading diagnostic-hub-heading" title={current.title} description={current.description} />
 
     <div className="diagnostic-hub-grid" aria-label={current.kicker}>
       {diagnostics.map((diagnostic, index) => {
         const Icon = diagnostic.icon
         const [title, description] = current.tools[index]
-        return <article className="diagnostic-hub-card" key={diagnostic.view}>
+        return <SpotlightCard className="diagnostic-hub-card" key={diagnostic.view}>
           <span className="diagnostic-hub-icon"><Icon size={22} /></span>
           <div>
             <h2>{title}</h2>
@@ -79,7 +77,7 @@ export function DiagnosticLanding({ onNavigate }: Props) {
             {current.open}
             <ArrowRight size={16} />
           </button>
-        </article>
+        </SpotlightCard>
       })}
     </div>
   </section>

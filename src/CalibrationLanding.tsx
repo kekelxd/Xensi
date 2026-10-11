@@ -1,3 +1,5 @@
+import { XensiSection } from './design/Primitives'
+import { TechnicalTitle } from './design/PrecisionTitle'
 import { Target } from 'lucide-react'
 import { useI18n } from './i18n'
 
@@ -63,7 +65,7 @@ export function CalibrationLanding({ rounds, seconds, onStart, finder = false }:
       <div className="calibration-landing-inner">
         <div className="calibration-hero">
           <div className="calibration-hero-copy">
-            <h1>{finder ? t('finder.idealTitle') : t('calibration.landingTitle')}</h1>
+            <h1><TechnicalTitle>{finder ? t('finder.idealTitle') : t('calibration.landingTitle')}</TechnicalTitle></h1>
             <p>{finder ? t('finder.landingDescription') : t('calibration.landingDescription')}</p>
             <button className="calibration-start-button" type="button" onClick={onStart}><Target size={20} /> {finder ? t('finder.startSetup') : t('calibration.landingStart')}</button>
             <div className="calibration-facts">
@@ -73,14 +75,14 @@ export function CalibrationLanding({ rounds, seconds, onStart, finder = false }:
           <CalibrationDemo finder={finder} />
         </div>
 
-        <div className="calibration-process">
+        <XensiSection className="calibration-process">
           {steps.map((step, index) => (
             <div key={step.title} className="calibration-process-step">
               <i>{index + 1}</i>
               <div><strong>{step.title}</strong><span>{step.description}</span></div>
             </div>
           ))}
-        </div>
+        </XensiSection>
       </div>
     </section>
   )

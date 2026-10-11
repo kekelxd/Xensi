@@ -1,7 +1,7 @@
 import { useState } from 'react'
+import { XensiSection } from './design/Primitives'
 import { AlphaFeedbackModal } from './AlphaFeedbackModal'
 import { useI18n, type TranslationKey } from './i18n'
-import { SiteFooter } from './SiteFooter'
 import type { AppView } from './routes'
 
 export type InstitutionalPageKind = Extract<AppView, 'about' | 'privacy' | 'terms' | 'contact'>
@@ -71,12 +71,12 @@ const pages: Record<InstitutionalPageKind, PageContent> = {
   },
 }
 
-export function InstitutionalPage({ page, onNavigate }: { page: InstitutionalPageKind; onNavigate: (view: AppView) => void }) {
+export function InstitutionalPage({ page }: { page: InstitutionalPageKind; onNavigate: (view: AppView) => void }) {
   const { t } = useI18n()
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const content = pages[page]
 
-  return <main className="content-page-workspace">
+  return <section className="content-page-workspace">
     <div className="content-page-shell">
       <article className="content-page" aria-labelledby="content-page-title">
         <header>
@@ -85,7 +85,7 @@ export function InstitutionalPage({ page, onNavigate }: { page: InstitutionalPag
           {content.updated && <small>{t(content.updated)}</small>}
         </header>
 
-        {content.sections.map((section) => <section key={section.heading}>
+        {content.sections.map((section) => <XensiSection key={section.heading}>
           <h2>{t(section.heading)}</h2>
           {section.paragraphs?.map((paragraph) => <p key={paragraph}>{t(paragraph)}</p>)}
           {section.list && <ul>
@@ -94,10 +94,9 @@ export function InstitutionalPage({ page, onNavigate }: { page: InstitutionalPag
           {page === 'contact' && section.heading === 'legal.contact.feedbackTitle' && <button type="button" onClick={() => setFeedbackOpen(true)}>
             {t('footer.feedback')}
           </button>}
-        </section>)}
+        </XensiSection>)}
       </article>
     </div>
-    <SiteFooter onFeedback={() => setFeedbackOpen(true)} onNavigate={onNavigate} />
     <AlphaFeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-  </main>
+  </section>
 }

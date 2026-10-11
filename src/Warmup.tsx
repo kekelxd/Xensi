@@ -1,3 +1,4 @@
+import { XensiPageHeader } from './design/Primitives'
 import { AnimatedMetric } from './design/AnimatedMetric'
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { ActiveIndicator, MotionExerciseCard } from './design/MotionSurfaces'
@@ -891,10 +892,7 @@ export function Warmup({
   if (phase === 'hub' || phase === 'setup' || phase === 'result') {
     return (
       <section className="warmup-workspace">
-        <div className="warmup-heading">
-          <h1>{t('warmup.title')}</h1>
-          <p>{t('warmup.subtitle')}</p>
-        </div>
+        <XensiPageHeader className="warmup-heading" title={t('warmup.title')} description={t('warmup.subtitle')} />
         <LayoutGroup id="train-filters"><div className="warmup-category-filters" role="group" aria-label={t('warmup.categories')}>
           {(['all', ...Object.keys(EXERCISE_CATEGORIES)] as Array<ExerciseCategory | 'all'>).map(value => (
             <button key={value} type="button" aria-pressed={category === value} onClick={() => {

@@ -1,5 +1,7 @@
+import { XensiPageHeader } from './design/Primitives'
+import { AnimatedMetric } from './design/AnimatedMetric'
 import { useMemo, useState } from 'react'
-import { ArrowLeftRight, Check, ChevronDown, Copy, Info, RefreshCw, ShieldCheck } from 'lucide-react'
+import { Check, ChevronDown, Copy, Info, RefreshCw, ShieldCheck } from 'lucide-react'
 import { GAME_SENSITIVITY_PROFILES, GAME_SENSITIVITY_PROFILE_BY_ID, type GameSensitivityProfile, type GameSensitivityProfileId, type VerificationStatus } from './gameSensitivityProfiles'
 import { convertSensitivity, isFullyVerified, validateGameProfile } from './sensitivityConversionEngine'
 import { formatSensitivity } from './sensitivity'
@@ -58,7 +60,7 @@ export function SensitivityConverter({ initialPreset = null }: SensitivityConver
   }
 
   return <section className="converter-workspace">
-    <div className="converter-heading"><div className="panel-label"><ArrowLeftRight size={15} /> {t('converter.kicker')}</div><h1>{t('converter.title')}</h1><p>{t('converter.subtitle')}</p></div>
+    <XensiPageHeader className="converter-heading" title={t('converter.title')} description={t('converter.subtitle')} />
     <div className="converter-card">
       <div className="converter-side">
         <span className="converter-label">{t('converter.from')}</span>
@@ -75,7 +77,7 @@ export function SensitivityConverter({ initialPreset = null }: SensitivityConver
         <span className="converter-label">{t('converter.to')}</span>
         <label className="converter-select"><GameBadge gameId={targetId} /><select aria-label={t('converter.targetGame')} value={targetId} onChange={(event) => { setTargetId(event.target.value as GameSensitivityProfileId); setCopied(false) }}>{GAME_SENSITIVITY_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
         <div className="converter-values">
-          <div className="converter-field converter-result"><span>{t('converter.equivalent360')}</span><strong>{configurableLabel}</strong><button onClick={copyResult} disabled={result === null} aria-label={t('converter.copy')}>{copied ? <Check size={18} /> : <Copy size={18} />}</button></div>
+          <div className="converter-field converter-result"><span>{t('converter.equivalent360')}</span><strong><AnimatedMetric value={result?.configurableSensitivity ?? null} format={() => configurableLabel} /></strong><button onClick={copyResult} disabled={result === null} aria-label={t('converter.copy')}>{copied ? <Check size={18} /> : <Copy size={18} />}</button></div>
           <label className="converter-field"><span>{t('converter.targetDpi')}</span><input type="text" inputMode="numeric" value={targetDpi} onChange={(event) => setTargetDpi(event.target.value)} aria-label={t('converter.targetDpi')} /></label>
           <div className="converter-field converter-physical"><span>{t('converter.cmPer360')}</span><strong>{result === null ? '—' : `${result.resultingCm360.toFixed(2)} cm`}</strong></div>
         </div>

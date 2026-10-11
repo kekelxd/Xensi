@@ -1,3 +1,4 @@
+import { XensiPageHeader } from './design/Primitives'
 import { AnimatedMetric } from './design/AnimatedMetric'
 import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -30,12 +31,16 @@ function AnalysisDashboard({ onStartTraining }: Props) {
   const [revision,setRevision] = useState(0), [now,setNow] = useState(()=>Date.now())
   const [details,setDetails] = useState<TrainingSession|null>(null)
   const [deleting,setDeleting] = useState(false), [deleteError,setDeleteError] = useState(false)
+  const [confirmRemoval, setConfirmRemoval] = useState(false)
+  const removalTrigger = useRef<HTMLButtonElement>(null)
+  const cancelRemoval = () => { setConfirmRemoval(false); requestAnimationFrame(() => removalTrigger.current?.focus()) }
   const returnFocus = useRef<HTMLElement | null>(null)
-  const openDetails = (session: TrainingSession) => { returnFocus.current = document.activeElement as HTMLElement; setDeleteError(false); setDetails(session) }
+  const closeDetails = () => { setConfirmRemoval(false); setDetails(null) }
+  const openDetails = (session: TrainingSession) => { returnFocus.current = document.activeElement as HTMLElement; setConfirmRemoval(false); setDeleteError(false); setDetails(session) }
   const removeSession = async () => {
-    if (!details || !window.confirm(copy.confirmDelete)) return
+    if (!details || deleting) return
     setDeleting(true); setDeleteError(false)
-    try { await getSessionRepository().remove(details); setDetails(null) }
+    try { await getSessionRepository().remove(details); closeDetails() }
     catch { setDeleteError(true) }
     finally { setDeleting(false) }
   }
@@ -56,7 +61,7 @@ function AnalysisDashboard({ onStartTraining }: Props) {
   }, [detailsId])
   const options = [...new Map((data?.variants??[]).map(v=>[v.session.exerciseId,v.session])).values()]
   return <section className="analysis-workspace analysis-dashboard analysis-v1">
-    <header><div><h1>{copy.title}</h1><p>{copy.subtitle}</p></div><button className="icon-button" type="button" title={copy.refresh} aria-label={copy.refresh} onClick={refresh}><RefreshCw size={18}/></button></header>
+    <XensiPageHeader title={copy.title} description={copy.subtitle} actions={<button className="icon-button" type="button" title={copy.refresh} aria-label={copy.refresh} onClick={refresh}><RefreshCw size={18}/></button>} />
     <div className="analysis-v1-filters">
       <label>{copy.period}<select value={period} onChange={e=>setPeriod(e.target.value as AnalysisPeriod)}>{(['7d','30d','90d','all'] as const).map(p=><option key={p} value={p}>{copy[p]}</option>)}</select></label>
       <label>{copy.exercise}<select value={exercise} onChange={e=>{const v=e.target.value as typeof exercise;setExercise(v);setVariant(null);setMetricKey(v==='all'?null:SESSION_REGISTRY[v].primaryMetric)}}>
@@ -88,19 +93,22 @@ function AnalysisDashboard({ onStartTraining }: Props) {
         {data.recent.map(s=>{const m=getAnalysisMetrics(s.exerciseId)[0];return <button key={s.id} type="button" onClick={()=>openDetails(s)}><span><b>{labels.exerciseName(s)}</b><small>{s.config!.spatial ? `${s.config!.spatial.roundCount} ${t('spatial.rounds')} · HRTF` : `${s.config!.durationSeconds}s · ${t(`difficulty.${s.config!.difficulty}`)}`}</small></span><strong>{formatAnalysisValue(getMetricValue(s,m),m,locale)}</strong><time dateTime={s.finishedAt}>{labels.date(s)}</time></button>})}
       </div></section>
     </>}
-    <MotionDialog open={Boolean(shownDetails)} className="modal-backdrop" onClick={()=>setDetails(null)} onKeyDown={e=>{if(e.key==='Escape')setDetails(null)}}>{shownDetails && (<MotionDialogPanel className="modal av1-details" role="dialog" aria-modal="true" aria-label={copy.details} onClick={e=>e.stopPropagation()} onKeyDown={e=>{
+    <MotionDialog open={Boolean(shownDetails)} className="modal-backdrop" onClick={closeDetails} onKeyDown={e=>{if(e.key==='Escape'){if(confirmRemoval)cancelRemoval();else closeDetails()}}}>{shownDetails && (<MotionDialogPanel className="modal av1-details" role="dialog" aria-modal="true" aria-label={copy.details} onClick={e=>e.stopPropagation()} onKeyDown={e=>{
         if (e.key !== 'Tab') return
         const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')]
         const first = buttons[0], last = buttons[buttons.length - 1]
         if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus() }
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus() }
       }}>
-        <button autoFocus className="modal-close" title={t('common.close')} aria-label={t('common.close')} onClick={()=>setDetails(null)}><X size={20}/></button>
+        <button autoFocus className="modal-close" title={t('common.close')} aria-label={t('common.close')} onClick={closeDetails}><X size={20}/></button>
         <h2>{labels.exerciseName(shownDetails)}</h2><p>{labels.date(shownDetails)} · {t('sessions.completed')}</p>
         <dl className="analysis-v1-context">{getAnalysisMetrics(shownDetails.exerciseId).map(m=><div key={m.key}><dt>{t(m.label)}</dt><dd>{formatAnalysisValue(getMetricValue(shownDetails,m),m,locale)}</dd></div>)}</dl>
         <AnalysisSessionContext session={shownDetails}/>
         {deleteError&&<p role="alert">{copy.deleteError}</p>}
-        <button className="secondary-button" disabled={deleting} onClick={()=>void removeSession()}><Trash2 size={16}/>{copy.deleteSession}</button>
+        {confirmRemoval ? <div className="xensi-inline-confirmation" role="alertdialog" aria-labelledby="analysis-removal-title" aria-describedby="analysis-removal-description">
+          <h3 id="analysis-removal-title">{copy.deleteSession}</h3><p id="analysis-removal-description">{copy.confirmDelete}</p>
+          <div><button autoFocus className="secondary-button" disabled={deleting} onClick={cancelRemoval}>{t('common.cancel')}</button><button className="primary-button" disabled={deleting} onClick={()=>void removeSession()}><Trash2 size={16}/>{copy.deleteSession}</button></div>
+        </div> : <button ref={removalTrigger} className="secondary-button" disabled={deleting} onClick={()=>setConfirmRemoval(true)}><Trash2 size={16}/>{copy.deleteSession}</button>}
       </MotionDialogPanel>)}</MotionDialog>
   </section>
 }

@@ -6,7 +6,7 @@ test.describe('Micro Flick V1', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('sensi-locale', 'pt'))
   })
-  test('filters the mode and mounts/cleans the shared CSS preview without Sessions, pointer lock or RAF', async ({ page }, info) => {
+  test('filters the mode and mounts/cleans the shared CSS preview without Sessions, pointer lock or arena RAF', async ({ page }, info) => {
     const errors: string[] = []; page.on('pageerror', e => errors.push(e.message))
     await page.goto('/train'); await readyHistory(page)
     const card = page.getByRole('button', { name: /Micro Flick/ })
@@ -18,7 +18,11 @@ test.describe('Micro Flick V1', () => {
     page.on('request', request => { if (request.url().includes('/rest/v1/')) requests++ })
     await page.evaluate(() => {
       const original = window.requestAnimationFrame
-      window.requestAnimationFrame = callback => { document.documentElement.dataset.microRaf = String(Number(document.documentElement.dataset.microRaf ?? 0) + 1); return original(callback) }
+      window.requestAnimationFrame = callback => {
+        // The shared ambient Motion springs may request frames; arena engines may not.
+        if (/warmupArena|spatialHuntArena|firstPersonViewport/.test(new Error().stack ?? '')) document.documentElement.dataset.microRaf = String(Number(document.documentElement.dataset.microRaf ?? 0) + 1)
+        return original(callback)
+      }
     })
     await card.hover()
     const preview = card.locator('.warmup-preview-micro_flick')

@@ -1,0 +1,8 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["src/squad"],
+  "canonicalMap": "UX-CONTRACT.md",
+  "ownership": { "Select/Listbox": "native" },
+  "requiredCapabilities": ["Select/Listbox", "Form", "Scrollbar", "Toast"],
+  "commands": ["npm run lint", "npm test", "npm run build", "npm run test:squad:db", "npx playwright test --config playwright.squad.config.ts"]
+}

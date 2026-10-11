@@ -203,6 +203,7 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
         </MotionDropdown>
       </div>
       <button type="button" className={view === 'analysis' ? 'active' : ''} onClick={() => selectAnalysis('overview')} disabled={disabled}>{text.analysis}{(view === 'analysis') && <ActiveIndicator />}</button>
+      <button type="button" className={view === 'squad' ? 'active' : ''} onClick={() => navigate('squad')} disabled={disabled}>{locale === 'pt' ? 'ENCONTRAR SQUAD' : locale === 'es' ? 'ENCONTRAR SQUAD' : 'FIND A SQUAD'}{view === 'squad' && <ActiveIndicator />}</button>
     </nav></LayoutGroup>
 
     <div className="xensi-nav-actions">

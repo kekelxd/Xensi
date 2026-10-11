@@ -1,9 +1,10 @@
 import type { AuthMode } from './authService'
 import type { WarmupExercise } from './warmupConfig'
 
-export const APP_BASE_PATH = '/'
+export const APP_BASE_PATH = import.meta.env.BASE_URL || '/'
 
 export type AppView =
+  | 'squad'
   | 'home'
   | 'analysis'
   | 'profile'
@@ -57,6 +58,7 @@ const WARMUP_EXERCISE_BY_ROUTE = new Map(
 )
 
 const VIEW_PATHS: Partial<Record<AppView, string>> = {
+  squad: 'squad',
   home: '',
   warmup: 'train',
   routine: 'train/routines',
@@ -124,6 +126,7 @@ export function viewRoutePath(view: AppView, options: { warmupEntry?: WarmupExer
 export function routeStateFromPath(route: string): Omit<AppRouteState, 'canonicalPath' | 'shouldReplace'> {
   const cleanRoute = trimRoute(route)
   if (!cleanRoute) return { authRoute: null, view: 'home', analysisSection: 'overview', warmupEntry: null }
+  if (['squad', 'squad/my-room', 'squad/requests', 'squad/moderation', 'squad/blocks'].includes(cleanRoute)) return { authRoute: null, view: 'squad', analysisSection: 'overview', warmupEntry: null }
   if (AUTH_ROUTE_PATHS[cleanRoute]) {
     return { authRoute: AUTH_ROUTE_PATHS[cleanRoute], view: 'home', analysisSection: 'overview', warmupEntry: null }
   }
@@ -164,7 +167,7 @@ export function readRouteStateFromLocation(location: Location = window.location)
   const rawRoute = redirectedRoute || getRouteSegmentFromLocation(location)
   const canonicalRoute = LEGACY_REDIRECTS[rawRoute] ?? rawRoute
   const state = routeStateFromPath(canonicalRoute)
-  const canonicalPath = canonicalPathForState(state)
+  const canonicalPath = state.view === 'squad' ? withBasePath(canonicalRoute) : canonicalPathForState(state)
   return {
     ...state,
     canonicalPath,

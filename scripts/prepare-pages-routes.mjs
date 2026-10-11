@@ -1,12 +1,15 @@
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const distDir = join(process.cwd(), 'dist')
 const indexFile = join(distDir, 'index.html')
 const spaRoutes = [
+  'squad', 'squad/my-room', 'squad/requests', 'squad/moderation', 'squad/blocks',
   'login',
   'register',
   'forgot-password',
+  'reset-password',
+  'auth/callback',
   'train',
   'train/target-switch',
   'train/tracking',
@@ -56,4 +59,13 @@ for (const route of spaRoutes) {
   const routeDir = join(distDir, route)
   mkdirSync(routeDir, { recursive: true })
   copyFileSync(indexFile, join(routeDir, 'index.html'))
+}
+
+const fallbackFile = join(distDir, '404.html')
+if (existsSync(fallbackFile)) {
+  const base = process.env.VITE_BASE_PATH || '/'
+  const fallback = readFileSync(fallbackFile, 'utf8')
+    .replace("var base = '/';", `var base = ${JSON.stringify(base)};`)
+    .replace('href="/branding/', `href="${base}branding/`)
+  writeFileSync(fallbackFile, fallback)
 }

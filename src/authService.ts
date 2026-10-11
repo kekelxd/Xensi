@@ -2,6 +2,7 @@ import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
 import { DEFAULT_AVATAR, isAvatarId, type AvatarId } from './avatars'
 import { readPlayerProfile, writePlayerProfile } from './playerProfileStore'
 import { getSupabaseClient, hasSupabaseClient } from './supabaseClient'
+import { authRoutePath } from './routes'
 
 export type AuthMode = 'login' | 'register' | 'forgot-password' | 'reset-password' | 'auth-callback'
 export type AuthStatus = 'idle' | 'loading' | 'error' | 'success'
@@ -42,6 +43,7 @@ const authStorageKeys = ['xensi-auth-user-id', 'xensi-user-id', 'xensi-auth-user
 let cachedState: AuthSessionState = { status: 'loading', userId: null, profile: null }
 let initialized = false
 let initPromise: Promise<AuthSessionState> | null = null
+let authGeneration = 0
 
 declare global {
   interface Window {
@@ -93,21 +95,15 @@ async function loadProfile(userId: string): Promise<AuthProfile> {
     .maybeSingle()
   if (error) return profileFallback
   const profile = toProfile(data)
-  syncProfileToGuestStore(profile)
   return profile
 }
 
-async function stateFromSession(session: Session | null): Promise<AuthSessionState> {
-  if (!session?.user) {
-    clearRuntimeUser()
-    return { status: 'anonymous', userId: null, profile: null }
-  }
-  setRuntimeUser(session.user)
-  const profile = await loadProfile(session.user.id)
-  return { status: 'authenticated', userId: session.user.id, profile }
-}
-
 async function refreshAuthState(session?: Session | null) {
+  const generation = ++authGeneration
+  // Invalidate private consumers synchronously, before any profile/network await.
+  cachedState = { status: session === null ? 'anonymous' : 'loading', userId: null, profile: null }
+  clearRuntimeUser()
+  emitAuthUpdate()
   const supabase = getSupabaseClient()
   if (!supabase) {
     cachedState = { status: 'anonymous', userId: null, profile: null }
@@ -117,7 +113,17 @@ async function refreshAuthState(session?: Session | null) {
   }
 
   const targetSession = session === undefined ? (await supabase.auth.getSession()).data.session : session
-  cachedState = await stateFromSession(targetSession)
+  if (generation !== authGeneration) return cachedState
+  if (!targetSession?.user || (targetSession.expires_at !== undefined && targetSession.expires_at <= Date.now() / 1000)) {
+    cachedState = { status: 'anonymous', userId: null, profile: null }
+    emitAuthUpdate()
+    return cachedState
+  }
+  const profile = await loadProfile(targetSession.user.id)
+  if (generation !== authGeneration) return cachedState
+  setRuntimeUser(targetSession.user)
+  syncProfileToGuestStore(profile)
+  cachedState = { status: 'authenticated', userId: targetSession.user.id, profile }
   emitAuthUpdate()
   return cachedState
 }
@@ -183,7 +189,7 @@ export async function requestPasswordReset(email: string): Promise<AuthResult> {
   const supabase = getSupabaseClient()
   if (!supabase) return authUnavailable()
 
-  const redirectTo = `${window.location.origin}/reset-password`
+  const redirectTo = `${window.location.origin}${authRoutePath('reset-password')}`
   const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo })
   return error ? { ok: false, code: authErrorCode(error), message: error.message } : { ok: true }
 }
@@ -208,7 +214,7 @@ export async function resendSignupConfirmation(email: string): Promise<AuthResul
   const { error } = await supabase.auth.resend({
     type: 'signup',
     email: cleanEmail,
-    options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    options: { emailRedirectTo: `${window.location.origin}${authRoutePath('auth-callback')}` },
   })
   return error ? { ok: false, code: authErrorCode(error), message: error.message } : { ok: true }
 }
@@ -225,7 +231,7 @@ export async function registerWithEmail(email: string, password: string, nicknam
     password,
     options: {
       data: { nickname: cleanNickname, locale },
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
+      emailRedirectTo: `${window.location.origin}${authRoutePath('auth-callback')}`,
     },
   })
   if (error) return { ok: false, code: authErrorCode(error), message: error.message }
@@ -246,8 +252,13 @@ export async function updatePassword(password: string): Promise<AuthResult> {
 export async function signOut(): Promise<AuthResult> {
   const supabase = getSupabaseClient()
   if (!supabase) return authUnavailable()
+  const generation = ++authGeneration
+  cachedState = { status: 'anonymous', userId: null, profile: null }
+  clearRuntimeUser()
+  emitAuthUpdate()
   const { error } = await supabase.auth.signOut()
   if (error) return { ok: false, code: authErrorCode(error), message: error.message }
+  if (generation !== authGeneration) return { ok: true }
   cachedState = { status: 'anonymous', userId: null, profile: null }
   clearRuntimeUser()
   emitAuthUpdate()
@@ -256,6 +267,7 @@ export async function signOut(): Promise<AuthResult> {
 
 export async function updateAuthenticatedProfile(profile: AuthProfile): Promise<AuthResult> {
   const state = readAuthSessionState()
+  const generation = authGeneration
   const supabase = getSupabaseClient()
   if (!supabase || state.status !== 'authenticated') return { ok: true }
   const { error } = await supabase
@@ -263,6 +275,7 @@ export async function updateAuthenticatedProfile(profile: AuthProfile): Promise<
     .update({ nickname: profile.nickname, avatar_id: profile.avatarId })
     .eq('id', state.userId)
   if (error) return { ok: false, code: authErrorCode(error), message: error.message }
+  if (generation !== authGeneration || cachedState.userId !== state.userId) return { ok: true }
   cachedState = { ...state, profile }
   syncProfileToGuestStore(profile)
   emitAuthUpdate()
@@ -270,6 +283,7 @@ export async function updateAuthenticatedProfile(profile: AuthProfile): Promise<
 }
 
 export function clearAuthProfileCacheForTests() {
+  authGeneration++
   cachedState = { status: 'loading', userId: null, profile: null }
   initialized = false
   initPromise = null

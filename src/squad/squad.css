@@ -1,0 +1,54 @@
+.lfg-workspace { width: min(var(--xensi-max-width), calc(100% - var(--xensi-gutter) * 2)); margin: 0 auto; padding: var(--xensi-page-space) 0; }
+.lfg-workspace button, .lfg-dialog button { padding: 10px 16px; border: 1px solid var(--xensi-border); border-radius: var(--xensi-control-radius); background: var(--xensi-raised); color: var(--xensi-text); cursor: pointer; font: inherit; transition: border-color var(--motion-micro), background var(--motion-micro); }
+.lfg-workspace button:hover:not(:disabled), .lfg-dialog button:hover:not(:disabled) { border-color: var(--xensi-brand); }
+.lfg-workspace button:active:not(:disabled), .lfg-dialog button:active:not(:disabled) { transform: scale(.99); }
+.lfg-workspace button:disabled, .lfg-dialog button:disabled { opacity: .45; cursor: default; }
+.lfg-workspace :focus-visible, .lfg-dialog :focus-visible { outline: 2px solid var(--xensi-brand); outline-offset: 3px; }
+.lfg-workspace .lfg-primary, .lfg-dialog .lfg-primary { background: var(--xensi-brand); color: var(--xensi-text); font-weight: 700; }
+.lfg-product { color: var(--xensi-muted); font-size: .85rem; }
+.lfg-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 0; }
+.lfg-tabs button[aria-current='page'] { border-color: var(--xensi-brand); color: var(--xensi-brand); }
+.lfg-feedback { min-height: 38px; }
+.lfg-workspace [role='alert'], .lfg-dialog [role='alert'], #lfg-discord-error { color: var(--xensi-brand); }
+.lfg-panel { border: 1px solid var(--xensi-border); border-radius: var(--xensi-radius); background: var(--xensi-surface); padding: clamp(20px, 3vw, 32px); min-width: 0; }
+.lfg-gate { max-width: 740px; margin: 24px 0; }
+.lfg-gate h2 { margin-top: 18px; }
+.lfg-workspace p, .lfg-dialog p { line-height: 1.65; color: var(--xensi-muted); }
+.lfg-notifications { padding: 12px 0; border-bottom: 1px solid var(--xensi-border); }
+.lfg-workspace summary { cursor: pointer; padding: 10px 0; }
+.lfg-workspace time { color: var(--xensi-muted); margin-left: 10px; font-size: .85em; }
+.lfg-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 24px 0; }
+.lfg-filters, .lfg-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+.lfg-filters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.lfg-field { display: flex; flex-direction: column; gap: 8px; color: var(--xensi-text); font-size: .9rem; }
+.lfg-field select, .lfg-field input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--xensi-border); background: var(--xensi-base); color: var(--xensi-text); border-radius: var(--xensi-control-radius); padding: 10px 12px; font: inherit; }
+.lfg-field select { cursor: pointer; }
+.lfg-field small { color: var(--xensi-muted); line-height: 1.5; }
+.lfg-rooms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.lfg-room-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.lfg-room-heading h2 { font-family: 'Space Grotesk', sans-serif; font-size: 1.35rem; margin: 0; }
+.lfg-status { color: var(--xensi-muted); font-size: .8rem; border: 1px solid var(--xensi-border); padding: 4px 8px; border-radius: var(--xensi-control-radius); }
+.lfg-status-open { color: var(--xensi-positive); }
+.lfg-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+.lfg-facts dt { font-size: .8rem; color: var(--xensi-muted); }
+.lfg-facts dd { margin: 6px 0 0; }
+.lfg-identity { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; overflow-wrap: anywhere; }
+.lfg-identity .xensi-avatar { width: 34px; height: 34px; flex: none; }
+.lfg-identity img { width: 34px; height: 34px; }
+.lfg-identity > span:last-child { margin-left: auto; font-size: .85rem; }
+.lfg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.lfg-private { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; overflow-wrap: anywhere; }
+.lfg-private code { font-family: 'DM Mono', monospace; color: var(--xensi-text); user-select: text; }
+.lfg-request, .lfg-reservation { border-top: 1px solid var(--xensi-border); margin-top: 24px; padding-top: 20px; }
+.lfg-reservation h3 { color: var(--xensi-text); font-size: .95rem; }
+.lfg-empty { padding: 32px 0; }
+.lfg-pager { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 16px; margin-top: 28px; }
+.lfg-dialog { width: min(620px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); overflow-y: auto; padding: 28px; border: 1px solid var(--xensi-border); border-radius: var(--xensi-radius); background: var(--xensi-surface); }
+.lfg-dialog-close { float: right; }
+.lfg-dialog h2 { padding-right: 100px; }
+.lfg-dialog form > button[type='submit'] { margin-top: 24px; min-width: 180px; }
+.lfg-check { display: flex; align-items: center; gap: 10px; margin: 18px 0; line-height: 1.5; }
+.lfg-check input { accent-color: var(--xensi-brand); width: 18px; height: 18px; flex: none; }
+@media (max-width: 800px) { .lfg-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .lfg-rooms { grid-template-columns: 1fr; } }
+@media (max-width: 440px) { .lfg-form-grid, .lfg-filters { grid-template-columns: 1fr; } .lfg-facts { grid-template-columns: 1fr; } .lfg-dialog { padding: 20px; } .lfg-actions > button { flex: 1 1 auto; } }
+@media (prefers-reduced-motion: reduce) { .lfg-workspace button, .lfg-dialog button { transition: none; } }

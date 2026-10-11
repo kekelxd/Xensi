@@ -2,6 +2,7 @@ import { isUUID } from './accountCollectionRepository'
 import { getSupabaseClient } from './supabaseClient'
 import { SESSION_EXERCISES, type TrainingSession, type RoutineRun } from './trainingSession'
 import type { SessionDocument } from './sessionStorage'
+import { isSpatialMetrics } from './spatialHunt'
 
 type Row = Record<string, unknown>
 const row = (value: unknown): Row => {
@@ -18,10 +19,12 @@ export function parseCloudSession(value: unknown, owner: string): TrainingSessio
     || !['preset_id', 'routine_id', 'routine_step_id', 'routine_run_id'].every(key => nullableUUID(r[key]))) throw new Error('Invalid session response')
   if (r.metrics !== null) {
     const metrics = row(r.metrics)
-    if (!Object.values(metrics).every(v => v === null || typeof v === 'number' && Number.isFinite(v))) throw new Error('Invalid session metrics')
+    if (r.exercise_id === 'spatial_hunt') {
+      if (!isSpatialMetrics(metrics) || r.status === 'completed' && metrics.round_count !== 8) throw new Error('Invalid spatial metrics')
+    } else if (!Object.values(metrics).every(v => v === null || typeof v === 'number' && Number.isFinite(v))) throw new Error('Invalid session metrics')
     const required = r.exercise_id === 'micro_flick' ? ['hits', 'misses', 'shots', 'timeouts', 'accuracy', 'targetsPerSecond', 'overshootCount'] : r.exercise_id === 'sniper-reaction' ? ['hits', 'shots', 'accuracy', 'reactionTimeMs', 'misses', 'earlyShots', 'noShots', 'attempts'] :
       r.exercise_id === 'tracking' || r.exercise_id === 'strafetrack' ? ['accuracy', 'onTargetMs', 'bestTrackingStreakMs'] : ['score', 'accuracy', 'hits']
-    if (r.status === 'completed' && !required.every(key => typeof metrics[key] === 'number')) throw new Error('Missing session metrics')
+    if (r.exercise_id !== 'spatial_hunt' && r.status === 'completed' && !required.every(key => typeof metrics[key] === 'number')) throw new Error('Missing session metrics')
   }
   if (r.context !== null) {
     const context = row(r.context)

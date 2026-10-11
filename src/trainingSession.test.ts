@@ -8,6 +8,7 @@ import { SessionRecorder } from './sessionRecorder'
 import { comparisonSignature, exerciseConfig, SESSION_EXERCISES, SESSION_REGISTRY, type SessionReason } from './trainingSession'
 import { parseCloudSession, sessionRow } from './sessionCloud'
 import type { ActiveDocument, SessionDocument } from './sessionStorage'
+import { spatialMetrics } from './testFixtures/sessions'
 
 function fixture() {
   let elapsed = 0
@@ -16,7 +17,7 @@ function fixture() {
   const context = createSessionContext('cs2', .65, 800, crypto.randomUUID())
   const micro = new MicroFlick('medium', 1)
   micro.update(0, 1440, 900, { x: 720, y: 450 }); micro.shoot(300, micro.target!)
-  const metrics = { ...createEmptyWarmupMetrics(60), remaining: 0, score: 100, accuracy: 50, hits: 1, shots: 2,
+  const metrics = { ...createEmptyWarmupMetrics(60), spatial: spatialMetrics(10), remaining: 0, score: 100, accuracy: 50, hits: 1, shots: 2,
     onTargetMs: 30000, bestTrackingStreakMs: 1200, micro: micro.summary(60000), sniper: summarizeSniper([{ outcome: 'hit', stimulusVisibleAt: 1, shotAt: 301, reactionMs: 300 }]) }
   return { recorder, documents, active, context, metrics, advance: (ms: number) => { elapsed += ms } }
 }

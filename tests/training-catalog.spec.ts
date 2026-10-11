@@ -11,11 +11,12 @@ test.describe('Training catalog categories', () => {
     await expect(page.getByText('Aquecimento FPS', { exact: true })).toHaveCount(0)
     const filters = page.getByRole('group', { name: 'Filtrar por habilidade' })
     const cards = page.locator('.warmup-exercises > button')
-    await expect(cards).toHaveCount(8)
+    await expect(cards).toHaveCount(9)
     for (const [filter, names] of [
       ['Precisão', ['Target Switch', 'Target Shooting', 'Micro Flick', 'Gridshot']],
       ['Tracking', ['Tracking', 'Strafetrack']],
       ['Reação', ['Reflex', 'Sniper Reaction']],
+      ['Áudio', ['Spatial Hunt']],
     ] as const) {
       const button = filters.getByRole('button', { name: new RegExp(filter) })
       await button.click()
@@ -36,7 +37,7 @@ test.describe('Training catalog categories', () => {
     }
     await filters.getByRole('button', { name: /Todos/ }).focus()
     await page.keyboard.press('Enter')
-    await expect(cards).toHaveCount(8)
+    await expect(cards).toHaveCount(9)
     await page.keyboard.press('Tab')
     await expect(filters.getByRole('button', { name: /Precisão/ })).toBeFocused()
     await page.keyboard.press('Space')
@@ -78,7 +79,7 @@ test.describe('Training catalog categories', () => {
     await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'ANÁLISE', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Análise', exact: true })).toBeVisible()
     await expect(page.getByText('LEITURA DE DESEMPENHO', { exact: true })).toHaveCount(0)
-    await expect(page.locator('.analysis-metric-strip')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Nenhuma sessão registrada', exact: true })).toBeVisible()
     await page.screenshot({ path: `test-results/analysis-heading-${info.project.name}.png` })
     await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'CALIBRAR', exact: true }).click()
     await page.getByRole('menuitem', { name: /Como funciona/ }).click()

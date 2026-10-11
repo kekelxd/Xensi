@@ -31,14 +31,14 @@ export function clampAimCoordinate(value: number, size: number, padding = AIM_ED
 
 const pendingLocks = new WeakSet<HTMLCanvasElement>()
 
-export async function requestStablePointerLock(canvas: HTMLCanvasElement | null) {
+export async function requestStablePointerLock(canvas: HTMLCanvasElement | null, options: { fullscreen?: boolean } = {}) {
   if (!canvas || pendingLocks.has(canvas) || document.pointerLockElement === canvas) return
   pendingLocks.add(canvas)
   canvas.focus({ preventScroll: true })
 
   try {
     const fullscreenTarget = canvas.parentElement
-    if (fullscreenTarget && !document.fullscreenElement) {
+    if (options.fullscreen !== false && fullscreenTarget && !document.fullscreenElement) {
       try {
         await fullscreenTarget.requestFullscreen?.({ navigationUI: 'hide' } as FullscreenOptions)
       } catch {

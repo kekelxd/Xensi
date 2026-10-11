@@ -41,6 +41,7 @@ const AUTH_ROUTE_PATHS: Record<string, AuthMode> = {
 }
 
 export const WARMUP_EXERCISE_ROUTES: Record<WarmupExercise, string> = {
+  spatial_hunt: 'spatial-hunt',
   switch: 'target-switch',
   tracking: 'tracking',
   flick: 'target-shooting',

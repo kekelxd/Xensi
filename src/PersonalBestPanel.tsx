@@ -23,7 +23,7 @@ export function PersonalBestPanel({ exercise, variant }: { exercise?: TrainingSe
       : <div className="analysis-pb-list">
         {items.slice(0, expanded ? items.length : 8).map(best => {
           const config = best.session.config!
-          const fields = [
+          const fields = config.spatial ? [[copy.input, copy.mouse], [t('spatial.rounds'), number(config.spatial.roundCount)], [copy.configuration, t('spatial.profile')]] : [
             [copy.input, config.input === 'controller' ? copy.controller : copy.mouse],
             [copy.arena, `${config.arenaWidth} × ${config.arenaHeight}`],
             [copy.crosshair, ['classic', 'dot', 'circle', 'plus'].includes(config.crosshair) ? t(`crosshair.${config.crosshair}` as TranslationKey) : config.crosshair],
@@ -37,7 +37,7 @@ export function PersonalBestPanel({ exercise, variant }: { exercise?: TrainingSe
           return <section key={best.key} data-session-id={best.sessionId}>
             <span>{EXERCISES.find(exercise => exercise.id === best.exerciseId)?.name}</span>
             <strong>{formatPersonalBestValue({ definition: SESSION_REGISTRY[best.exerciseId], value: best.value }, locale)}</strong>
-            <small>{config.durationSeconds}s · {t(`difficulty.${config.difficulty}`)} · v{best.exerciseVersion}</small>
+            <small>{config.spatial ? `${config.spatial.roundCount} ${t('spatial.rounds')} · HRTF · FOV ${config.spatial.horizontalFov}°` : `${config.durationSeconds}s · ${t(`difficulty.${config.difficulty}`)}`} · v{best.exerciseVersion}</small>
             <time dateTime={best.achievedAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(best.achievedAt))}</time>
             <details><summary>{copy.configuration}</summary><dl>{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>
           </section>

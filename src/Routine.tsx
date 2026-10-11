@@ -626,7 +626,7 @@ export function Routine() {
                     <span>{t('routine.exercise')}</span>
                     <select value={item.modeId} onChange={(event) => updateItem(item.id, { modeId: event.target.value as WarmupExercise })} aria-label={t('routine.exercise')}>
                       {!isRoutineModeAvailable(item.modeId) && <option value={item.modeId}>{t('routines.unavailable')}</option>}
-                      {EXERCISES.map((exercise) => <option key={exercise.id} value={exercise.id}>{exercise.name}</option>)}
+                      {EXERCISES.filter(exercise => exercise.completionMode !== 'rounds').map((exercise) => <option key={exercise.id} value={exercise.id}>{exercise.name}</option>)}
                     </select>
                   </label>
                   <div className="routine-expanded-preview">
@@ -653,7 +653,7 @@ export function Routine() {
           <h2>{t('routine.addExercise')}</h2>
           <p>{t('routine.addDescription')}</p>
           <div className="routine-add-grid">
-            {EXERCISES.map((exercise) => {
+            {EXERCISES.filter(exercise => exercise.completionMode !== 'rounds').map((exercise) => {
               const Icon = exercise.icon
               return <button key={exercise.id} type="button" className={selectedAddMode === exercise.id ? 'selected' : ''} onClick={() => { setSelectedAddMode(exercise.id); if (!supportsRoutineDifficulty(exercise.id, selectedAddDifficulty)) setSelectedAddDifficulty('medium') }}>
                 <Icon size={19} /><strong>{exercise.name}</strong><small>{t(exercise.description)}</small>

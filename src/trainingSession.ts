@@ -3,8 +3,9 @@ import { SNIPER_CONFIG, type summarizeSniper } from './sniperReaction'
 import { WARMUP_DIFFICULTIES, type FixedWarmupDifficulty, type WarmupDifficulty, type WarmupExercise } from './warmupConfig'
 import { createEmptyWarmupMetrics, type WarmupMetrics, type WarmupSessionSummary } from './warmupTelemetry'
 import { microFlickRules, MICRO_FLICK_PB_REQUIREMENTS, type MicroFlickRules, type MicroFlickMetrics } from './microFlick'
+import { SPATIAL_HUNT_RULES, type SpatialMetrics } from './spatialHunt'
 
-export const SESSION_EXERCISES: WarmupExercise[] = ['switch', 'tracking', 'flick', 'reflex', 'gridshot', 'strafetrack', 'sniper-reaction', 'micro_flick']
+export const SESSION_EXERCISES: WarmupExercise[] = ['switch', 'tracking', 'flick', 'reflex', 'gridshot', 'strafetrack', 'sniper-reaction', 'micro_flick', 'spatial_hunt']
 export type SessionReason = 'pointer_lock_lost' | 'escape' | 'visibility_hidden' | 'manual_abort' | 'navigation' | 'account_changed' | 'page_reload' | 'legacy_unverified' | 'configuration_changed'
 export type SessionStatus = 'completed' | 'invalid' | 'interrupted'
 export type ExerciseConfig = {
@@ -13,6 +14,7 @@ export type ExerciseConfig = {
   targetScale: number; targetSpeed: number; dwellMs: number; respawnMs: number; targetCount: number
   sniper?: { opening: number; radius: number; speed: number }
   micro?: MicroFlickRules & { seed?: number }
+  spatial?: typeof SPATIAL_HUNT_RULES & { seed?: number }
 }
 type AimMetrics = Pick<WarmupMetrics, 'accuracy' | 'reactionTimeMs' | 'overshootCount' | 'correctionCount' | 'aimBiasX' | 'aimBiasY'>
 export type MetricsByExercise = {
@@ -24,6 +26,7 @@ export type MetricsByExercise = {
   gridshot: MetricsByExercise['flick']
   'sniper-reaction': ReturnType<typeof summarizeSniper>
   micro_flick: MicroFlickMetrics
+  spatial_hunt: SpatialMetrics
 }
 type SessionBase = {
   id: string; userId: string | null; startedAt: string; finishedAt: string; durationMs: number
@@ -43,17 +46,20 @@ export type RoutineRun = {
   status: 'running' | SessionStatus; invalidReason: SessionReason | null; schemaVersion: 1
 }
 export type ExerciseMetricDefinition = {
-  primaryMetric: 'score' | 'accuracy' | 'bestReactionMs' | 'meanAcquisitionTimeMs'
-  unit: 'points' | 'percent' | 'milliseconds'
+  primaryMetric: 'score' | 'accuracy' | 'bestReactionMs' | 'meanAcquisitionTimeMs' | 'mean_angular_error_deg'
+  unit: 'points' | 'percent' | 'milliseconds' | 'degrees'
   direction: 'higher' | 'lower'
   precision: number
   exerciseVersion: number
   pbSupported: boolean
+  allowZero?: boolean
+  requiredRounds?: number
   pbRequirements?: { minAccuracy: number; minHits: number }
   analysisMetrics?: readonly AnalysisMetricKey[]
 }
-export type AnalysisMetricKey = ExerciseMetricDefinition['primaryMetric'] | 'hits' | 'medianReactionMs' | 'medianAcquisitionTimeMs' | 'meanOvershootPx' | 'targetsPerSecond'
+export type AnalysisMetricKey = ExerciseMetricDefinition['primaryMetric'] | 'hits' | 'medianReactionMs' | 'medianAcquisitionTimeMs' | 'meanOvershootPx' | 'targetsPerSecond' | 'median_angular_error_deg' | 'p95_angular_error_deg' | 'best_angular_error_deg' | 'mean_localization_time_ms' | 'median_localization_time_ms'
 export const SESSION_REGISTRY: Record<WarmupExercise, ExerciseMetricDefinition> = {
+  spatial_hunt: { primaryMetric: 'mean_angular_error_deg', unit: 'degrees', direction: 'lower', precision: 1, exerciseVersion: 1, pbSupported: true, allowZero: true, requiredRounds: 8, analysisMetrics: ['median_angular_error_deg', 'p95_angular_error_deg', 'best_angular_error_deg', 'mean_localization_time_ms', 'median_localization_time_ms'] },
   switch: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true, analysisMetrics: ['accuracy', 'hits'] },
   tracking: { primaryMetric: 'accuracy', unit: 'percent', direction: 'higher', precision: 1, exerciseVersion: 1, pbSupported: true },
   flick: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true, analysisMetrics: ['accuracy', 'hits'] },
@@ -68,10 +74,16 @@ export function exerciseConfig(exercise: WarmupExercise, difficulty: WarmupDiffi
   return { difficulty, effectiveDifficulty, durationSeconds, arenaWidth: Math.round(width), arenaHeight: Math.round(height),
     input: 'mouse-pointer-lock', crosshair, ...WARMUP_DIFFICULTIES[effectiveDifficulty], targetCount: exercise === 'gridshot' ? 3 : 1,
     ...(exercise === 'sniper-reaction' ? { sniper: { ...SNIPER_CONFIG[effectiveDifficulty] } } : {}),
-    ...(exercise === 'micro_flick' ? { micro: microFlickRules(effectiveDifficulty) } : {}) }
+    ...(exercise === 'micro_flick' ? { micro: microFlickRules(effectiveDifficulty) } : {}),
+    ...(exercise === 'spatial_hunt' ? { durationSeconds: 0, spatial: { ...SPATIAL_HUNT_RULES } } : {}) }
 }
 // Explicitly ordered configuration, not mutable preset identity or sensitivity, defines compatibility.
 export function comparisonSignature(exercise: WarmupExercise, config: ExerciseConfig, exerciseVersion = 1) {
+  if (exercise === 'spatial_hunt') {
+    const s = config.spatial
+    return JSON.stringify([exercise, exerciseVersion, config.input, s?.roundCount, s?.audioProfileVersion, s?.distributionVersion,
+      s?.sourceRadius, s?.horizontalFov, s?.spatialization, s?.orientationMs, s?.timeoutMs, s?.jitterDegrees])
+  }
   return JSON.stringify([exercise, exerciseVersion, config.durationSeconds, config.difficulty, config.effectiveDifficulty,
     config.arenaWidth, config.arenaHeight, config.input, config.crosshair, config.targetCount,
     ...(exercise === 'micro_flick' ? [config.micro?.radius, config.micro?.minRadius, config.micro?.maxRadius,
@@ -80,6 +92,7 @@ export function comparisonSignature(exercise: WarmupExercise, config: ExerciseCo
       [config.targetScale, config.targetSpeed, config.dwellMs, config.respawnMs])])
 }
 export function sessionMetrics<E extends WarmupExercise>(exercise: E, m: WarmupMetrics): MetricsByExercise[E] | null {
+  if (exercise === 'spatial_hunt') return (m.spatial ? structuredClone(m.spatial) : null) as MetricsByExercise[E] | null
   if (exercise === 'micro_flick') return (m.micro ? { ...m.micro } : null) as MetricsByExercise[E] | null
   if (exercise === 'sniper-reaction') return (m.sniper ? { ...m.sniper } : null) as MetricsByExercise[E] | null
   const aim: AimMetrics = { accuracy: m.accuracy, reactionTimeMs: m.reactionTimeMs, overshootCount: m.overshootCount,
@@ -89,6 +102,7 @@ export function sessionMetrics<E extends WarmupExercise>(exercise: E, m: WarmupM
   return { ...aim, score: m.score, hits: m.hits, shots: m.shots, clickErrors: m.clickErrors, bestStreak: m.bestStreak } as MetricsByExercise[E]
 }
 export function sessionSummary(session: TrainingSession): WarmupSessionSummary | null {
+  if (session.exerciseId === 'spatial_hunt') return null
   if (!session.metrics) return null
   const base = { ...createEmptyWarmupMetrics(0), ...session.metrics, completedAt: session.finishedAt,
     sessionStatus: session.status, comparisonSignature: session.comparisonSignature ?? undefined,

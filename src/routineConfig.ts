@@ -35,7 +35,7 @@ export type RoutineValidationIssue =
   | 'difficulty'
 
 import { EXERCISES, supportsExerciseDifficulty } from './warmupExercises'
-const VALID_MODES = new Set<WarmupExercise>(EXERCISES.map(exercise => exercise.id))
+const VALID_MODES = new Set<WarmupExercise>(EXERCISES.filter(exercise => exercise.completionMode !== 'rounds').map(exercise => exercise.id))
 const VALID_DIFFICULTIES = new Set<WarmupDifficulty>(['easy', 'medium', 'hard', 'adaptive'])
 
 const now = () => new Date().toISOString()

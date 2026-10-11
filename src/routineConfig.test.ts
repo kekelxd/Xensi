@@ -5,6 +5,7 @@ import {
   formatRoutineDuration,
   getRoutineTotalSeconds,
   isRoutineDurationSeconds,
+  isRoutineModeAvailable,
   normalizeRoutine,
   readRoutineLibrary,
   readCustomRoutine,
@@ -18,6 +19,11 @@ import {
 import { WARMUP_DURATION } from './warmupConfig'
 
 describe('custom routine config', () => {
+  it('does not admit round-based Spatial Hunt into duration-based routines', () => {
+    expect(isRoutineModeAvailable('spatial_hunt')).toBe(false)
+    const routine = { ...createDefaultRoutine('cs2'), items: [createRoutineItem('spatial_hunt', 0)] }
+    expect(validateRoutine(routine)).toContain('mode')
+  })
   it('keeps individual warmups at one minute and allows routine items from one to five minutes', () => {
     expect(WARMUP_DURATION).toBe(60)
     expect(ROUTINE_ITEM_DURATIONS).toEqual([60, 120, 180, 240, 300])

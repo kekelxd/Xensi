@@ -83,7 +83,7 @@ function AnalysisDashboard({ onStartTraining }: Props) {
       </>}
       <PersonalBestPanel exercise={exercise==='all'?undefined:exercise} variant={exercise==='all'?undefined:chosenVariant??undefined}/>
       <section className="av1-section"><h2>{copy.recent}</h2><div className="analysis-v1-recents">
-        {data.recent.map(s=>{const m=getAnalysisMetrics(s.exerciseId)[0];return <button key={s.id} type="button" onClick={()=>openDetails(s)}><span><b>{labels.exerciseName(s)}</b><small>{s.config!.durationSeconds}s · {t(`difficulty.${s.config!.difficulty}`)}</small></span><strong>{formatAnalysisValue(getMetricValue(s,m),m,locale)}</strong><time dateTime={s.finishedAt}>{labels.date(s)}</time></button>})}
+        {data.recent.map(s=>{const m=getAnalysisMetrics(s.exerciseId)[0];return <button key={s.id} type="button" onClick={()=>openDetails(s)}><span><b>{labels.exerciseName(s)}</b><small>{s.config!.spatial ? `${s.config!.spatial.roundCount} ${t('spatial.rounds')} · HRTF` : `${s.config!.durationSeconds}s · ${t(`difficulty.${s.config!.difficulty}`)}`}</small></span><strong>{formatAnalysisValue(getMetricValue(s,m),m,locale)}</strong><time dateTime={s.finishedAt}>{labels.date(s)}</time></button>})}
       </div></section>
     </>}
     {shownDetails&&<div className="modal-backdrop" onClick={()=>setDetails(null)} onKeyDown={e=>{if(e.key==='Escape')setDetails(null)}}>

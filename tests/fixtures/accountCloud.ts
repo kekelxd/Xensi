@@ -53,7 +53,8 @@ export async function mockCloud(context: BrowserContext, initial: Row[] = []) {
           const value = (s.metrics as Record<string, unknown> | null)?.[definition.primary_metric]
           return s.user_id === owner && s.exercise_id === definition.exercise_id && s.status === 'completed' && s.invalid_reason === null
             && s.schema_version === 1 && Number(s.exercise_version) > 0 && s.configuration && s.context && s.comparison_signature
-            && typeof value === 'number' && Number.isFinite(value) && (definition.direction === 'lower' ? value > 0 : value >= 0)
+            && typeof value === 'number' && Number.isFinite(value) && (definition.direction === 'lower' && s.exercise_id !== 'spatial_hunt' ? value > 0 : value >= 0)
+            && (s.exercise_id !== 'spatial_hunt' || (s.metrics as Record<string, unknown>).round_count === 8 && (s.metrics as Record<string, unknown>).timeouts === 0)
             && (definition.min_accuracy == null || Number((s.metrics as Record<string, number>).accuracy) >= definition.min_accuracy)
             && (definition.min_hits == null || Number((s.metrics as Record<string, number>).hits) >= definition.min_hits)
             && (!body.target_signature || s.comparison_signature === body.target_signature)

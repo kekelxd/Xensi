@@ -24,6 +24,8 @@ import { formatPersonalBestValue, type PersonalBestResult } from './personalBest
 import { usePersonalBestFeedback } from './usePersonalBestFeedback'
 import { PERSONAL_BEST_COPY } from './personalBestCopy'
 import { MicroFlick, MICRO_FLICK_PB_REQUIREMENTS } from './microFlick'
+import './spatialPreview.css'
+import { SpatialHuntLoader } from './SpatialHuntLoader'
 
 export type { WarmupMetrics } from './warmupTelemetry'
 
@@ -38,6 +40,7 @@ const CROSSHAIRS: Array<{ id: CrosshairStyle, label: TranslationKey, icon: Lucid
 ]
 
 function ExercisePreview({ exercise, name }: { exercise: WarmupExercise, name: string }) {
+  if (exercise === 'spatial_hunt') return <div className="warmup-preview spatial-preview" aria-hidden="true"><div className="spatial-preview-room"><i/><i/><i/></div><div className="spatial-preview-dark"/><span className="preview-crosshair"/><span className="spatial-preview-source"/><div className="preview-meta"><b>{name}</b></div></div>
   if (exercise === 'sniper-reaction') return <div className="warmup-preview sniper-preview" aria-hidden="true"><div className="sniper-preview-opening"><span /></div><div className="preview-meta"><b>{name}</b></div></div>
   return (
     <div className={`warmup-preview warmup-preview-${exercise}`} aria-hidden="true">
@@ -876,6 +879,8 @@ export function Warmup({
     onExerciseChange?.(null)
     setPhase('hub')
   }
+
+  if (exercise === 'spatial_hunt' && phase !== 'hub') return <SpatialHuntLoader onExit={exitToHub}/>
 
   if (phase === 'hub' || phase === 'setup' || phase === 'result') {
     return (

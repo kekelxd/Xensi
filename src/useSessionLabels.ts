@@ -20,6 +20,7 @@ export function useSessionLabels() {
   const configuration = (s: TrainingSession, compact = false) => {
     const c = s.config!
     const pb = PERSONAL_BEST_COPY[locale]
+    if (c.spatial) return `${c.spatial.roundCount} ${t('spatial.rounds')} · ${c.spatial.spatialization} · FOV ${c.spatial.horizontalFov}° · ${t('spatial.radius')}: ${c.spatial.sourceRadius} m · ${t('spatial.audioProfile')}: v${c.spatial.audioProfileVersion} · ${pb.mouse} · v${s.exerciseVersion}`
     if (compact) return `${c.durationSeconds}s · ${t(`difficulty.${c.difficulty}`)} · ${c.arenaWidth}×${c.arenaHeight} · ${c.input === 'controller' ? pb.controller : pb.mouse} · v${s.exerciseVersion}`
     const px = (radius: number) => `${number(radius * Math.min(c.arenaWidth,c.arenaHeight))} px`
     const geometry = c.micro ? [

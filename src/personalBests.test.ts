@@ -98,7 +98,7 @@ describe('Personal Bests derived from Sessions', () => {
     expect(definition.pbSupported).toBe(true)
     expect(derivePersonalBests([session], null)[0].metricKey).toBe(definition.primaryMetric)
     expect(formatPersonalBestValue({ definition, value: 50 }, 'pt')).toBe(
-      definition.unit === 'percent' ? '50,0%' : definition.unit === 'milliseconds' ? '50 ms' : '50')
+      definition.unit === 'degrees' ? '50,0°' : definition.unit === 'percent' ? '50,0%' : definition.unit === 'milliseconds' ? '50 ms' : '50')
     expect(comparisonSignature(exerciseId, session.config!)).toBe(session.comparisonSignature)
   })
 })

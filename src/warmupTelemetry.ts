@@ -2,6 +2,7 @@ import type { WarmupExercise } from './warmupConfig'
 import type { summarizeSniper } from './sniperReaction'
 import type { SessionContext } from './playerProfileStore'
 import type { MicroFlickMetrics } from './microFlick'
+import type { SpatialMetrics } from './spatialHunt'
 
 export type WarmupMetrics = {
   sessionStatus?: 'completed' | 'invalid' | 'interrupted'
@@ -10,6 +11,7 @@ export type WarmupMetrics = {
   sessionContext?: SessionContext
   sniper?: ReturnType<typeof summarizeSniper>
   micro?: MicroFlickMetrics
+  spatial?: SpatialMetrics
   score: number
   accuracy: number
   hits: number

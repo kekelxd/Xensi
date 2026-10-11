@@ -1,4 +1,5 @@
 import { SESSION_REGISTRY, type ExerciseMetricDefinition, type TrainingSession } from './trainingSession'
+import { isSpatialMetrics } from './spatialHunt'
 
 export type PersonalBest = {
   key: string
@@ -36,10 +37,11 @@ export function getPersonalBestValue(session: TrainingSession): number | null {
     || !Number.isFinite(Date.parse(session.finishedAt)) || !Number.isFinite(Date.parse(session.startedAt))) return null
   const value = (session.metrics as Partial<Record<ExerciseMetricDefinition['primaryMetric'], number | null>>)[definition.primaryMetric]
   const requirements = definition.pbRequirements
+  if (definition.requiredRounds && (!isSpatialMetrics(session.metrics) || session.metrics.round_count !== definition.requiredRounds || session.metrics.timeouts !== 0)) return null
   const quality = session.metrics as { accuracy?: number; hits?: number }
   if (requirements && (!Number.isFinite(quality.accuracy) || !Number.isFinite(quality.hits)
     || !(quality.accuracy! >= requirements.minAccuracy) || !(quality.hits! >= requirements.minHits))) return null
-  return typeof value === 'number' && Number.isFinite(value) && (definition.direction === 'lower' ? value > 0 : value >= 0) ? value : null
+  return typeof value === 'number' && Number.isFinite(value) && (definition.direction === 'lower' && !definition.allowZero ? value > 0 : value >= 0) ? value : null
 }
 
 // SQL uses the same chronological tie order; formatting never changes comparison.
@@ -92,5 +94,5 @@ export function didSessionSetPB(session: TrainingSession, history: readonly Trai
 export function formatPersonalBestValue(result: { definition: ExerciseMetricDefinition; value: number }, locale = 'en') {
   const value = new Intl.NumberFormat(locale, { minimumFractionDigits: result.definition.precision,
     maximumFractionDigits: result.definition.precision }).format(result.value)
-  return result.definition.unit === 'milliseconds' ? `${value} ms` : result.definition.unit === 'percent' ? `${value}%` : value
+  return result.definition.unit === 'milliseconds' ? `${value} ms` : result.definition.unit === 'percent' ? `${value}%` : result.definition.unit === 'degrees' ? `${value}°` : value
 }

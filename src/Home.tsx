@@ -45,6 +45,7 @@ type Props = { onNavigate: (destination: HomeDestination) => void }
 
 
 const exerciseNames: Record<WarmupExercise, string> = {
+  spatial_hunt: 'Spatial Hunt',
   switch: 'Target Switch',
   tracking: 'Tracking',
   flick: 'Target Shooting',

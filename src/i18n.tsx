@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { SPATIAL_STRINGS } from './spatialHuntCopy'
 
 export type Locale = 'pt' | 'en' | 'es'
 type Params = Record<string, string | number>
 
 const pt = {
+  ...SPATIAL_STRINGS.pt,
   'analysisV1.bestReaction': 'Melhor tempo de reação', 'analysisV1.medianReaction': 'Mediana de reação',
   'warmup.microFlick.name': 'Micro Flick',
   'warmup.microFlick.description': 'Treine microajustes rápidos e precisos em alvos próximos.',
@@ -194,6 +196,7 @@ export type TranslationKey = keyof typeof pt
 
 const en: Record<TranslationKey, string> = {
   ...pt,
+  ...SPATIAL_STRINGS.en,
   'analysisV1.bestReaction': 'Best reaction time', 'analysisV1.medianReaction': 'Median reaction time',
   'warmup.microFlick.name': 'Micro Flick',
   'warmup.microFlick.description': 'Train fast, precise micro-adjustments on nearby targets.',
@@ -382,6 +385,7 @@ const en: Record<TranslationKey, string> = {
 
 const es: Record<TranslationKey, string> = {
   ...pt,
+  ...SPATIAL_STRINGS.es,
   'analysisV1.bestReaction': 'Mejor tiempo de reacción', 'analysisV1.medianReaction': 'Mediana de reacción',
   'warmup.microFlick.name': 'Micro Flick',
   'warmup.microFlick.description': 'Entrena microajustes rápidos y precisos en objetivos cercanos.',

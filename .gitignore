@@ -6,6 +6,8 @@ vite.config.d.ts
 .vite.log
 
 .vercel
+.env.local
+.env.*.local
 
 # Playwright
 /test-results/

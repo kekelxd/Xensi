@@ -1,5 +1,10 @@
 # Publicação de teste do Squad Finder V1.0
 
+> Registro histórico de preparação. A autorização posterior, o backup validado,
+> as cinco migrations aplicadas e a liberação para contas registradas estão em
+> [squad-live-deployment.md](squad-live-deployment.md). As pendências/flags de
+> homologação descritas abaixo representam o estado anterior à implantação.
+
 Preparação em 11/10/2026. Nenhuma migration hospedada ou alteração de flags
 foi executada. O responsável autorizou commit e push do módulo, mantendo conta
 registrada e login obrigatórios. Isso não autoriza migrations pendentes.

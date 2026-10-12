@@ -242,15 +242,13 @@ body:has(.xr) { overflow: clip; }
 .xr[data-reduced='true'] .xr-hero, .xr[data-reduced='true'] .xr-tools { height: auto; }
 .xr[data-reduced='true'] .xr-stage, .xr[data-reduced='true'] .xr-tools-stage { position: relative; min-height: 100svh; height: auto; }
 .xr[data-reduced='true'] [data-xr-in], .xr[data-reduced='true'] [data-xr-stagger] > * { opacity: 1; transform: none; transition: none; }
+/* Reduced motion keeps slow ambient loops (radar sweeps, blips, minigame previews) and drops the
+   scroll-driven pin, sweep and fold, which are the kind of motion the preference is about. */
+.xr[data-reduced='true'] .xr-radar .xr-sweep { animation: xr-turn 12s linear infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .xr-pv *, .xr-blip > i::after { animation: none !important; }
-  .xr-pv-switch .b { opacity: 0; }
-  .xr-pv-sniper .d { left: 50%; }
-  .xr-pv-spatial .w { transform: scale(.6); opacity: .4; }
-  .xr-final-sweep, .xr-final-blip, .xr-final-blip::after { animation: none !important; }
+  .xr-blip > i::after { animation: none !important; }
   .xr-mg-slice, .xr-mg-info, .xr-pv, .xr-door::before { transition: none; }
 }
-
 @media (max-width: 1100px) {
   .xr-head { grid-template-columns: 1fr; }
   .xr-mg { flex-direction: column; height: auto; }

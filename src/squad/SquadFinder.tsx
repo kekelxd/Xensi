@@ -31,6 +31,8 @@ type DialogState = { action: string; room?: Room; request?: Request; id?: string
 type Snapshot = { access: Access | null; rooms: Room[]; requests: Request[]; notifications: Notification[]; blocks: Block[]; moderation: Moderation | null }
 const emptySnapshot = (): Snapshot => ({ access: null, rooms: [], requests: [], notifications: [], blocks: [], moderation: null })
 const pageSize = 20
+// Accounts the server already confirmed eligible in this tab session (memory only).
+const eligibleUsers = new Set<string>()
 const initialArea = (): Area => window.location.pathname.endsWith('/my-room') ? 'mine' : window.location.pathname.endsWith('/requests') ? 'requests' : window.location.pathname.endsWith('/moderation') ? 'moderation' : window.location.pathname.endsWith('/blocks') ? 'blocks' : 'find'
 const areaPath: Record<Area, string> = { find: withBasePath('squad'), mine: withBasePath('squad/my-room'), requests: withBasePath('squad/requests'), moderation: withBasePath('squad/moderation'), blocks: withBasePath('squad/blocks') }
 // Radix Select/RadioGroup reserve the empty string, so "all" filters use a sentinel and map back to ''.
@@ -144,19 +146,31 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
       if (first) { setLoading(true); setContact(null) }
       const rpc = <T,>(action: string, payload = {}) => squadRpc<T>(uid, action, payload, abort.signal)
       try {
+        // Data calls only start before `access` resolves for an account already seen as eligible (later
+        // refreshes: one round trip). A first load or ineligible account still checks `access` first.
+        const fetchData = (): [Promise<Notification[]>, Promise<Partial<Snapshot>>] => {
+          const notifications = rpc<Notification[]>('notifications')
+          const data = (async (): Promise<Partial<Snapshot>> => {
+            if (area === 'find') return { rooms: await rpc<Room[]>('list', { ...filters, offset: page * pageSize }) }
+            if (area === 'mine') {
+              const rooms = await rpc<Room[]>('mine', { offset: page * pageSize })
+              const managed = rooms.find(r => r.status === 'open' || r.status === 'reserved') ?? rooms[0]
+              return { rooms, requests: managed ? await rpc<Request[]>('requests', { room_id: managed.id, offset: hostPage * pageSize }) : [] }
+            }
+            if (area === 'requests') return { requests: await rpc<Request[]>('requests', { offset: page * pageSize }) }
+            if (area === 'blocks') return { blocks: await rpc<Block[]>('blocks', { offset: page * pageSize }) }
+            return {}
+          })()
+          notifications.catch(() => undefined); data.catch(() => undefined)
+          return [notifications, data]
+        }
+        const early = eligibleUsers.has(uid) ? fetchData() : null
         const access = await rpc<Access>('access')
-        let next = { ...emptySnapshot(), access }
+        if (access.eligible) eligibleUsers.add(uid); else eligibleUsers.delete(uid)
+        let next: Snapshot = { ...emptySnapshot(), access }
         if (access.eligible) {
-          const notifications = await rpc<Notification[]>('notifications')
-          next = { ...next, notifications }
-          if (area === 'find') next.rooms = await rpc<Room[]>('list', { ...filters, offset: page * pageSize })
-          if (area === 'mine') {
-            next.rooms = await rpc<Room[]>('mine', { offset: page * pageSize })
-            const managed = next.rooms.find(r => r.status === 'open' || r.status === 'reserved') ?? next.rooms[0]
-            if (managed) next.requests = await rpc<Request[]>('requests', { room_id: managed.id, offset: hostPage * pageSize })
-          }
-          if (area === 'requests') next.requests = await rpc<Request[]>('requests', { offset: page * pageSize })
-          if (area === 'blocks') next.blocks = await rpc<Block[]>('blocks', { offset: page * pageSize })
+          const [notifications, data] = await Promise.all(early ?? fetchData())
+          next = { ...next, ...data, notifications }
         }
         if (area === 'moderation' && access.moderator) next.moderation = await rpc<Moderation>('mod_list', { status: reportStatus, offset: page * pageSize })
         if (!active || version !== generation.current || readAuthSessionState().userId !== uid) return

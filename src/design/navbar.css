@@ -111,3 +111,6 @@
 .xensi-universal-shell .xensi-nav-bell-dot { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #ff4055; color: #fff; font: 700 10px/16px monospace; font-style: normal; text-align: center; pointer-events: none; }
 .xensi-universal-shell .xensi-nav-bell-menu { width: min(340px, calc(100vw - 24px)); }
 .xensi-universal-shell .xensi-nav-bell-empty { margin: 0; padding: 10px 14px; font-size: 13px; color: #bfc1ca; }
+.xensi-universal-shell .xensi-nav-bell-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.xensi-universal-shell .xensi-nav-bell-clear { border: 0; background: none; padding: 2px 6px; font-size: 12px; font-weight: 600; color: #bfc1ca; cursor: pointer; border-radius: 6px; }
+.xensi-universal-shell .xensi-nav-bell-clear:hover { color: #fff; background: #ffffff12; }

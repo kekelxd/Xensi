@@ -23,7 +23,7 @@ import { compatible, platforms, ranksFor, regions, registry, validDiscord, type 
 import { errorCopy, squadCopy, statusCopy, valueCopy } from './copy'
 import { armAlertSound, playAlert } from './sound'
 import { disablePush, enablePush, pushState, type PushState } from './push'
-import { squadRpc, type Access, type Block, type Contact, type Moderation, type Notification, type Request, type Room } from './service'
+import { clearNotifications, squadRpc, type Access, type Block, type Contact, type Moderation, type Notification, type Request, type Room } from './service'
 import './squad.css'
 
 type Area = 'find' | 'mine' | 'requests' | 'blocks' | 'moderation'
@@ -279,11 +279,11 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
           {area === 'find' && <div className="grid gap-5 min-[1100px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
             <Card accent className="gap-2.5 bg-[linear-gradient(120deg,rgba(255,64,85,.12),rgba(16,17,22,.82)_55%)] p-6">
               <h2 className={cn(heading, 'text-[clamp(22px,2.2vw,30px)]')}>{text.heroTitle}</h2><p className={cn(muted, 'max-w-[52ch]')}>{text.heroText}</p>
-              {!loading && <dl className="m-0 mt-auto flex pt-3.5">{[[text.inList, snapshot.rooms.length], [text.notifications, snapshot.notifications.length]].map(([term, count], i) => <div key={term} className={cn('grid gap-1.5 px-6', i === 0 ? 'pl-0' : 'border-0 border-l border-solid border-border')}><dt className="text-xs font-medium text-muted-foreground">{term}</dt><dd className="m-0 font-mono text-[28px] font-medium leading-none tabular-nums text-foreground">{count}</dd></div>)}</dl>}
+              {!loading && <dl className="m-0 mt-auto flex pt-3.5">{[[text.inList, snapshot.rooms.length]].map(([term, count], i) => <div key={term} className={cn('grid gap-1.5 px-6', i === 0 ? 'pl-0' : 'border-0 border-l border-solid border-border')}><dt className="text-xs font-medium text-muted-foreground">{term}</dt><dd className="m-0 font-mono text-[28px] font-medium leading-none tabular-nums text-foreground">{count}</dd></div>)}</dl>}
             </Card>
             <Card className="gap-2.5 p-6"><h2 className={cn(heading, 'text-xl')}>{text.yourRoom}</h2><p className={muted}>{text.yourRoomHint}</p><div className="mt-auto flex flex-wrap gap-2 pt-1.5">{createButton}<Button variant="outline" onClick={() => navigate('mine')}>{text.manageRoom}</Button></div></Card>
           </div>}
-          {area !== 'moderation' && <details className="group px-1"><summary className="cursor-pointer py-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground">{text.notifications} ({snapshot.notifications.length})</summary>{snapshot.notifications.length ? <ul className="m-0 grid gap-1.5 py-2 pl-5 text-sm text-foreground">{snapshot.notifications.map(n => <li key={n.id}>{value(n.kind)} <time dateTime={n.created_at} className="ml-2.5 text-xs text-muted-foreground">{date(n.created_at)}</time></li>)}</ul> : <p className={cn(muted, 'py-2')}>{text.noNotifications}</p>}</details>}
+          {area !== 'moderation' && <details className="group px-1"><summary className="cursor-pointer py-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground">{text.notifications} ({snapshot.notifications.length})</summary>{snapshot.notifications.length ? <ul className="m-0 grid gap-1.5 py-2 pl-5 text-sm text-foreground">{snapshot.notifications.map(n => <li key={n.id}>{value(n.kind)} <time dateTime={n.created_at} className="ml-2.5 text-xs text-muted-foreground">{date(n.created_at)}</time></li>)}</ul> : <p className={cn(muted, 'py-2')}>{text.noNotifications}</p>}{snapshot.notifications.length > 0 && <Button variant="ghost" size="sm" onClick={() => void clearNotifications().then(() => setRefresh(n => n + 1)).catch(() => setError(text.network))}>{text.clearAll}</Button>}</details>}
           {area !== 'find' && <div className="flex flex-wrap items-center justify-between gap-4"><div className="flex flex-wrap items-center gap-2">{refreshButton}{pushButton}</div>{area === 'mine' && createButton}</div>}
           {(area === 'find' || area === 'mine') && (!a?.creation_enabled || a.publication_restricted) && <p className={muted}>{text.creationOff}</p>}
           {area === 'find' && <Card className="gap-4 p-5 sm:p-6" aria-label={text.filtersTitle} role="region">

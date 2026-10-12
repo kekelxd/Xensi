@@ -7,6 +7,7 @@ import { atmosphereFor } from './ambientThemes'
 import { GlobalAmbientBackground } from './GlobalAmbientBackground'
 import { PageAtmosphere } from './PageAtmosphere'
 import { useRouteReveal } from './useRouteReveal'
+import { artForView, preloadImage } from './pageArt'
 
 const measurementRoutes = new Set<AppView>(['polling', 'buttons', 'refresh-rate', 'controller-drift'])
 export function XensiAppShell({ view, className, children, onNavigate }: { view: AppView; className: string; children: ReactNode; onNavigate: (view: AppView) => void }) {
@@ -16,6 +17,17 @@ export function XensiAppShell({ view, className, children, onNavigate }: { view:
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const reduced = useReducedMotion()
   useRouteReveal(ref, view)
+  const [artReady, setArtReady] = useState<string | null>(null)
+  const art = artForView(view)
+  useEffect(() => {
+    if (!art) return
+    let alive = true
+    preloadImage(art)
+    const image = new Image()
+    image.src = art
+    image.decode().catch(() => undefined).then(() => { if (alive) setArtReady(art) })
+    return () => { alive = false }
+  }, [art])
   useEffect(() => {
     const root = ref.current
     if (!root) return
@@ -32,7 +44,7 @@ export function XensiAppShell({ view, className, children, onNavigate }: { view:
   }, [view])
   const paused = hidden || immersive || measurementRoutes.has(view)
   const atmosphere = atmosphereFor(view)
-  return <div ref={ref} className={`${className} xensi-universal-shell`} data-atmosphere={atmosphere} data-view={view} data-immersive={immersive} data-ui-paused={paused || reduced ? 'true' : 'false'}>
+  return <div ref={ref} className={`${className} xensi-universal-shell`} data-atmosphere={atmosphere} data-view={view} data-immersive={immersive} data-ui-paused={paused || reduced ? 'true' : 'false'} data-art-ready={art !== null && artReady === art}>
     <GlobalAmbientBackground atmosphere={atmosphere} paused={paused} />
     <PageAtmosphere atmosphere={atmosphere} paused={paused} />
     {children}

@@ -2,7 +2,7 @@
    Scroll drives the hero radar, which maps the five modules, folds into a corner instrument
    and keeps tracking the section in view. Everything is scoped under .xr. */
 
-.xr, .xr-instrument {
+.xr {
   --xr-bg: #07080c; --xr-line: rgba(255,255,255,.08); --xr-line-2: rgba(255,255,255,.14);
   --xr-fg: #f4f2ee; --xr-muted: #a3a5ad; --xr-subtle: #6d7079; --xr-brand: #ff4055; --xr-brand-soft: rgba(255,64,85,.14);
   --xr-max: var(--xensi-max-width, 1640px); --xr-gutter: var(--xensi-gutter, clamp(16px, 4.3vw, 72px));
@@ -11,7 +11,7 @@
   position: relative; width: 100%; color: var(--xr-fg); font-family: var(--font-ui); background: var(--xr-bg); overflow-x: clip;
 }
 .xr *, .xr *::before, .xr *::after { box-sizing: border-box; }
-.xr button, .xr-instrument button { font: inherit; color: inherit; cursor: pointer; }
+.xr button { font: inherit; color: inherit; cursor: pointer; }
 .xr-wrap { width: min(var(--xr-max), calc(100% - var(--xr-gutter) * 2)); margin-inline: auto; }
 .xr-red { color: var(--xr-brand); }
 
@@ -38,7 +38,6 @@ body:has(.xr) { overflow: clip; }
 .xr-axis.is-v { width: 1px; height: 88%; background: linear-gradient(180deg, transparent, rgba(255,64,85,.12) 30%, rgba(255,64,85,.12) 70%, transparent); }
 .xr-sweep { position: absolute; inset: 6%; border-radius: 50%; background: conic-gradient(from 0deg, rgba(255,64,85,.22), rgba(255,64,85,.06) 12%, transparent 26%);
   -webkit-mask-image: radial-gradient(circle, #000 0 66%, transparent 71%); mask-image: radial-gradient(circle, #000 0 66%, transparent 71%); will-change: transform; }
-.xr-radar.is-folding .xr-ring { border-color: rgba(255,64,85,.55); border-width: calc(1px / var(--rs, 1)); }
 .xr-glow { position: absolute; inset: 0; background: radial-gradient(40% 32% at 50% 48%, rgba(255,64,85,.12), transparent 70%), linear-gradient(0deg, var(--xr-bg) 3%, transparent 34%); }
 .xr-glints { position: absolute; inset: 0; will-change: transform; }
 .xr-glints i { position: absolute; width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle, rgba(255,64,85,.10), transparent 65%); }
@@ -55,7 +54,6 @@ body:has(.xr) { overflow: clip; }
 .xr-blip.is-lit > i { background: var(--xr-brand); transform: scale(1.15); }
 .xr-blip.is-lit > i::after { animation: xr-ping 1.4s ease-out 1; }
 .xr-blip.is-lit > span { opacity: var(--label-o, 1); translate: 0 0; }
-.xr-radar.is-folding .xr-blip > i { transform: scale(calc(1 / var(--rs, 1) * .5)); }
 @keyframes xr-ping { from { transform: scale(1); opacity: .9 } to { transform: scale(5); opacity: 0 } }
 
 /* Hero copy */
@@ -71,19 +69,6 @@ body:has(.xr) { overflow: clip; }
 .xr-games small { color: var(--xr-subtle); font-size: 13px; white-space: nowrap; }
 .xr-games ul { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: clamp(18px, 2.4vw, 44px); margin: 0; padding: 0; list-style: none; }
 .xr-games li { color: #8d9099; font: 600 clamp(13px, .95vw, 16px) var(--font-display); white-space: nowrap; }
-
-/* Instrument: the radar after the hero, used as section navigation */
-.xr-instrument { position: fixed; right: 28px; bottom: 28px; z-index: 60; width: 132px; height: 132px; border-radius: 50%; background: rgba(9,10,14,.92); border: 1px solid var(--xr-line-2); box-shadow: 0 18px 40px -18px rgba(0,0,0,.8);
-  opacity: 0; visibility: hidden; transform: scale(.9); transition: opacity .3s ease, transform .3s ease, visibility 0s .3s; }
-.xr-instrument.is-on { opacity: 1; visibility: visible; transform: none; transition: opacity .3s ease, transform .3s ease; }
-.xr-iring { position: absolute; inset: 0; margin: auto; border-radius: 50%; border: 1px solid rgba(255,64,85,.18); pointer-events: none; }
-.xr-isweep { position: absolute; inset: 4px; border-radius: 50%; background: conic-gradient(from 0deg, rgba(255,64,85,.35), rgba(255,64,85,.06) 14%, transparent 28%); pointer-events: none; }
-.xr-instrument button { position: absolute; left: var(--bx); top: var(--by); width: 22px; height: 22px; margin: -11px; padding: 0; border: 0; border-radius: 50%; background: transparent; }
-.xr-instrument button::before { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: rgba(255,64,85,.35); transition: background .2s ease, transform .2s ease; }
-.xr-instrument button[aria-current='true']::before { background: var(--xr-brand); transform: scale(1.35); box-shadow: 0 0 0 4px rgba(255,64,85,.18); }
-.xr-instrument button:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
-.xr-tip { position: absolute; right: calc(100% + 12px); top: 50%; translate: 0 -50%; padding: 7px 10px; border: 1px solid var(--xr-line-2); border-radius: 8px; background: #101116; color: var(--xr-fg); font: 600 13px var(--font-ui); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
-.xr-tip.is-on { opacity: 1; }
 
 /* Shared chapter head */
 .xr-chapter { padding-block: clamp(96px, 13vw, 192px); }
@@ -240,6 +225,14 @@ body:has(.xr) { overflow: clip; }
 .xr-final { position: relative; isolation: isolate; overflow: hidden; text-align: center; padding-block: clamp(96px, 12vw, 176px); border-top: 1px solid var(--xr-line); }
 .xr-final-radar { --rw: min(1300px, 120vw); position: absolute; z-index: -1; left: 50%; top: 58%; width: var(--rw); aspect-ratio: 1; margin-left: calc(var(--rw) / -2); margin-top: calc(var(--rw) / -2); transform: scale(var(--fr, .2)); opacity: var(--fo, 0); will-change: transform, opacity; }
 .xr-final-radar .xr-ring { border-color: rgba(255,64,85,.16); }
+/* The closing radar runs on its own clock: a 6s sweep, and each blip pings as the beam crosses it. */
+.xr-final-sweep { animation: xr-turn 6s linear infinite; }
+.xr-final-blip { position: absolute; left: var(--bx); top: var(--by); width: 10px; height: 10px; margin: -5px; border-radius: 50%; background: var(--xr-brand); opacity: .25; animation: xr-blip 6s var(--d, 0s) linear infinite; }
+.xr-final-blip::after { content: ''; position: absolute; inset: -1px; border-radius: 50%; border: 1px solid var(--xr-brand); opacity: 0; animation: xr-blip-ring 6s var(--d, 0s) ease-out infinite; }
+.xr-final-radar[data-paused] :is(.xr-final-sweep, .xr-final-blip, .xr-final-blip::after) { animation-play-state: paused; }
+@keyframes xr-turn { to { transform: rotate(360deg); } }
+@keyframes xr-blip { 0% { opacity: 1; transform: scale(1.3) } 30% { opacity: .5; transform: scale(1) } 100% { opacity: .25; transform: scale(1) } }
+@keyframes xr-blip-ring { 0% { transform: scale(1); opacity: .9 } 25% { transform: scale(5); opacity: 0 } 100% { opacity: 0 } }
 .xr-final h2 { margin: 0; font: 700 clamp(44px, 6vw, 112px)/1 var(--font-display); letter-spacing: -.04em; color: var(--xr-fg); }
 .xr-final h2 span { display: block; color: var(--xr-brand); }
 .xr-final p { margin: 22px auto 0; color: var(--xr-muted); font-size: 18px; }
@@ -254,7 +247,8 @@ body:has(.xr) { overflow: clip; }
   .xr-pv-switch .b { opacity: 0; }
   .xr-pv-sniper .d { left: 50%; }
   .xr-pv-spatial .w { transform: scale(.6); opacity: .4; }
-  .xr-mg-slice, .xr-mg-info, .xr-pv, .xr-instrument, .xr-instrument.is-on, .xr-door::before { transition: none; }
+  .xr-final-sweep, .xr-final-blip, .xr-final-blip::after { animation: none !important; }
+  .xr-mg-slice, .xr-mg-info, .xr-pv, .xr-door::before { transition: none; }
 }
 
 @media (max-width: 1100px) {
@@ -274,5 +268,5 @@ body:has(.xr) { overflow: clip; }
   .xr-games .xr-wrap { flex-direction: column; align-items: flex-start; padding-block: 16px; }
   .xr-games ul { justify-content: flex-start; }
 }
-@media (max-width: 860px) { .xr-blip > span { display: none; } .xr-instrument { right: 16px; bottom: 16px; width: 104px; height: 104px; } }
+@media (max-width: 860px) { .xr-blip > span { display: none; } }
 @media (max-width: 640px) { .xr-door { grid-template-columns: 1fr; } .xr-hero { height: 200vh; } }

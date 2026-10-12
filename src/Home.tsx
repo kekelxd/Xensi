@@ -1,6 +1,5 @@
 import { useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode, type RefObject } from 'react'
-import { createPortal } from 'react-dom'
 import { ArrowRight, Gamepad2, Gauge, History, MonitorUp, Mouse, MousePointer2, Play, SlidersHorizontal, Target, Users, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GAME_SENSITIVITY_PROFILES, GAME_SENSITIVITY_PROFILE_BY_ID } from './gameSensitivityProfiles'
@@ -274,11 +273,15 @@ function HomeProgress({ copy, training, preset, routine, onNavigate }: { copy: H
   </section>
 }
 
+// Final radar: the sweep turns on a 6s loop; each blip pings as the beam passes its bearing.
+const FINAL_BLIPS: Array<[number, number]> = [[38, .27], [118, .38], [205, .21], [292, .33]]
+
 function HomeFinal({ copy, onNavigate }: { copy: HomeCopy; onNavigate: Navigate }) {
   return <section className="xr-final" data-xr-final aria-labelledby="home-final-title">
     <div className="xr-final-radar" data-xr-final-radar aria-hidden="true">
       <span className="xr-ring" /><span className="xr-ring" /><span className="xr-ring" /><span className="xr-ring" />
-      <div className="xr-sweep" data-xr-final-sweep />
+      <div className="xr-sweep xr-final-sweep" />
+      {FINAL_BLIPS.map(([deg, radius], index) => <span key={deg} className="xr-final-blip" style={{ ...polar(deg, radius), '--d': `${(deg / 360 * 6).toFixed(2)}s`, '--i': index } as CSSProperties} />)}
     </div>
     <div className="xr-wrap" data-xr-in>
       <h2 id="home-final-title">{copy.finalTitle[0]}<span>{copy.finalTitle[1]}</span></h2>
@@ -291,31 +294,18 @@ function HomeFinal({ copy, onNavigate }: { copy: HomeCopy; onNavigate: Navigate 
   </section>
 }
 
-function Instrument({ copy }: { copy: HomeCopy }) {
-  return createPortal(<nav className="xr-instrument" aria-label={copy.instrumentLabel} data-xr-instrument>
-    <span className="xr-iring" style={{ width: '100%', height: '100%' }} /><span className="xr-iring" style={{ width: '64%', height: '64%' }} /><span className="xr-iring" style={{ width: '30%', height: '30%' }} />
-    <span className="xr-isweep" data-xr-isweep />
-    {MODULES.map((module, index) => <button key={module.deg} type="button" aria-label={copy.blips[index][0]} data-target={module.target} data-part={'part' in module ? module.part : undefined} style={polar(module.deg, .36)} />)}
-    <span className="xr-tip" data-xr-tip />
-  </nav>, document.body)
-}
-
 /* ---------- scroll choreography: one rAF loop, direct style writes, no React state per frame ---------- */
 
 function useRadarScroll(rootRef: RefObject<HTMLDivElement | null>, reduced: boolean) {
   useEffect(() => {
     const root = rootRef.current
-    const found = document.querySelector<HTMLElement>('[data-xr-instrument]')
-    if (!root || !found) return
-    const inst: HTMLElement = found
+    if (!root) return
     const q = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector)!
-    const hero = q('[data-xr-hero]'), stage = hero.firstElementChild as HTMLElement, radar = q('[data-xr-radar]'), sweep = q('[data-xr-sweep]')
+    const hero = q('[data-xr-hero]'), radar = q('[data-xr-radar]'), sweep = q('[data-xr-sweep]')
     const dots = q('[data-xr-dots]'), glints = q('[data-xr-glints]'), copyEl = q('[data-xr-copy]'), games = q('[data-xr-games]')
     const blips = [...root.querySelectorAll<HTMLElement>('.xr-blip')]
     const tools = q('[data-xr-tools]'), ruler = q('[data-xr-ruler]'), nums = [...root.querySelectorAll<HTMLElement>('[data-xr-num]')]
-    const mani = q('[data-xr-mani]'), mg = q('[data-xr-mg]'), finalSec = q('[data-xr-final]'), finalRadar = q('[data-xr-final-radar]'), finalSweep = q('[data-xr-final-sweep]')
-    const instSweep = inst.querySelector<HTMLElement>('[data-xr-isweep]')!, tip = inst.querySelector<HTMLElement>('[data-xr-tip]')!
-    const instButtons = [...inst.querySelectorAll<HTMLButtonElement>('button')]
+    const mani = q('[data-xr-mani]'), mg = q('[data-xr-mg]'), finalSec = q('[data-xr-final]'), finalRadar = q('[data-xr-final-radar]')
     const clamp01 = (x: number) => x < 0 ? 0 : x > 1 ? 1 : x
     const smooth = (x: number) => { x = clamp01(x); return x * x * (3 - 2 * x) }
     const pinned = (el: HTMLElement) => { const r = el.getBoundingClientRect(), span = r.height - innerHeight; return span > 40 ? clamp01(-r.top / span) : null }
@@ -348,14 +338,11 @@ function useRadarScroll(rootRef: RefObject<HTMLDivElement | null>, reduced: bool
     const untilt = (event: PointerEvent) => { (event.currentTarget as HTMLElement).style.transform = '' }
     doors.forEach(door => { door.addEventListener('pointermove', tilt); door.addEventListener('pointerleave', untilt) })
 
-    // Instrument blips jump to their section.
-    const jump = (event: Event) => document.getElementById((event.currentTarget as HTMLElement).dataset.target!)?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
-    const showTip = (event: Event) => { tip.textContent = (event.currentTarget as HTMLElement).getAttribute('aria-label'); tip.classList.add('is-on') }
-    const hideTip = () => tip.classList.remove('is-on')
-    instButtons.forEach(button => { button.addEventListener('click', jump); button.addEventListener('pointerenter', showTip); button.addEventListener('focus', showTip); button.addEventListener('pointerleave', hideTip); button.addEventListener('blur', hideTip) })
+    // The closing radar only animates while it is on screen.
+    const finalIo = new IntersectionObserver(([entry]) => finalRadar.toggleAttribute('data-paused', !entry.isIntersecting))
+    finalIo.observe(finalRadar)
 
     const SCAN = .72, HOLD = .76, FOLD_END = .96
-    const sections: Record<string, HTMLElement | null> = { 'xr-minigames': mg, 'xr-tools': tools, 'xr-setup': document.getElementById('xr-setup'), 'xr-squad': document.getElementById('xr-squad') }
 
     function heroFrame(p: number, time: number) {
       // One full sweep across the scan, with a slow ambient drift before the first scroll.
@@ -368,22 +355,15 @@ function useRadarScroll(rootRef: RefObject<HTMLDivElement | null>, reduced: bool
       dots.style.transform = `translate3d(0, ${(-p * 40).toFixed(1)}px, 0)`
       glints.style.transform = `translate3d(0, ${(-p * 240).toFixed(1)}px, 0)`
       glints.style.opacity = (1 - smooth(fold * 2)).toFixed(3)
-      // Fold: shrink geometrically while travelling on a softer curve to where the instrument appears.
-      const rw = radar.offsetWidth, ir = inst.getBoundingClientRect()
-      const cx = innerWidth / 2, cy = stage.offsetHeight * .48
-      const tx = (ir.left + ir.width / 2) - cx, ty = (ir.top + ir.height / 2) - cy, target = ir.width / (rw * .88)
-      const shrink = 1 - Math.pow(1 - fold, 3), move = smooth(fold)
-      const scale = Math.exp(Math.log(1 + p * .05) * (1 - shrink) + Math.log(target) * shrink)
-      radar.style.transform = `translate3d(${(tx * move).toFixed(1)}px, ${(ty * move - p * 70 * (1 - move)).toFixed(1)}px, 0) scale(${scale.toFixed(4)})`
+      // Fold: the radar contracts into its centre and fades, handing the screen to the next section.
+      const scale = (1 + p * .05) * (1 - .7 * smooth(fold))
+      radar.style.transform = `translate3d(0, ${(-p * 70 * (1 - fold)).toFixed(1)}px, 0) scale(${scale.toFixed(4)})`
       radar.style.setProperty('--rs', scale.toFixed(4))
       radar.style.setProperty('--label-o', (1 - smooth(fold * 8)).toFixed(3))
-      radar.style.opacity = p >= FOLD_END ? '0' : '1'
-      radar.classList.toggle('is-folding', fold > 0)
-      sweep.style.opacity = (1 - smooth(fold * 2.5)).toFixed(3)
+      radar.style.opacity = (1 - smooth(fold * 1.2)).toFixed(3)
       copyEl.style.opacity = (1 - smooth((p - HOLD) / .1)).toFixed(3)
       copyEl.style.transform = `translate3d(0, ${(-smooth((p - HOLD) / .14) * 50).toFixed(1)}px, 0)`
       games.style.opacity = (1 - smooth((p - HOLD) / .08)).toFixed(3)
-      return p >= FOLD_END
     }
 
     function toolsFrame(p: number) {
@@ -394,7 +374,7 @@ function useRadarScroll(rootRef: RefObject<HTMLDivElement | null>, reduced: bool
 
     function frame(time: number) {
       const heroP = pinned(hero)
-      const heroDone = reduced || heroP === null ? hero.getBoundingClientRect().bottom < innerHeight * .4 : heroFrame(heroP, time)
+      if (!reduced && heroP !== null) heroFrame(heroP, time)
       if (!reduced) {
         // Tools: pinned on desktop; on small screens the same advance follows the section entering.
         toolsFrame(pinned(tools) ?? clamp01((entering(tools) - .15) / .5))
@@ -402,15 +382,6 @@ function useRadarScroll(rootRef: RefObject<HTMLDivElement | null>, reduced: bool
       }
       const open = reduced ? 1 : smooth((entering(finalSec) - .15) / .4)
       finalRadar.style.setProperty('--fr', (.2 + .8 * open).toFixed(3)); finalRadar.style.setProperty('--fo', open.toFixed(3))
-      if (!reduced) finalSweep.style.transform = `rotate(${(scrollY * .12 % 360).toFixed(1)}deg)`
-      inst.classList.toggle('is-on', heroDone && finalSec.getBoundingClientRect().top > innerHeight * .65)
-      if (!reduced) instSweep.style.transform = `rotate(${(scrollY * .25 % 360).toFixed(1)}deg)`
-      // Mark the section under the middle of the viewport (calibrator before converter inside the tools act).
-      const mid = innerHeight * .5
-      let current: string | null = null
-      for (const [id, el] of Object.entries(sections)) { const r = el?.getBoundingClientRect(); if (r && r.top <= mid && r.bottom >= mid) current = id }
-      const late = (pinned(tools) ?? 0) > .5
-      instButtons.forEach(button => button.setAttribute('aria-current', String(button.dataset.target === current && (current !== 'xr-tools' || (button.dataset.part === 'conv') === late))))
     }
 
     let raf = 0
@@ -421,7 +392,7 @@ function useRadarScroll(rootRef: RefObject<HTMLDivElement | null>, reduced: bool
       const onScroll = () => frame(0)
       addEventListener('scroll', onScroll, { passive: true }); frame(0)
       return () => {
-        removeEventListener('scroll', onScroll); removeEventListener('resize', measurePull); io.disconnect(); mgIo.disconnect()
+        removeEventListener('scroll', onScroll); removeEventListener('resize', measurePull); io.disconnect(); mgIo.disconnect(); finalIo.disconnect()
         slices.forEach(slice => { slice.removeEventListener('pointerenter', openSlice); slice.removeEventListener('focus', openSlice) })
         doors.forEach(door => { door.removeEventListener('pointermove', tilt); door.removeEventListener('pointerleave', untilt) })
       }
@@ -429,7 +400,7 @@ function useRadarScroll(rootRef: RefObject<HTMLDivElement | null>, reduced: bool
     const loop = (time: number) => { frame(time); raf = requestAnimationFrame(loop) }
     raf = requestAnimationFrame(loop)
     return () => {
-      cancelAnimationFrame(raf); removeEventListener('resize', measurePull); io.disconnect(); mgIo.disconnect()
+      cancelAnimationFrame(raf); removeEventListener('resize', measurePull); io.disconnect(); mgIo.disconnect(); finalIo.disconnect()
       slices.forEach(slice => { slice.removeEventListener('pointerenter', openSlice); slice.removeEventListener('focus', openSlice) })
       doors.forEach(door => { door.removeEventListener('pointermove', tilt); door.removeEventListener('pointerleave', untilt) })
     }
@@ -466,6 +437,5 @@ export function Home({ onNavigate }: Props) {
     <HomeDoors copy={copy} onNavigate={onNavigate} />
     <HomeProgress copy={copy} training={summary.training} preset={summary.preset} routine={summary.routine} onNavigate={onNavigate} />
     <HomeFinal copy={copy} onNavigate={onNavigate} />
-    <Instrument copy={copy} />
   </div>
 }

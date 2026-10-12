@@ -19,7 +19,6 @@ const pt = {
     ['Teste de setup', 'mouse, tela e controle'],
     ['Squad Finder', 'novo'],
   ] as Array<[string, string]>,
-  instrumentLabel: 'Seções do XENSI',
 
   essenceTitle: ['Treine e calibre', 'com método.'] as [string, string],
   essenceDescription: 'Exercícios curtos com a sua configuração, e uma sensibilidade escolhida por teste, não por chute.',
@@ -104,7 +103,6 @@ const en: HomeCopy = {
     ['Setup test', 'mouse, display and controller'],
     ['Squad Finder', 'new'],
   ],
-  instrumentLabel: 'XENSI sections',
 
   essenceTitle: ['Train and calibrate', 'with a method.'],
   essenceDescription: 'Short exercises with your own settings, and a sensitivity chosen by testing, not guessing.',
@@ -187,7 +185,6 @@ const es: HomeCopy = {
     ['Prueba de setup', 'ratón, pantalla y mando'],
     ['Squad Finder', 'nuevo'],
   ],
-  instrumentLabel: 'Secciones de XENSI',
 
   essenceTitle: ['Entrena y calibra', 'con método.'],
   essenceDescription: 'Ejercicios cortos con tu configuración, y una sensibilidad elegida por prueba, no a ojo.',

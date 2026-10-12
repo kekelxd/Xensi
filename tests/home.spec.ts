@@ -23,21 +23,26 @@ test.describe('XENSI home', () => {
     await testInfo.attach(`home-${testInfo.project.name}`, { body: await page.screenshot({ fullPage: false }), contentType: 'image/png' })
   })
 
-  test('pins the hero and folds the radar into the section instrument', async ({ page }) => {
+  test('pins the hero, lights the modules and fades the radar out', async ({ page }) => {
     test.skip((page.viewportSize()?.width ?? 0) < 1100, 'The pinned radar is the desktop hero.')
     await openHome(page)
-    const instrument = page.getByRole('navigation', { name: 'Seções do XENSI' })
-    await expect(instrument).toBeHidden()
     const hero = page.locator('[data-xr-hero]')
     const travel = await hero.evaluate(element => element.getBoundingClientRect().height - innerHeight)
     await page.evaluate(y => scrollTo(0, y * .4), travel)
-    await expect(page.locator('.xr-stage')).toHaveJSProperty('offsetTop', await page.locator('.xr-stage').evaluate(element => element.offsetTop))
-    expect(await page.locator('.xr-stage').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBe(0)
+    await expect.poll(() => page.locator('.xr-stage').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBe(0)
     await expect(page.locator('.xr-blip.is-lit')).not.toHaveCount(0)
-    await page.evaluate(y => scrollTo(0, y + 10), travel)
-    await expect(instrument).toBeVisible()
-    await instrument.getByRole('button', { name: 'Squad Finder' }).click()
-    await expect.poll(() => page.locator('#xr-squad').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBeLessThan(200)
+    await page.evaluate(y => scrollTo(0, y), travel)
+    await expect.poll(() => page.locator('[data-xr-radar]').evaluate(element => Number(getComputedStyle(element).opacity))).toBeLessThan(.05)
+  })
+
+  test('closing radar animates on its own clock', async ({ page }) => {
+    await openHome(page)
+    await page.locator('[data-xr-final]').scrollIntoViewIfNeeded()
+    const sweep = page.locator('.xr-final-sweep')
+    await expect(sweep).toHaveCSS('animation-name', 'xr-turn')
+    const first = await sweep.evaluate(element => getComputedStyle(element).transform)
+    await page.waitForTimeout(400)
+    expect(await sweep.evaluate(element => getComputedStyle(element).transform)).not.toBe(first)
   })
 
   test('converter example comes from the conversion engine', async ({ page }) => {

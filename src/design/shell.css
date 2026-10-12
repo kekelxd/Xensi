@@ -10,12 +10,15 @@
 .xensi-universal-shell:not([data-immersive='true'])::before {
   content: ''; position: absolute; z-index: -1; inset: 0 0 auto 0; height: min(58vw, 1000px); pointer-events: none;
   background: var(--xensi-hero-art) right top / min(1672px, 100%) auto no-repeat;
-  opacity: var(--xensi-art-opacity, .3);
+  opacity: 0;
+  transition: opacity .5s ease-out;
   filter: var(--xensi-art-filter, none);
   -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 96%), linear-gradient(to left, #000 55%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 40%, transparent 96%), linear-gradient(to left, #000 55%, transparent 100%);
   -webkit-mask-composite: source-in; mask-composite: intersect;
 }
+.xensi-universal-shell[data-art-ready='true']:not([data-immersive='true'])::before { opacity: var(--xensi-art-opacity, .3); }
+@media (prefers-reduced-motion: reduce) { .xensi-universal-shell::before { transition: none; } }
 .xensi-universal-shell[data-view='profile'] { --xensi-hero-art: url('../assets/xensi-profile-art.webp'); --xensi-art-opacity: .5; --xensi-art-filter: saturate(.55) brightness(.6) contrast(1.05); }
 .xensi-universal-shell[data-view='squad'] { --xensi-hero-art: url('../assets/xensi-squad-art.webp'); --xensi-art-opacity: .5;
   /* Darker, desaturated art: it is a backdrop detail, not the focus of the page. */

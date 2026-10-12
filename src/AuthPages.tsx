@@ -106,6 +106,13 @@ function PasswordInput({ id, value, onChange, visible, onToggle, autoComplete, p
   </div>
 }
 
+// Slightly darkened so the form stays the focus; fades in once decoded instead of popping in late.
+function AuthArt() {
+  const [loaded, setLoaded] = useState(false)
+  return <img src={authArt} alt="" fetchPriority="high" decoding="async" ref={image => { if (image?.complete && image.naturalWidth) setLoaded(true) }} onLoad={() => setLoaded(true)}
+    className={`absolute inset-0 size-full object-cover object-[65%_center] brightness-[.78] saturate-[.9] transition-opacity duration-500 ease-out motion-reduce:transition-none [mask-image:linear-gradient(90deg,transparent_0%,#000_45%)] ${loaded ? 'opacity-100' : 'opacity-0'}`} />
+}
+
 // Split layout (shadcn login-02): form column on the left, brand art on the right from lg up.
 function AuthLayout({ children }: { children: ReactNode }) {
   return <main className="xensi-auth-page grid min-h-[100dvh] bg-background font-sans text-foreground lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
@@ -117,7 +124,7 @@ function AuthLayout({ children }: { children: ReactNode }) {
     </div>
     {/* No divider: the art fades into the form column so the seam disappears. */}
     <div aria-hidden="true" className="relative hidden overflow-hidden lg:block">
-      <img src={authArt} alt="" className="absolute inset-0 size-full object-cover object-[65%_center] [mask-image:linear-gradient(90deg,transparent_0%,#000_45%)]" />
+      <AuthArt />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--background)_0%,transparent_30%),linear-gradient(0deg,var(--background)_0%,transparent_22%)]" />
     </div>
   </main>

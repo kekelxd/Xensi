@@ -131,3 +131,6 @@
 .xensi-squad-toast-close:hover { color: #fff; background: #ffffff12; }
 @keyframes xensi-toast-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .xensi-squad-toast { animation: none; } }
+
+.xensi-squad-toast-row { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.xensi-squad-toast-text { display: grid; gap: 2px; min-width: 0; }

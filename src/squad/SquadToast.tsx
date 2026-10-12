@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, X } from 'lucide-react'
+import { AvatarArtwork } from '../AvatarArtwork'
+import { DEFAULT_AVATAR, isAvatarId } from '../avatars'
 import { withBasePath } from '../routes'
 import { errorCopy } from './copy'
 import { platforms, registry } from './registry'
@@ -56,6 +58,7 @@ export function SquadToast({ userId, locale, items }: Props) {
 
   if (!toast || !userId) return null
   const { request: q } = toast
+  const avatar = toast.kind === 'host' ? q.avatar_id : q.room.avatar_id
   const game = registry[q.room.game_id]?.name ?? q.room.game_id
   const decide = async (action: 'accept' | 'decline') => {
     setBusy(true); setError('')
@@ -73,8 +76,13 @@ export function SquadToast({ userId, locale, items }: Props) {
   return createPortal(<div className="xensi-squad-toast" role="alert" aria-live="assertive">
     <button type="button" className="xensi-squad-toast-close" aria-label={text.close} onClick={() => setToast(null)}><X size={16} /></button>
     <span className="xensi-squad-toast-title">{toast.kind === 'host' ? text.host : text.player}</span>
-    <p className="xensi-squad-toast-body">{toast.kind === 'host' ? <><b>{q.nickname}</b> {text.wants}</> : <><b>{q.room.nickname}</b>: {text.approved}</>}</p>
-    <small className="xensi-squad-toast-meta">{game} · {platforms[q.platform] ?? q.platform}</small>
+    <div className="xensi-squad-toast-row">
+      <AvatarArtwork avatarId={isAvatarId(avatar) ? avatar : DEFAULT_AVATAR} className="size-11 flex-none rounded-full" />
+      <div className="xensi-squad-toast-text">
+        <p className="xensi-squad-toast-body">{toast.kind === 'host' ? <><b>{q.nickname}</b> {text.wants}</> : <><b>{q.room.nickname}</b>: {text.approved}</>}</p>
+        <small className="xensi-squad-toast-meta">{game} · {platforms[q.platform] ?? q.platform}</small>
+      </div>
+    </div>
     {error && <small className="xensi-squad-toast-error">{error}</small>}
     <div className="xensi-squad-toast-actions">
       {toast.kind === 'host'

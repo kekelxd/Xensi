@@ -4,6 +4,10 @@ import { analyzeDriftCollection, DRIFT_MOVEMENT_THRESHOLD, stickMagnitude, type 
 import { rawAxis, type StickPoint } from './gamepadMetrics'
 import { selectActiveGamepad, subscribeGamepads, type GamepadSnapshot } from './gamepadInput'
 import { useI18n } from './i18n'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Segmented, SegmentedItem } from '@/components/ui/segmented'
 
 const DRIFT_COUNTDOWN_MS = 3000
 const DRIFT_SAMPLE_MS = 4000
@@ -55,8 +59,8 @@ function drawStick(canvas: HTMLCanvasElement | null, x: number, y: number) {
 function StickPanel({ side, canvasRef, live, result }: { side: 'left' | 'right'; canvasRef: RefObject<HTMLCanvasElement | null>; live: LiveStick; result: StickDriftStats | null }) {
   const { t } = useI18n()
   const data = result ? { x: result.meanX, y: result.meanY, magnitude: result.medianMagnitude } : live
-  return <section className="drift-stick-panel">
-    <header><strong>{side === 'left' ? t('drift.leftStick') : t('drift.rightStick')}</strong><span>{side === 'left' ? 'LS' : 'RS'}</span></header>
+  return <Card className="drift-stick-panel overflow-hidden p-0">
+    <header className="flex min-h-[50px] items-center justify-between gap-3 border-0 border-b border-solid border-border bg-transparent px-[18px]"><strong className="font-heading text-sm font-semibold text-foreground">{side === 'left' ? t('drift.leftStick') : t('drift.rightStick')}</strong><Badge variant="secondary" className="font-mono">{side === 'left' ? 'LS' : 'RS'}</Badge></header>
     <canvas ref={canvasRef} aria-label={side === 'left' ? t('drift.leftGraph') : t('drift.rightGraph')} />
     <div className="drift-live-values">
       <span>X<b>{data.x >= 0 ? '+' : ''}{data.x.toFixed(4)}</b></span>
@@ -68,7 +72,7 @@ function StickPanel({ side, canvasRef, live, result }: { side: 'left' | 'right';
       <div><span>{t('drift.peak')}</span><b>{result ? `${(result.peakMagnitude * 100).toFixed(2)}%` : '--'}</b></div>
       <div><span>{t('drift.centerStability')}</span><b>{result ? `${result.centerStability.toFixed(1)}%` : '--'}</b></div>
     </div>
-  </section>
+  </Card>
 }
 
 export function ControllerDriftTest() {
@@ -215,17 +219,21 @@ export function ControllerDriftTest() {
 
   return <section className="diagnostic-tool-workspace drift-workspace">
     <header className="diagnostic-tool-heading">
-      <div className="panel-label"><Gamepad2 size={15} /> {t('drift.diagnostics')}</div>
+      <Badge variant="outline"><Gamepad2 /> {t('drift.diagnostics')}</Badge>
       <h1>{t('drift.title')}</h1>
       <p>{t('drift.subtitle')}</p>
     </header>
 
-    {!active ? <div className="gamepad-empty drift-empty" aria-live="polite"><Gamepad2 size={28} /><strong>{t('drift.noController')}</strong><span>{t('drift.connectPrompt')}</span></div> : <>
-      <div className="drift-device-row">
-        <div><span>{t('drift.detected')}</span><strong title={active.id}>{active.id || t('gamepad.unknown')}</strong></div>
-        {gamepads.length > 1 && <div className="gamepad-selector" role="tablist" aria-label={t('gamepad.connectedControllers')}>{gamepads.map((gamepad) => <button type="button" role="tab" aria-selected={gamepad.index === active.index} className={gamepad.index === active.index ? 'active' : ''} key={gamepad.index} onClick={() => setSelectedIndex(gamepad.index)}>{t('gamepad.controller')} {gamepad.index + 1}</button>)}</div>}
-        {(phase === 'completed' || phase === 'invalid') && <button type="button" className="primary-button" onClick={measureAgain}><RotateCcw size={16} />{t('drift.again')}</button>}
-      </div>
+    {!active ? <Card className="mx-auto mt-6 grid min-h-[300px] w-full max-w-[680px] place-content-center justify-items-center gap-2 p-8 text-center" aria-live="polite">
+      <span className="mb-2 grid size-12 place-items-center rounded-xl border border-solid border-border bg-black/30 text-primary"><Gamepad2 className="size-6" /></span>
+      <strong className="font-heading text-lg font-semibold text-foreground">{t('drift.noController')}</strong>
+      <span className="max-w-[360px] text-sm leading-relaxed text-muted-foreground">{t('drift.connectPrompt')}</span>
+    </Card> : <>
+      <Card className="mx-auto mb-3 w-full max-w-[1180px] flex-row flex-wrap items-center gap-x-5 gap-y-3 px-5 py-3.5">
+        <div className="grid min-w-0 flex-1 basis-[220px] gap-1"><span className="text-xs font-medium text-muted-foreground">{t('drift.detected')}</span><strong className="truncate text-sm font-semibold text-foreground" title={active.id}>{active.id || t('gamepad.unknown')}</strong></div>
+        {gamepads.length > 1 && <Segmented aria-label={t('gamepad.connectedControllers')}>{gamepads.map((gamepad) => <SegmentedItem key={gamepad.index} active={gamepad.index === active.index} onClick={() => setSelectedIndex(gamepad.index)}>{t('gamepad.controller')} {gamepad.index + 1}</SegmentedItem>)}</Segmented>}
+        {(phase === 'completed' || phase === 'invalid') && <Button className="max-sm:w-full" onClick={measureAgain}><RotateCcw />{t('drift.again')}</Button>}
+      </Card>
 
       {phase === 'ready' ? <section className="drift-ready-callout" aria-live="polite">
         <div className="drift-ready-icon" aria-hidden="true"><Gamepad2 size={21} /></div>
@@ -248,8 +256,12 @@ export function ControllerDriftTest() {
         <StickPanel side="right" canvasRef={rightCanvasRef} live={rightLive} result={rightResult} />
       </div>
 
-      {result?.valid && <div className="drift-summary">
-        {([['left', leftResult], ['right', rightResult]] as const).map(([side, stats]) => stats && <div key={side}><span>{side === 'left' ? t('drift.leftStick') : t('drift.rightStick')}</span><strong>{t(`drift.${stats.classification}` as 'drift.low' | 'drift.moderate' | 'drift.high')}</strong><small>{t('drift.dominantAxis')}: {t(`drift.axis.${stats.dominantAxis}` as 'drift.axis.x' | 'drift.axis.y' | 'drift.axis.balanced')}</small></div>)}
+      {result?.valid && <div className="mx-auto mt-3 grid w-full max-w-[1180px] gap-3 sm:grid-cols-2">
+        {([['left', leftResult], ['right', rightResult]] as const).map(([side, stats]) => stats && <Card key={side} className="flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-4">
+          <span className="text-xs font-medium text-muted-foreground">{side === 'left' ? t('drift.leftStick') : t('drift.rightStick')}</span>
+          <Badge variant={stats.classification === 'low' ? 'success' : stats.classification === 'moderate' ? 'warning' : 'default'}>{t(`drift.${stats.classification}` as 'drift.low' | 'drift.moderate' | 'drift.high')}</Badge>
+          <small className="basis-full text-xs text-muted-foreground">{t('drift.dominantAxis')}: {t(`drift.axis.${stats.dominantAxis}` as 'drift.axis.x' | 'drift.axis.y' | 'drift.axis.balanced')}</small>
+        </Card>)}
       </div>}
     </>}
     <p className="diagnostic-disclaimer">{t('drift.disclaimer')}</p>

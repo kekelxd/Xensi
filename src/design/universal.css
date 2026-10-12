@@ -116,11 +116,9 @@
 .xensi-universal-shell .diagnostic-hub-icon { color: var(--xensi-brand); background: rgba(255,64,85,.07); border: 1px solid rgba(255,64,85,.2); border-radius: 12px; }
 .xensi-universal-shell .diagnostic-hub-card h2 { font-size: 24px; }
 .xensi-universal-shell .diagnostic-hub-card p { color: var(--xensi-muted); font-size: 13px; }
-.xensi-universal-shell .diagnostic-hub-card button { color: #e7edf4; border-color: var(--xensi-border); background: rgba(8,13,20,.5); border-radius: var(--xensi-control-radius); }
 .xensi-universal-shell .diagnostic-hub-card::after { display: none; }
 .xensi-universal-shell :is(.diagnostic-tool-workspace, .button-test-workspace, .polling-workspace) { width: min(var(--xensi-max-width), calc(100% - var(--xensi-gutter) * 2)); margin-inline: auto; padding: var(--xensi-page-space) 0 72px; background: transparent; min-height: 0; }
 .xensi-universal-shell :is(.diagnostic-tool-heading h1, .button-test-heading h1, .polling-info h2) { font: 600 clamp(34px,3.7vw,56px)/1.08 var(--font-display); letter-spacing: var(--tracking-tight); }
-.xensi-universal-shell :is(.refresh-stage, .diagnostic-metrics-grid, .drift-stick-panel, .drift-summary, .drift-device-row, .polling-info, .polling-zone, .polling-results, .button-test-zone, .button-test-log) { background-color: var(--xensi-surface); border-color: var(--xensi-border); border-radius: var(--xensi-radius); box-shadow: var(--xensi-panel-shadow); }
 .xensi-universal-shell .calibration-hero { gap: 48px; min-height: 400px; }
 .xensi-universal-shell .calibration-demo { height: 380px; }
 .xensi-universal-shell .calibration-process { padding: 28px; margin-top: 36px; }

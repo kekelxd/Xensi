@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Gauge, MousePointer2, Play, RotateCcw, ShieldCheck, Zap } from 'lucide-react'
 import { useI18n } from './i18n'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 const TEST_DURATION = 8
 const STANDARD_RATES = [125, 250, 500, 1000, 2000, 4000, 8000]
@@ -138,7 +140,7 @@ export function PollingRateTest() {
   return (
     <section className="polling-workspace">
       <aside className="polling-info">
-        <div className="rail-heading"><Gauge size={15} /> {t('polling.diagnostics')}</div>
+        <Badge variant="outline" className="mb-6"><Gauge /> {t('polling.diagnostics')}</Badge>
         <h2>{t('polling.title')}</h2>
         <p>{t('polling.subtitle')}</p>
         <div className="polling-tip"><MousePointer2 size={17} /><span>{t('polling.moveTip')}</span></div>
@@ -160,14 +162,14 @@ export function PollingRateTest() {
           <div className="polling-progress"><i style={{ width: `${progress}%` }} /></div>
           <div className="polling-time">{status === 'running' ? t('polling.remaining', { seconds: remaining.toFixed(1) }) : status === 'done' ? t('polling.samples', { samples: stats.samples.toLocaleString(localeTag) }) : t('polling.duration', { seconds: TEST_DURATION })}</div>
           <div className="polling-actions">
-            {status !== 'idle' && <button className="secondary-button" onClick={resetTest}><RotateCcw size={16} /> {t('common.restart')}</button>}
-            {status !== 'running' && <button className="primary-button" onClick={startTest}><Play size={17} /> {status === 'done' ? t('polling.testAgain') : t('polling.start')}</button>}
+            {status !== 'idle' && <Button variant="outline" onClick={resetTest}><RotateCcw /> {t('common.restart')}</Button>}
+            {status !== 'running' && <Button onClick={startTest}><Play /> {status === 'done' ? t('polling.testAgain') : t('polling.start')}</Button>}
           </div>
         </div>
       </div>
 
       <aside className="polling-results">
-        <div className="panel-label">{t('common.result')}</div>
+        <Badge variant="outline">{t('common.result')}</Badge>
         <div className="polling-primary-result">
           <span>{t('polling.observedHz')}</span>
           <strong>{stats.measured ? Math.round(stats.measured).toLocaleString(localeTag) : '--'}<small>Hz</small></strong>

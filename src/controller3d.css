@@ -1,0 +1,57 @@
+/* Controller3D — layered SVG in CSS perspective. Every animated property is `transform` (compositor only). */
+.pad3d-stage { --pad-px: 0; --pad-py: 0; position: relative; width: min(680px, 100%); aspect-ratio: 720 / 430; margin: 8px auto 0; perspective: 1100px; perspective-origin: 50% 30%; touch-action: pan-y; }
+.pad3d { --pad-sx: 0; --pad-sy: 0; position: absolute; inset: 0; transform-style: preserve-3d; will-change: transform;
+  transform: rotateX(calc(26deg - var(--pad-sy) * 6deg - var(--pad-py) * 8deg)) rotateY(calc(var(--pad-sx) * 9deg + var(--pad-px) * 12deg));
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1); }
+.pad3d-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; transform: translateZ(var(--z, 0)); }
+.pad3d-shadow { position: absolute; left: 14%; right: 14%; bottom: 0; height: 22%; border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.6), transparent); transform: translateZ(-40px) translateY(10%) rotateX(90deg); }
+
+/* Shell: four offset silhouettes read as the controller's thickness once tilted. */
+.pad3d-edge path { fill: #0b0f15; stroke: rgba(196,214,232,.14); stroke-width: 1.2; }
+.pad3d-body { --z: 0px; }
+.pad3d-shell { fill: url(#pad3d-body); stroke: rgba(196,214,232,.28); stroke-width: 1.5; }
+.pad3d-sheen { fill: url(#pad3d-sheen); }
+.pad3d-seam { fill: none; stroke: rgba(255,255,255,.06); stroke-width: 2; }
+
+.pad3d-triggers { --z: -6px; }
+.pad3d-trigger { fill: #121820; stroke: rgba(196,214,232,.22); }
+.pad3d-trigger-fill { fill: var(--primary); opacity: .9; }
+.pad3d-triggers text, .pad3d-bumper text { fill: #c6ced8; font: 700 11px var(--font-ui); pointer-events: none; }
+.pad3d-triggers .active text { fill: #fff; }
+
+.pad3d-controls { --z: 10px; }
+.pad3d-bumper rect { fill: #121820; stroke: rgba(196,214,232,.22); transition: fill 90ms; }
+.pad3d-bumper.active rect { fill: var(--primary); stroke: transparent; }
+.pad3d-bumper.active text { fill: #fff; }
+
+/* Press feedback: the cap sinks a little (translate) and lights up. */
+.pad3d-press { transform-box: fill-box; transform-origin: center; transition: transform 90ms ease-out, fill 90ms; }
+.pad3d-press.active { transform: translateY(2px) scale(.94); }
+.pad3d-face circle { fill: #10161e; stroke: rgba(196,214,232,.3); stroke-width: 1.5; filter: drop-shadow(0 3px 0 #06080b); }
+.pad3d-face text { font: 700 15px var(--font-ui); }
+.pad3d-face-a text { fill: #7fe0a0; } .pad3d-face-b text { fill: #ff7a7a; } .pad3d-face-x text { fill: #7fb4ff; } .pad3d-face-y text { fill: #f2d15c; }
+.pad3d-face-a.active circle { fill: #3fbf72; } .pad3d-face-b.active circle { fill: #e5484d; } .pad3d-face-x.active circle { fill: #3b82f6; } .pad3d-face-y.active circle { fill: #e0b31f; }
+.pad3d-face.active circle { filter: none; stroke: transparent; } .pad3d-face.active text { fill: #fff; }
+.pad3d-home circle:first-child { fill: #10161e; stroke: rgba(196,214,232,.3); stroke-width: 1.5; }
+.pad3d-home-mark { fill: none; stroke: #e7ecf2; stroke-width: 2.5; }
+.pad3d-home.active circle:first-child { fill: var(--primary); stroke: transparent; }
+.pad3d-menu rect:first-child { fill: #10161e; stroke: rgba(196,214,232,.26); }
+.pad3d-menu.active rect:first-child { fill: var(--primary); stroke: transparent; }
+.pad3d-glyph { fill: none; stroke: #c6ced8; stroke-width: 1.4; }
+.pad3d-dpad-well { fill: #0b1016; stroke: rgba(196,214,232,.18); }
+.pad3d-dpad path { fill: #18202a; stroke: rgba(196,214,232,.16); }
+.pad3d-dpad path.active { fill: var(--primary); stroke: transparent; }
+.pad3d-dpad .pad3d-dpad-hub { fill: #141b24; }
+
+.pad3d-sticks { --z: 24px; }
+.pad3d-stick-well { fill: #070a0e; stroke: rgba(196,214,232,.22); stroke-width: 2; }
+.pad3d-stick-skirt { fill: #05070a; opacity: .8; transform: translateY(4px); }
+.pad3d-stick-cap { fill: #1c242e; stroke: rgba(196,214,232,.35); stroke-width: 1.5; }
+.pad3d-stick text { fill: #9aa4b0; font: 700 10px var(--font-ui); }
+.pad3d-stick.active .pad3d-stick-cap { fill: var(--primary); stroke: transparent; }
+.pad3d-stick.active text { fill: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pad3d { transform: rotateX(26deg); transition: none; }
+  .pad3d-press, .pad3d-bumper rect { transition: none; }
+}

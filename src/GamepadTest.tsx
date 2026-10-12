@@ -3,19 +3,22 @@ import { Gamepad2, RotateCcw, Vibrate } from 'lucide-react'
 import { clampAxis, circularityError, rawAxis, type StickPoint } from './gamepadMetrics'
 import { selectActiveGamepad, subscribeGamepads, type GamepadSnapshot } from './gamepadInput'
 import { useI18n } from './i18n'
+import { Controller3D } from './Controller3D'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Segmented, SegmentedItem } from '@/components/ui/segmented'
 
 type StickName = 'left' | 'right'
 
 const EMPTY_SNAPSHOT: GamepadSnapshot = { index: 0, id: '', connected: false, timestamp: 0, axes: [0, 0, 0, 0], buttons: [] }
-const buttonValue = (gamepad: GamepadSnapshot, index: number) => gamepad.buttons[index]?.value ?? 0
-const isPressed = (gamepad: GamepadSnapshot, index: number) => Boolean(gamepad.buttons[index]?.pressed || buttonValue(gamepad, index) > .5)
 
 function StickVisualizer({ name, x, y, points, error }: { name: StickName, x: number, y: number, points: StickPoint[], error: number | null }) {
   const { t } = useI18n()
   const label = name === 'left' ? 'LS' : 'RS'
   return (
-    <section className="gamepad-stick-card">
-      <div className="gamepad-stick-heading"><strong>{label}</strong><span>{name === 'left' ? t('gamepad.leftStick') : t('gamepad.rightStick')}</span></div>
+    <Card className="min-w-0 gap-3 p-4">
+      <div className="flex items-center justify-between gap-2"><Badge variant="secondary" className="font-mono">{label}</Badge><span className="truncate text-xs font-medium text-muted-foreground">{name === 'left' ? t('gamepad.leftStick') : t('gamepad.rightStick')}</span></div>
       <div className="gamepad-stick-scope" aria-label={label}>
         <i className="gamepad-stick-center" />
         <svg viewBox="-1 -1 2 2" aria-hidden="true">
@@ -23,49 +26,12 @@ function StickVisualizer({ name, x, y, points, error }: { name: StickName, x: nu
         </svg>
         <b style={{ '--stick-x': clampAxis(x), '--stick-y': clampAxis(y) } as CSSProperties} />
       </div>
-      <div className="gamepad-stick-values"><span>X <b>{rawAxis(x).toFixed(5)}</b></span><span>Y <b>{rawAxis(y).toFixed(5)}</b></span></div>
-      <p>{t('gamepad.circularity')} <strong>{error === null ? '--' : `${error.toFixed(2)}%`}</strong></p>
-    </section>
+      <dl className="m-0 grid grid-cols-2 gap-2 text-center">
+        {([['X', x], ['Y', y]] as const).map(([axis, v]) => <div key={axis} className="grid gap-1"><dt className="font-mono text-[11px] text-muted-foreground">{axis}</dt><dd className="m-0 font-mono text-[13px] tabular-nums text-foreground">{rawAxis(v).toFixed(5)}</dd></div>)}
+      </dl>
+      <p className="m-0 flex items-center justify-between gap-2 border-0 border-t border-solid border-border pt-3 text-xs text-muted-foreground">{t('gamepad.circularity')} <strong className="font-mono text-[13px] font-medium tabular-nums text-success">{error === null ? '--' : `${error.toFixed(2)}%`}</strong></p>
+    </Card>
   )
-}
-
-function XboxButton({ x, y, label, pressed, tone = 'neutral' }: { x: number, y: number, label: string, pressed: boolean, tone?: 'neutral' | 'a' | 'b' | 'x' | 'y' }) {
-  return <g className={`xbox-button xbox-button-${tone} ${pressed ? 'active' : ''}`} transform={`translate(${x} ${y})`}>
-    <circle r="20" />
-    <text textAnchor="middle" dominantBaseline="central">{label}</text>
-  </g>
-}
-
-function XboxStick({ x, y, label, pressed, axisX, axisY }: { x: number, y: number, label: string, pressed: boolean, axisX: number, axisY: number }) {
-  return <g className={`xbox-stick ${pressed ? 'active' : ''}`} transform={`translate(${x} ${y})`}>
-    <circle className="xbox-stick-ring" r="42" />
-    <circle className="xbox-stick-cap" cx={clampAxis(axisX) * 10} cy={clampAxis(axisY) * 10} r="29" />
-    <text textAnchor="middle" dominantBaseline="central">{label}</text>
-  </g>
-}
-
-function XboxController({ gamepad, leftX, leftY, rightX, rightY }: { gamepad: GamepadSnapshot, leftX: number, leftY: number, rightX: number, rightY: number }) {
-  return <svg className="xbox-controller" viewBox="0 0 720 430" role="img" aria-label="Xbox controller input layout">
-    <defs>
-      <linearGradient id="xbox-body" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#2a3440" /><stop offset=".55" stopColor="#151d27" /><stop offset="1" stopColor="#0c1118" /></linearGradient>
-      <radialGradient id="xbox-stick" cx="35%" cy="28%"><stop stopColor="#3b4654" /><stop offset="1" stopColor="#10161e" /></radialGradient>
-    </defs>
-    <path className="xbox-body" d="M151 78C192 48 247 55 302 61C337 64 383 64 418 61C473 55 528 48 569 78C621 117 650 181 641 244L619 334C609 377 584 400 558 391C527 381 505 365 476 338H244C215 365 193 381 162 391C136 400 111 377 101 334L79 244C70 181 99 117 151 78Z" />
-    <path className="xbox-top-seam" d="M158 80C205 98 221 115 231 139M562 80C515 98 499 115 489 139" />
-    <rect className="xbox-trigger" x="104" y="22" width="130" height="31" rx="12" /><rect className="xbox-trigger-fill" x="104" y="22" width={130 * buttonValue(gamepad, 6)} height="31" rx="12" /><text className="xbox-trigger-label" x="169" y="42" textAnchor="middle">LT</text>
-    <rect className="xbox-trigger" x="486" y="22" width="130" height="31" rx="12" /><rect className="xbox-trigger-fill" x="486" y="22" width={130 * buttonValue(gamepad, 7)} height="31" rx="12" /><text className="xbox-trigger-label" x="551" y="42" textAnchor="middle">RT</text>
-    <rect className={`xbox-bumper ${isPressed(gamepad, 4) ? 'active' : ''}`} x="126" y="62" width="126" height="24" rx="10" /><text className="xbox-bumper-label" x="189" y="78" textAnchor="middle">LB</text>
-    <rect className={`xbox-bumper ${isPressed(gamepad, 5) ? 'active' : ''}`} x="468" y="62" width="126" height="24" rx="10" /><text className="xbox-bumper-label" x="531" y="78" textAnchor="middle">RB</text>
-    <circle className={`xbox-home ${isPressed(gamepad, 16) ? 'active' : ''}`} cx="360" cy="111" r="19" /><text className="xbox-home-mark" x="360" y="116" textAnchor="middle">⊙</text>
-    <g className="xbox-menu-buttons"><rect className={`xbox-menu ${isPressed(gamepad, 8) ? 'active' : ''}`} x="313" y="145" width="32" height="19" rx="8" /><text x="329" y="158" textAnchor="middle">◫</text><rect className={`xbox-menu ${isPressed(gamepad, 9) ? 'active' : ''}`} x="375" y="145" width="32" height="19" rx="8" /><text x="391" y="158" textAnchor="middle">☰</text></g>
-    <XboxStick x={220} y={172} label="L3" pressed={isPressed(gamepad, 10)} axisX={leftX} axisY={leftY} />
-    <g className="xbox-dpad" transform="translate(0 -12)">
-      <circle className="xbox-dpad-base" cx="273" cy="279" r="54" />
-      <path className={isPressed(gamepad, 12) ? 'active' : ''} d="M256 228H290V262H256Z" /><path className={isPressed(gamepad, 14) ? 'active' : ''} d="M222 262H256V296H222Z" /><path className={isPressed(gamepad, 15) ? 'active' : ''} d="M290 262H324V296H290Z" /><path className={isPressed(gamepad, 13) ? 'active' : ''} d="M256 296H290V330H256Z" />
-    </g>
-    <XboxStick x={445} y={262} label="R3" pressed={isPressed(gamepad, 11)} axisX={rightX} axisY={rightY} />
-    <XboxButton x={535} y={132} label="Y" tone="y" pressed={isPressed(gamepad, 3)} /><XboxButton x={503} y={164} label="X" tone="x" pressed={isPressed(gamepad, 2)} /><XboxButton x={567} y={164} label="B" tone="b" pressed={isPressed(gamepad, 1)} /><XboxButton x={535} y={196} label="A" tone="a" pressed={isPressed(gamepad, 0)} />
-  </svg>
 }
 
 export function GamepadTest({ embedded = false }: { embedded?: boolean }) {
@@ -79,7 +45,12 @@ export function GamepadTest({ embedded = false }: { embedded?: boolean }) {
   useEffect(() => { activeIndexRef.current = activeIndex }, [activeIndex])
 
   useEffect(() => {
+    let signature = ''
     return subscribeGamepads((next) => {
+      // Browsers bump `timestamp` only on new input: skip identical frames so the page (and the 3D layout) stays idle.
+      const nextSignature = next.map((gamepad) => `${gamepad.index}:${gamepad.connected}:${gamepad.timestamp}`).join('|')
+      if (nextSignature === signature) return
+      signature = nextSignature
       setGamepads(next)
       const selected = selectActiveGamepad(next, activeIndexRef.current)
       if (selected && selected.index !== activeIndexRef.current) setActiveIndex(selected.index)
@@ -108,32 +79,36 @@ export function GamepadTest({ embedded = false }: { embedded?: boolean }) {
     await original?.vibrationActuator?.playEffect?.('dual-rumble', { duration: 300, startDelay: 0, strongMagnitude: .8, weakMagnitude: .45 })
   }
 
+  const info = [[t('gamepad.index'), String(active.index)], [t('gamepad.timestamp'), `${active.timestamp.toFixed(2)} ms`]] as const
   return (
     <section className={embedded ? 'gamepad-embedded' : 'gamepad-workspace'}>
       {!embedded && <header className="gamepad-heading">
-        <div className="panel-label"><Gamepad2 size={15} /> {t('gamepad.diagnostics')}</div>
+        <Badge variant="outline" className="mx-auto"><Gamepad2 /> {t('gamepad.diagnostics')}</Badge>
         <h1>{t('gamepad.title')}</h1>
         <p>{t('gamepad.subtitle')}</p>
       </header>}
 
-      {!gamepads.length ? <div className="gamepad-empty"><Gamepad2 size={28} /><strong>{t('gamepad.waitingTitle')}</strong><span>{t('gamepad.waitingDescription')}</span></div> : <>
-        <div className="gamepad-selector" role="tablist" aria-label={t('gamepad.connectedControllers')}>
-          {gamepads.map((gamepad) => <button key={gamepad.index} role="tab" aria-selected={active.index === gamepad.index} className={active.index === gamepad.index ? 'active' : ''} onClick={() => setActiveIndex(gamepad.index)}>{t('gamepad.controller')} {gamepad.index + 1}</button>)}
-        </div>
+      {!gamepads.length ? <Card className="mx-auto mt-6 grid min-h-[300px] w-full max-w-[680px] place-content-center justify-items-center gap-2 p-8 text-center">
+        <span className="mb-2 grid size-12 place-items-center rounded-xl border border-solid border-border bg-black/30 text-primary"><Gamepad2 className="size-6" /></span>
+        <strong className="font-heading text-lg font-semibold text-foreground">{t('gamepad.waitingTitle')}</strong>
+        <span className="max-w-[360px] text-sm leading-relaxed text-muted-foreground">{t('gamepad.waitingDescription')}</span>
+      </Card> : <div className="mx-auto grid w-full max-w-[1050px] gap-3">
+        {gamepads.length > 1 && <Segmented className="mx-auto" aria-label={t('gamepad.connectedControllers')}>
+          {gamepads.map((gamepad) => <SegmentedItem key={gamepad.index} active={active.index === gamepad.index} onClick={() => setActiveIndex(gamepad.index)}>{t('gamepad.controller')} {gamepad.index + 1}</SegmentedItem>)}
+        </Segmented>}
 
-        <div className="gamepad-device-card">
-          <div><span>{t('gamepad.controller')}</span><strong title={active.id}>{active.id || t('gamepad.unknown')}</strong></div>
-          <div><span>{t('gamepad.index')}</span><strong>{active.index}</strong></div>
-          <div><span>{t('gamepad.timestamp')}</span><strong>{active.timestamp.toFixed(2)} ms</strong></div>
-          <div><span>{t('gamepad.status')}</span><strong className="connected">{t('gamepad.connected')}</strong></div>
-          <button className="secondary-button gamepad-rumble" onClick={() => { void rumble() }} disabled={!active.connected}><Vibrate size={15} /> {t('gamepad.rumble')}</button>
-        </div>
+        <Card className="flex-row flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 text-left">
+          <div className="grid min-w-0 flex-1 basis-[220px] gap-1"><span className="text-xs font-medium text-muted-foreground">{t('gamepad.controller')}</span><strong className="truncate text-sm font-semibold text-foreground" title={active.id}>{active.id || t('gamepad.unknown')}</strong></div>
+          {info.map(([term, detail]) => <div key={term} className="grid gap-1"><span className="text-xs font-medium text-muted-foreground">{term}</span><strong className="font-mono text-[13px] font-medium tabular-nums text-foreground">{detail}</strong></div>)}
+          <Badge variant="success" className="gap-2"><i className="size-1.5 rounded-full bg-success" />{t('gamepad.connected')}</Badge>
+          <Button variant="outline" size="sm" className="max-sm:w-full" onClick={() => { void rumble() }} disabled={!active.connected}><Vibrate /> {t('gamepad.rumble')}</Button>
+        </Card>
 
-        <div className="gamepad-diagnostics-grid">
-          <div className="gamepad-controller-shell">
-            <XboxController gamepad={active} leftX={leftX} leftY={leftY} rightX={rightX} rightY={rightY} />
-            <div className="gamepad-pressed-summary"><span>{t('gamepad.pressed')}</span><strong>{pressedCount} / {active.buttons.length}</strong></div>
-          </div>
+        <div className="gamepad-diagnostics-grid w-full">
+          <Card className="gamepad-controller-shell justify-center gap-2 overflow-hidden p-4">
+            <Controller3D gamepad={active} leftX={leftX} leftY={leftY} label={t('gamepad.layoutLabel')} />
+            <p className="m-0 flex items-center gap-2 text-xs text-muted-foreground">{t('gamepad.pressed')} <Badge variant={pressedCount ? 'default' : 'outline'} className="font-mono tabular-nums">{pressedCount} / {active.buttons.length}</Badge></p>
+          </Card>
 
           <div className="gamepad-sticks-grid">
             <StickVisualizer name="left" x={leftX} y={leftY} points={leftPoints} error={leftError} />
@@ -141,11 +116,11 @@ export function GamepadTest({ embedded = false }: { embedded?: boolean }) {
           </div>
         </div>
 
-        <section className="gamepad-raw-values">
-          <div className="report-section-heading"><div><Gamepad2 size={15} /> {t('gamepad.rawAxes')}</div><button className="secondary-button" onClick={() => { setLeftPointsByPad({}); setRightPointsByPad({}) }}><RotateCcw size={14} /> {t('gamepad.resetPath')}</button></div>
-          <div>{active.axes.map((axis, index) => <span key={index}>AXIS {index}<b>{rawAxis(axis).toFixed(5)}</b></span>)}</div>
-        </section>
-      </>}
+        <Card className="gap-3 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="m-0 flex items-center gap-2 font-heading text-sm font-semibold text-foreground"><Gamepad2 className="size-4 text-primary" /> {t('gamepad.rawAxes')}</h2><Button variant="outline" size="sm" onClick={() => { setLeftPointsByPad({}); setRightPointsByPad({}) }}><RotateCcw /> {t('gamepad.resetPath')}</Button></div>
+          <dl className="m-0 grid grid-cols-2 gap-2 sm:grid-cols-4">{active.axes.map((axis, index) => <div key={index} className="grid gap-1 rounded-lg border border-solid border-border bg-black/25 px-3 py-2.5 text-center"><dt className="font-mono text-[11px] text-muted-foreground">AXIS {index}</dt><dd className="m-0 font-mono text-[13px] tabular-nums text-foreground">{rawAxis(axis).toFixed(5)}</dd></div>)}</dl>
+        </Card>
+      </div>}
     </section>
   )
 }

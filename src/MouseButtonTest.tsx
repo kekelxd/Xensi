@@ -3,6 +3,11 @@ import { Gamepad2, Keyboard, Mouse, RotateCcw } from 'lucide-react'
 import { GamepadTest } from './GamepadTest'
 import { pressInput, releaseInput } from './inputState'
 import { useI18n, type TranslationKey } from './i18n'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Segmented, SegmentedItem } from '@/components/ui/segmented'
+import { cn } from '@/lib/utils'
 
 const BUTTONS = [
   { code: 0, mask: 1, label: 'mouse.left' as TranslationKey, short: 'LMB' },
@@ -188,14 +193,14 @@ export function MouseButtonTest() {
   return (
     <section className="button-test-workspace">
       <div className="button-test-heading">
-        <div className="panel-label">{device === 'mouse' ? <Mouse size={15} /> : device === 'keyboard' ? <Keyboard size={15} /> : <Gamepad2 size={15} />} {t('buttons.diagnostics')}</div>
+        <Badge variant="outline" className="mx-auto">{device === 'mouse' ? <Mouse /> : device === 'keyboard' ? <Keyboard /> : <Gamepad2 />} {t('buttons.diagnostics')}</Badge>
         <h1>{t('buttons.inputTitle')}</h1>
         <p>{t('buttons.inputSubtitle')}</p>
-        <div className="input-device-toggle" role="tablist" aria-label={t('buttons.device')}>
-          <button type="button" role="tab" aria-selected={device === 'mouse'} className={device === 'mouse' ? 'active' : ''} onClick={() => selectDevice('mouse')}><Mouse size={16} /> {t('buttons.mouse')}</button>
-          <button type="button" role="tab" aria-selected={device === 'keyboard'} className={device === 'keyboard' ? 'active' : ''} onClick={() => selectDevice('keyboard')}><Keyboard size={16} /> {t('buttons.keyboard')}</button>
-          <button type="button" role="tab" aria-selected={device === 'gamepad'} className={device === 'gamepad' ? 'active' : ''} onClick={() => selectDevice('gamepad')}><Gamepad2 size={16} /> {t('buttons.gamepad')}</button>
-        </div>
+        <Segmented className="mt-4" aria-label={t('buttons.device')}>
+          <SegmentedItem active={device === 'mouse'} onClick={() => selectDevice('mouse')}><Mouse /> {t('buttons.mouse')}</SegmentedItem>
+          <SegmentedItem active={device === 'keyboard'} onClick={() => selectDevice('keyboard')}><Keyboard /> {t('buttons.keyboard')}</SegmentedItem>
+          <SegmentedItem active={device === 'gamepad'} onClick={() => selectDevice('gamepad')}><Gamepad2 /> {t('buttons.gamepad')}</SegmentedItem>
+        </Segmented>
       </div>
 
       {device === 'gamepad' ? <GamepadTest embedded /> : <><div
@@ -239,24 +244,22 @@ export function MouseButtonTest() {
         </div>
       </div>
 
-      {device === 'mouse' ? (
-        <div className="button-counters">
-          {BUTTONS.map((button) => (
-            <div key={button.code} className={mousePressed.has(button.code) ? 'active' : ''}>
-              <span>{button.short}</span><strong>{mouseCounts[button.code] ?? 0}</strong><small>{t(button.label)}</small>
-            </div>
-          ))}
-          <div className={wheelDirection ? 'active' : ''}><span>WHEEL</span><strong>{wheelCounts.up + wheelCounts.down}</strong><small>{t('buttons.scrolls')}</small></div>
-        </div>
-      ) : (
-        <div className="button-counters keyboard-counters">
-          <div><span>{t('buttons.coverage')}</span><strong>{testedKeys}</strong><small>{t('buttons.keysTested')}</small></div>
-          <div><span>{t('buttons.actions')}</span><strong>{keyboardTotal}</strong><small>{t('buttons.totalRecorded')}</small></div>
-          <div className={keyboardPressed.size > 1 ? 'active' : ''}><span>{t('buttons.simultaneous')}</span><strong>{keyboardPressed.size}</strong><small>{t('buttons.pressedCount')}</small></div>
-        </div>
-      )}
+      <Card className={cn('mx-auto mt-3.5 grid w-full max-w-[1120px] grid-cols-3 gap-px overflow-hidden bg-border p-0', device === 'mouse' && 'lg:grid-cols-6')}>
+        {(device === 'mouse' ? [
+          ...BUTTONS.map((button) => ({ key: String(button.code), code: button.short, value: mouseCounts[button.code] ?? 0, hint: t(button.label), active: mousePressed.has(button.code) })),
+          { key: 'wheel', code: 'WHEEL', value: wheelCounts.up + wheelCounts.down, hint: t('buttons.scrolls'), active: Boolean(wheelDirection) },
+        ] : [
+          { key: 'coverage', code: t('buttons.coverage'), value: testedKeys, hint: t('buttons.keysTested'), active: false },
+          { key: 'actions', code: t('buttons.actions'), value: keyboardTotal, hint: t('buttons.totalRecorded'), active: false },
+          { key: 'simultaneous', code: t('buttons.simultaneous'), value: keyboardPressed.size, hint: t('buttons.pressedCount'), active: keyboardPressed.size > 1 },
+        ]).map((item) => <div key={item.key} data-active={item.active || undefined} className={cn('grid content-start gap-1 bg-card px-3 py-3 text-center transition-colors', 'data-[active]:bg-success/[.07]')}>
+          <span className="truncate font-mono text-[11px] text-muted-foreground">{item.code}</span>
+          <strong className="font-mono text-lg font-medium leading-tight tabular-nums text-foreground">{item.value}</strong>
+          <small className="truncate text-[11px] text-muted-foreground">{item.hint}</small>
+        </div>)}
+      </Card>
 
-      <button className="secondary-button button-test-reset" onClick={reset}><RotateCcw size={16} /> {t('buttons.reset')}</button></>}
+      <Button variant="outline" className="mt-4" onClick={reset}><RotateCcw /> {t('buttons.reset')}</Button></>}
     </section>
   )
 }

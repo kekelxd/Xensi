@@ -1,8 +1,9 @@
 import { ArrowRight, Gamepad2, Gauge, MonitorUp, Mouse } from 'lucide-react'
-import { SpotlightCard } from './design/SpotlightCard'
 import { XensiPageHeader } from './design/Primitives'
 import { useI18n } from './i18n'
 import type { AppView } from './routes'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 type DiagnosticDestination = Extract<AppView, 'polling' | 'buttons' | 'refresh-rate' | 'controller-drift'>
 
@@ -67,17 +68,17 @@ export function DiagnosticLanding({ onNavigate }: Props) {
       {diagnostics.map((diagnostic, index) => {
         const Icon = diagnostic.icon
         const [title, description] = current.tools[index]
-        return <SpotlightCard className="diagnostic-hub-card" key={diagnostic.view}>
+        return <Card spotlight className="diagnostic-hub-card rounded-xl" key={diagnostic.view}>
           <span className="diagnostic-hub-icon"><Icon size={22} /></span>
           <div>
             <h2>{title}</h2>
             <p>{description}</p>
           </div>
-          <button type="button" onClick={() => onNavigate(diagnostic.view)}>
+          <Button variant="outline" className="group/open w-full justify-between" onClick={() => onNavigate(diagnostic.view)}>
             {current.open}
-            <ArrowRight size={16} />
-          </button>
-        </SpotlightCard>
+            <ArrowRight className="transition-transform group-hover/open:translate-x-0.5 motion-reduce:transition-none" />
+          </Button>
+        </Card>
       })}
     </div>
   </section>

@@ -1,8 +1,65 @@
-import { BoxGeometry, Color, DirectionalLight, Group, HemisphereLight, Mesh, MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, PlaneGeometry, Scene, SphereGeometry, WebGLRenderer, type BufferGeometry, type Material, type Object3D } from 'three'
+import { BoxGeometry, CanvasTexture, Color, DirectionalLight, ExtrudeGeometry, Group, HemisphereLight, Mesh, MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, PlaneGeometry, RepeatWrapping, Scene, Shape, SphereGeometry, SRGBColorSpace, WebGLRenderer, type BufferGeometry, type Material, type Object3D } from 'three'
 import { scopeVerticalFov, SNIPER_WORLD, sniperGeometry, type ScopeLevel } from './sniperReaction'
 
 const ROOM = { halfWidth: 6, front: 3, height: 3.4 }
-const OUTSIDE = { depth: 36, halfWidth: 15, wallHeight: 9 }
+const OUTSIDE = { depth: 34, halfWidth: 15, wallHeight: 14 }
+// Pointed-arch double door: both leaves are closed and the runner is only seen through the gap between them.
+const DOOR = { leafWidth: 1.15, springHeight: 2.3, apexHeight: 3.5 }
+
+// Studded plank door, drawn once so no image asset is needed.
+function woodTexture() {
+  const canvas = document.createElement('canvas')
+  canvas.width = 128; canvas.height = 256
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    ctx.fillStyle = '#6e5539'; ctx.fillRect(0, 0, 128, 256)
+    for (let x = 0; x < 128; x += 32) {
+      ctx.fillStyle = x % 64 ? '#7a6044' : '#654d33'; ctx.fillRect(x, 0, 32, 256)
+      ctx.fillStyle = '#2d2318'; ctx.fillRect(x, 0, 2, 256)
+    }
+    ctx.fillStyle = '#2b2b2b'
+    for (const y of [40, 120, 210]) {
+      ctx.fillRect(0, y, 128, 14)
+      ctx.fillStyle = '#7d7468'
+      for (let x = 10; x < 128; x += 26) { ctx.beginPath(); ctx.arc(x, y + 7, 3, 0, Math.PI * 2); ctx.fill() }
+      ctx.fillStyle = '#2b2b2b'
+    }
+  }
+  const texture = new CanvasTexture(canvas)
+  texture.wrapS = texture.wrapT = RepeatWrapping
+  texture.colorSpace = SRGBColorSpace
+  return texture
+}
+
+// Weathered sandstone plaster or paving: speckled base color with faint block seams.
+function surfaceTexture(base: [number, number, number], repeatX: number, repeatY: number, block: number) {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = 256
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    ctx.fillStyle = `rgb(${base.join(',')})`; ctx.fillRect(0, 0, 256, 256)
+    for (let i = 0; i < 2400; i++) {
+      const shade = Math.round((Math.random() - .5) * 34)
+      ctx.fillStyle = `rgba(${base.map(channel => Math.max(0, Math.min(255, channel + shade))).join(',')},.55)`
+      ctx.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 4, 1 + Math.random() * 3)
+    }
+    if (block) {
+      ctx.strokeStyle = 'rgba(70,56,38,.22)'; ctx.lineWidth = 2
+      for (let y = 0, row = 0; y < 256; y += block, row++) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(256, y); ctx.stroke()
+        for (let x = row % 2 ? block : block / 2; x < 256; x += block * 1.6) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + block); ctx.stroke() }
+      }
+    }
+  }
+  const texture = new CanvasTexture(canvas)
+  texture.wrapS = texture.wrapT = RepeatWrapping
+  texture.repeat.set(repeatX, repeatY)
+  texture.colorSpace = SRGBColorSpace
+  return texture
+}
+
+// Height of the pointed arch at lateral distance x from the center line.
+const archHeight = (x: number, halfWidth: number) => DOOR.springHeight + (DOOR.apexHeight - DOOR.springHeight) * (1 - Math.min(1, Math.abs(x) / halfWidth)) ** .85
 
 // First-person Dust 2 style double doors: a dark room, a narrow bright doorway and a runner crossing the lane behind it.
 export class SniperViewport {
@@ -14,8 +71,8 @@ export class SniperViewport {
   private kickPitch = 0
   private kickedAt = -1e9
   private runner: Group
-  private legs: Mesh[] = []
-  private arms: Mesh[] = []
+  private legs: Object3D[] = []
+  private arms: Object3D[] = []
   private door = new Group()
   private radius = 0
   private lastFrameKey = ''
@@ -23,20 +80,35 @@ export class SniperViewport {
   private readonly box = new BoxGeometry(1, 1, 1)
   private readonly sphere = new SphereGeometry(1, 20, 14)
   private readonly floorGlow = new PlaneGeometry(1, 1)
+  private readonly woodMap = woodTexture()
+  private readonly surfaceMaps = [
+    surfaceTexture([204, 184, 148], 8, 3.5, 64),   // far wall
+    surfaceTexture([184, 162, 126], 9, 3.5, 64),   // side walls
+    surfaceTexture([158, 146, 126], 8, 9, 64),     // ground paving
+  ]
   private readonly materials: Record<string, Material> = {
     roomWall: new MeshLambertMaterial({ color: 0x4a3f33 }),
     roomFloor: new MeshLambertMaterial({ color: 0x3a3229 }),
     roomCeiling: new MeshBasicMaterial({ color: 0x2a231c }),
     frame: new MeshLambertMaterial({ color: 0x2a1d14 }),
-    wood: new MeshLambertMaterial({ color: 0x7b5232 }),
-    sand: new MeshBasicMaterial({ color: 0xd8bb86 }),
-    sandDark: new MeshBasicMaterial({ color: 0xb9985f }),
-    ground: new MeshBasicMaterial({ color: 0xc7a76f }),
-    crate: new MeshBasicMaterial({ color: 0x9a7a45 }),
+    stone: new MeshLambertMaterial({ color: 0x8d8574 }),
+    door: new MeshLambertMaterial({ map: this.woodMap }),
+    farWall: new MeshBasicMaterial({ map: this.surfaceMaps[0] }),
+    sideWall: new MeshBasicMaterial({ map: this.surfaceMaps[1] }),
+    ground: new MeshBasicMaterial({ map: this.surfaceMaps[2] }),
+    dumpster: new MeshBasicMaterial({ color: 0x6f6b61 }),
+    dumpsterLid: new MeshBasicMaterial({ color: 0x57544c }),
     glow: new MeshBasicMaterial({ color: 0xffe2a8, transparent: true, opacity: .16, depthWrite: false }),
-    cloth: new MeshLambertMaterial({ color: 0x1b2027 }),
-    vest: new MeshLambertMaterial({ color: 0xff7251 }),
-    skin: new MeshLambertMaterial({ color: 0xd9b18c }),
+    cloth: new MeshLambertMaterial({ color: 0x1d2026 }),
+    pants: new MeshLambertMaterial({ color: 0x23262d }),
+    olive: new MeshLambertMaterial({ color: 0x5a5a3c }),
+    oliveDark: new MeshLambertMaterial({ color: 0x45452e }),
+    boot: new MeshLambertMaterial({ color: 0x7a6a4a }),
+    glove: new MeshLambertMaterial({ color: 0x111317 }),
+    helmet: new MeshLambertMaterial({ color: 0x15171c }),
+    balaclava: new MeshLambertMaterial({ color: 0x0f1115 }),
+    goggle: new MeshLambertMaterial({ color: 0x2c3138 }),
+    skin: new MeshLambertMaterial({ color: 0xd9a47c }),
   }
 
   constructor(readonly canvas: HTMLCanvasElement) {
@@ -73,41 +145,44 @@ export class SniperViewport {
     this.slab(this.scene, 'roomWall', -ROOM.halfWidth, ROOM.height / 2, roomCenterZ, .1, ROOM.height, roomDepth)
     this.slab(this.scene, 'roomWall', ROOM.halfWidth, ROOM.height / 2, roomCenterZ, .1, ROOM.height, roomDepth)
     this.slab(this.scene, 'roomWall', 0, ROOM.height / 2, ROOM.front, ROOM.halfWidth * 2, ROOM.height, .1)
-    // Outside lane, lit by the sun: flat bright materials.
+    // Outside lane, lit by the sun: flat bright materials, sandstone walls like the real map.
     const outsideCenterZ = -d0 - OUTSIDE.depth / 2
     this.slab(this.scene, 'ground', 0, -.05, outsideCenterZ, OUTSIDE.halfWidth * 2, .1, OUTSIDE.depth)
-    this.slab(this.scene, 'sand', 0, OUTSIDE.wallHeight / 2, -d0 - OUTSIDE.depth, OUTSIDE.halfWidth * 2, OUTSIDE.wallHeight, .2)
-    this.slab(this.scene, 'sandDark', -OUTSIDE.halfWidth, OUTSIDE.wallHeight / 2, outsideCenterZ, .2, OUTSIDE.wallHeight, OUTSIDE.depth)
-    this.slab(this.scene, 'sandDark', OUTSIDE.halfWidth, OUTSIDE.wallHeight / 2, outsideCenterZ, .2, OUTSIDE.wallHeight, OUTSIDE.depth)
-    // Dust 2 flavour: crates and a low wall at the far end.
-    this.slab(this.scene, 'crate', -7.5, .6, -d0 - 28, 1.4, 1.2, 1.4)
-    this.slab(this.scene, 'crate', -7.5, 1.5, -d0 - 28, .9, .6, .9)
-    this.slab(this.scene, 'crate', 8, .7, -d0 - 30, 2.2, 1.4, 1.6)
-    this.slab(this.scene, 'sandDark', 0, .45, -d0 - 33, 8, .9, .6)
+    this.slab(this.scene, 'farWall', 0, OUTSIDE.wallHeight / 2, -d0 - OUTSIDE.depth, OUTSIDE.halfWidth * 2, OUTSIDE.wallHeight, .2)
+    this.slab(this.scene, 'sideWall', -OUTSIDE.halfWidth, OUTSIDE.wallHeight / 2, outsideCenterZ, .2, OUTSIDE.wallHeight, OUTSIDE.depth)
+    this.slab(this.scene, 'sideWall', OUTSIDE.halfWidth, OUTSIDE.wallHeight / 2, outsideCenterZ, .2, OUTSIDE.wallHeight, OUTSIDE.depth)
+    // A dumpster by the right edge of the lane.
+    this.slab(this.scene, 'dumpster', 2.7, .65, -d0 - 27, 2.2, 1.3, 1.2)
+    this.slab(this.scene, 'dumpsterLid', 2.7, 1.34, -d0 - 27, 2.3, .1, 1.3)
     // Light spilling through the doorway onto the dark floor.
     const glow = new Mesh(this.floorGlow, this.materials.glow)
     glow.rotation.x = -Math.PI / 2; glow.position.set(0, .01, -d0 + 3.2); glow.scale.set(2.4, 6.4, 1); this.scene.add(glow)
   }
 
-  // Door wall with an opening of exactly `opening` meters, framed by two open leaves.
+  // Stone wall with a pointed-arch hole, filled by two closed plank leaves that leave a gap of exactly `opening` meters.
   configure(config: { opening: number; radius: number }) {
     if (this.radius === config.radius && (this.door.userData.opening as number | undefined) === config.opening) return
+    this.door.traverse(object => { if (object instanceof Mesh && object.geometry !== this.box) object.geometry.dispose() })
     this.door.clear(); this.door.userData.opening = config.opening
-    const { doorDistance: d0, doorHeight } = SNIPER_WORLD
-    const half = config.opening / 2, wallHalf = 30
-    this.slab(this.door, 'roomWall', -(wallHalf + half) / 2, OUTSIDE.wallHeight / 2, -d0, wallHalf - half, OUTSIDE.wallHeight, .3)
-    this.slab(this.door, 'roomWall', (wallHalf + half) / 2, OUTSIDE.wallHeight / 2, -d0, wallHalf - half, OUTSIDE.wallHeight, .3)
-    this.slab(this.door, 'roomWall', 0, (doorHeight + OUTSIDE.wallHeight) / 2, -d0, config.opening, OUTSIDE.wallHeight - doorHeight, .3)
+    const { doorDistance: d0 } = SNIPER_WORLD
+    const gap = config.opening / 2, hole = gap + DOOR.leafWidth, steps = 14
+    const arch = (from: number, to: number) => Array.from({ length: steps + 1 }, (_, i) => { const x = from + (to - from) * i / steps; return [x, archHeight(x, hole)] as const })
+    const wall = new Shape()
+    wall.moveTo(-30, 0); wall.lineTo(30, 0); wall.lineTo(30, OUTSIDE.wallHeight); wall.lineTo(-30, OUTSIDE.wallHeight); wall.lineTo(-30, 0)
+    const opening = new Shape()
+    opening.moveTo(-hole, 0); opening.lineTo(hole, 0)
+    for (const [x, y] of arch(hole, -hole)) opening.lineTo(x, y)
+    wall.holes.push(opening)
+    const wallMesh = new Mesh(new ExtrudeGeometry(wall, { depth: .3, bevelEnabled: false }), this.materials.stone)
+    wallMesh.position.z = -d0 - .15; this.door.add(wallMesh)
+    this.woodMap.repeat.set(1 / DOOR.leafWidth, 1 / DOOR.apexHeight)
     for (const side of [-1, 1]) {
-      this.slab(this.door, 'frame', side * (half + .07), doorHeight / 2, -d0 + .16, .14, doorHeight, .12)
-      // Leaves swung open toward the player, away from the line of sight through the opening.
-      const hinge = new Group()
-      hinge.position.set(side * half, 0, -d0 + .17)
-      hinge.rotation.y = -side * 70 * Math.PI / 180
-      this.slab(hinge, 'wood', side * .4, 1.3, 0, .8, 2.6, .06)
-      this.door.add(hinge)
+      const leaf = new Shape()
+      leaf.moveTo(side * gap, 0); leaf.lineTo(side * hole, 0)
+      for (const [x, y] of arch(side * hole, side * gap)) leaf.lineTo(x, y)
+      const mesh = new Mesh(new ExtrudeGeometry(leaf, { depth: .1, bevelEnabled: false }), this.materials.door)
+      mesh.position.z = -d0 - .05; this.door.add(mesh)
     }
-    this.slab(this.door, 'frame', 0, doorHeight + .07, -d0 + .16, config.opening + .28, .14, .12)
     this.setRunnerScale(config.radius)
     this.lastFrameKey = ''
   }
@@ -117,24 +192,40 @@ export class SniperViewport {
     this.runner.scale.setScalar(radius / SNIPER_WORLD.referenceRadius)
   }
 
+  // Low-poly tactical operator: black helmet and balaclava, goggles, olive vest, tan boots.
+  // Seen in profile: local +Z is the running direction, so the silhouette width is the hitbox width.
   private buildRunner() {
     const group = new Group()
     group.rotation.order = 'YXZ'
     const reference = sniperGeometry(SNIPER_WORLD.referenceRadius)
-    // The runner is seen in profile: local +Z is the running direction, so the silhouette width is the hitbox width.
-    const depth = reference.bodyHalfWidth * 2, hip = .76
-    const limb = (material: string, x: number, y: number, w: number, h: number, d: number, store: Mesh[]) => {
-      const mesh = new Mesh(this.box.clone().translate(0, -.5, 0), this.materials[material])
-      mesh.position.set(x, y, 0); mesh.scale.set(w, h, d); store.push(mesh); group.add(mesh)
+    const depth = reference.bodyHalfWidth * 2, hip = .72, front = depth / 2
+    const swing = (store: Object3D[], x: number, y: number) => {
+      const pivot = new Group(); pivot.position.set(x, y, 0); group.add(pivot); store.push(pivot)
+      return pivot
     }
-    limb('cloth', -.09, hip, .16, hip, .2, this.legs)
-    limb('cloth', .09, hip, .16, hip, .2, this.legs)
-    this.slab(group, 'cloth', 0, hip + .35, 0, .26, .7, depth)
-    this.slab(group, 'vest', 0, hip + .4, 0, .28, .34, depth + .02)
-    limb('cloth', -.17, 1.4, .1, .58, .12, this.arms)
-    limb('cloth', .17, 1.4, .1, .58, .12, this.arms)
-    const head = new Mesh(this.sphere, this.materials.skin)
+    for (const side of [-1, 1]) {
+      const leg = swing(this.legs, side * .09, hip)
+      this.slab(leg, 'pants', 0, -.25, 0, .16, .5, .17)
+      this.slab(leg, 'olive', 0, -.27, front * .12, .19, .15, .17)           // knee pad
+      this.slab(leg, 'boot', 0, -.6, .04, .17, .22, .27)                      // boot, toe forward
+      const arm = swing(this.arms, side * .17, hip + .62)
+      this.slab(arm, 'cloth', 0, -.18, 0, .11, .38, .14)
+      this.slab(arm, 'glove', 0, -.42, 0, .12, .12, .15)
+    }
+    this.slab(group, 'cloth', 0, hip + .26, 0, .27, .5, depth * .9)           // torso
+    this.slab(group, 'olive', 0, hip + .32, 0, .3, .4, depth)                 // plate carrier
+    for (const z of [-.1, 0, .1]) this.slab(group, 'oliveDark', .17, hip + .22, z, .05, .14, .09) // pouches, near side
+    for (const z of [-.1, 0, .1]) this.slab(group, 'oliveDark', -.17, hip + .22, z, .05, .14, .09)
+    this.slab(group, 'oliveDark', 0, hip + .38, -front - .04, .22, .3, .08)    // back panel
+    this.slab(group, 'cloth', 0, hip + .02, 0, .29, .06, depth * .92)         // belt
+    const head = new Mesh(this.sphere, this.materials.balaclava)
     head.scale.setScalar(reference.headRadius); head.position.set(0, reference.headCenter, 0); group.add(head)
+    const hr = reference.headRadius, hy = reference.headCenter
+    const helmet = new Mesh(this.sphere, this.materials.helmet)
+    helmet.scale.set(hr * 1.18, hr * .95, hr * 1.2); helmet.position.set(0, hy + hr * .32, -hr * .05); group.add(helmet)
+    this.slab(group, 'goggle', 0, hy + hr * .22, hr * .98, hr * 1.5, hr * .5, hr * .22)      // goggles on the brow
+    this.slab(group, 'skin', 0, hy - hr * .05, hr * .93, hr * 1.05, hr * .2, hr * .12)       // eye strip
+    for (const side of [-1, 1]) this.slab(group, 'olive', side * hr * 1.05, hy, -hr * .1, hr * .35, hr * .8, hr * .7) // ear defenders
     return group
   }
 
@@ -162,7 +253,7 @@ export class SniperViewport {
     this.runner.position.set(state.x, 0, -state.z)
     this.runner.rotation.y = direction > 0 ? Math.PI / 2 : -Math.PI / 2
     this.runner.rotation.x = -state.fall * Math.PI / 2
-    const stride = state.fall > 0 ? 0 : Math.sin(now / 95) * .75
+    const stride = state.fall > 0 ? 0 : Math.sin(now / 95) * .5
     this.legs[0].rotation.x = stride; this.legs[1].rotation.x = -stride
     this.arms[0].rotation.x = -stride * .8; this.arms[1].rotation.x = stride * .8
   }
@@ -186,6 +277,7 @@ export class SniperViewport {
     this.scene.traverse(object => { if (object instanceof Mesh) geometries.add(object.geometry) })
     geometries.forEach(geometry => geometry.dispose())
     Object.values(this.materials).forEach(material => material.dispose())
+    this.woodMap.dispose(); this.surfaceMaps.forEach(map => map.dispose())
     this.scene.clear(); this.renderer.dispose()
     // StrictMode replays effects on the same connected canvas; do not poison its next context.
     queueMicrotask(() => { if (!this.canvas.isConnected) this.renderer.forceContextLoss() })

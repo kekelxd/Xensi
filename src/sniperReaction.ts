@@ -40,7 +40,7 @@ const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
 
 export function sniperGeometry(radius: number) {
   const scale = radius / SNIPER_WORLD.referenceRadius
-  return { headRadius: radius, bodyHalfWidth: .23 * scale, bodyTop: 1.45 * scale, headCenter: 1.45 * scale + radius * 1.05 }
+  return { headRadius: radius, bodyHalfWidth: .16 * scale, bodyTop: 1.45 * scale, headCenter: 1.45 * scale + radius * 1.05 }
 }
 
 // Ray from the eye (yaw to the right, pitch up, radians) through the doorway onto the runner's plane.

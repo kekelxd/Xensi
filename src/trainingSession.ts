@@ -66,7 +66,7 @@ export const SESSION_REGISTRY: Record<WarmupExercise, ExerciseMetricDefinition> 
   reflex: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true, analysisMetrics: ['accuracy', 'hits'] },
   gridshot: { primaryMetric: 'score', unit: 'points', direction: 'higher', precision: 0, exerciseVersion: 1, pbSupported: true, analysisMetrics: ['accuracy', 'hits'] },
   strafetrack: { primaryMetric: 'accuracy', unit: 'percent', direction: 'higher', precision: 1, exerciseVersion: 1, pbSupported: true },
-  'sniper-reaction': { primaryMetric: 'bestReactionMs', unit: 'milliseconds', direction: 'lower', precision: 0, exerciseVersion: 1, pbSupported: true, analysisMetrics: ['accuracy', 'hits', 'medianReactionMs'] },
+  'sniper-reaction': { primaryMetric: 'bestReactionMs', unit: 'milliseconds', direction: 'lower', precision: 0, exerciseVersion: 2, pbSupported: true, analysisMetrics: ['accuracy', 'hits', 'medianReactionMs'] },
   micro_flick: { primaryMetric: 'meanAcquisitionTimeMs', unit: 'milliseconds', direction: 'lower', precision: 0, exerciseVersion: 1, pbSupported: true, pbRequirements: MICRO_FLICK_PB_REQUIREMENTS, analysisMetrics: ['accuracy', 'hits', 'medianAcquisitionTimeMs', 'meanOvershootPx', 'targetsPerSecond'] },
 }
 

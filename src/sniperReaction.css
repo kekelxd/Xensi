@@ -1,7 +1,7 @@
 .sniper-preview { display: grid; place-items: center; }
-.sniper-preview-opening { width: 28%; height: 70%; overflow: hidden; border-inline: 2px solid #ff7251; background: #090d13; box-shadow: -35px 0 #171d26, 35px 0 #171d26; }
+.sniper-preview-opening { width: 28%; height: 70%; overflow: hidden; border-inline: 3px solid #7b5232; background: #d8bb86; box-shadow: -35px 0 #3a2f25, 35px 0 #3a2f25; }
 .sniper-preview-opening > span { display: block; position: relative; top: 42%; width: 100%; height: 18px; animation: sniperPeek 2.8s linear infinite; }
-.sniper-preview-opening > span::after { content: ''; display: block; width: 18px; height: 18px; border-radius: 50%; background: #ff7251; }
+.sniper-preview-opening > span::after { content: ''; display: block; width: 18px; height: 18px; border-radius: 50%; background: #1b2027; box-shadow: inset 0 -7px #ff7251; }
 @keyframes sniperPeek {
   0%, 18% { transform: translateX(-22px); opacity: 0; }
   19% { transform: translateX(-18px); opacity: 1; }
@@ -15,3 +15,7 @@
   .sniper-preview { animation: none; }
   .sniper-preview-opening > span { width: 18px; animation: none; margin-inline: auto; }
 }
+
+.sniper-arena-wrap { background: #1a1612; }
+.sniper-overlay { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; }
+.sniper-render-error { position: absolute; inset: 0; z-index: 4; display: grid; place-content: center; margin: 0; color: #ff7251; font: 500 14px var(--font-ui); text-align: center; }

@@ -138,10 +138,6 @@
 .xensi-inline-confirmation { margin-top: 24px; padding: 22px; background: rgba(255,64,85,.06); border: 1px solid rgba(255,64,85,.3); border-radius: var(--xensi-radius); }
 .xensi-inline-confirmation > div { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
 
-/* Auth shares material and lighting, retaining the isolated existing layout. */
-.xensi-auth-page { background: radial-gradient(ellipse at 12% 10%, rgba(255,64,85,.13), transparent 50%), radial-gradient(ellipse at 90% 85%, rgba(40,61,81,.18), transparent 55%), var(--xensi-base); }
-.xensi-auth-shell :is(.xensi-auth-card, form) { border-color: var(--xensi-border); }
-.xensi-auth-page .xensi-auth-card { background: var(--xensi-surface); box-shadow: var(--xensi-panel-shadow); border-radius: 20px; }
 @keyframes xensiUniversalDrift { from { transform: translate3d(-24px,-12px,0) scale(.96); } to { transform: translate3d(24px,18px,0) scale(1.04); } }
 @keyframes xensiGridPulse { 0%, 70%, 100% { opacity: 0; } 35% { opacity: .06; } }
 @media (max-width: 1000px) {

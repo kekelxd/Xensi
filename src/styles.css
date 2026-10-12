@@ -8862,74 +8862,7 @@ body:has(.home-reboot) {
 }
 
 /* Auth */
-.xensi-auth-page { position: relative; isolation: isolate; width: 100%; min-height: 100dvh; overflow: hidden; display: grid; place-items: center; padding: clamp(20px, 3vw, 44px); background: #07090d; }
-.xensi-auth-page::before { position: absolute; inset: 0; z-index: -2; content: ''; background:
-  radial-gradient(circle at 32% 18%, rgba(255,42,85,.18), transparent 30%),
-  radial-gradient(circle at 76% 76%, rgba(141,251,211,.075), transparent 28%),
-  linear-gradient(rgba(255,42,85,.032) 1px, transparent 1px),
-  linear-gradient(90deg, rgba(255,42,85,.026) 1px, transparent 1px),
-  #07090d; background-size: auto, auto, 42px 42px, 42px 42px, auto; }
-.xensi-auth-page::after { position: absolute; inset: 0; z-index: -1; content: ''; background:
-  radial-gradient(circle at 50% 48%, transparent 0 42%, rgba(0,0,0,.66) 100%),
-  linear-gradient(115deg, rgba(255,42,85,.08), transparent 38%, rgba(7,18,18,.16)); pointer-events: none; }
-.xensi-auth-shell { width: min(100%, 484px); animation: authCardIn .34s .04s ease both; }
-.xensi-auth-logo, .xensi-auth-card-logo { display: inline-flex; justify-content: flex-start; width: max-content; color: #f3f0e9; background: transparent; font: 600 25px/1 var(--font-display); letter-spacing: var(--tracking-normal); text-transform: var(--case-label); }
-.xensi-auth-logo span, .xensi-auth-card-logo span { color: #ff4657; text-shadow: 0 0 18px rgba(255,70,87,.5); }
-.xensi-auth-card { width: 100%; display: flex; flex-direction: column; gap: 19px; padding: 34px 38px; border: 1px solid rgba(188,202,207,.16); border-radius: 22px; background: linear-gradient(180deg, rgba(17,19,25,.95), rgba(9,11,15,.97)); box-shadow: 0 28px 70px rgba(0,0,0,.44), 0 0 0 1px rgba(255,255,255,.018) inset, inset 0 1px rgba(255,255,255,.04); }
-.xensi-auth-card-logo { margin-bottom: 10px; font-size: 20px; letter-spacing: var(--tracking-normal); }
-.xensi-auth-card header { display: block; border: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
-.xensi-auth-card header h2 { margin: 0; color: #f4f1ea; font: 600 30px/1.05 var(--font-display); letter-spacing: var(--tracking-tight); }
-.xensi-auth-card header p { margin: 10px 0 0; color: #a4adb1; font: 600 14.5px/1.6 var(--font-ui); }
-.xensi-auth-field { display: grid; gap: 8px; color: #d0d4d3; font: 600 11.5px var(--font-ui); letter-spacing: var(--tracking-normal); text-transform: var(--case-label); }
-.xensi-auth-field > label { display: flex; align-items: center; gap: 8px; }
-.xensi-auth-field svg { color: #ff6570; }
-.xensi-auth-field input { width: 100%; height: 50px; border: 1px solid rgba(124,134,139,.24); border-radius: 12px; padding: 0 15px; color: #f5f2eb; background: #141720; font: 600 14.5px var(--font-ui); outline: none; transition: border-color .18s ease, background .18s ease, color .18s ease; }
-.xensi-auth-field input::placeholder { color: #737d83; }
-.xensi-auth-field input:hover { border-color: rgba(159,169,174,.34); background: #171a22; }
-.xensi-auth-field input:focus { border-color: rgba(255,70,87,.66); background: #171920; }
-.xensi-auth-field input:invalid:not(:placeholder-shown) { border-color: rgba(255,70,87,.74); }
-.xensi-auth-field input:disabled { opacity: .62; cursor: not-allowed; }
-.xensi-auth-password { position: relative; }
-.xensi-auth-password input { padding-right: 52px; }
-.xensi-auth-password button { position: absolute; top: 50%; right: 7px; width: 36px; height: 36px; transform: translateY(-50%); display: grid; place-items: center; border: 0; border-radius: 9px; color: #9aa4aa; background: transparent; transition: color .16s ease, background .16s ease; }
-.xensi-auth-password button:hover, .xensi-auth-password button:focus-visible { color: #fff; background: rgba(255,255,255,.055); outline: 0; }
-.xensi-auth-options { display: flex; align-items: center; justify-content: flex-end; gap: 18px; margin-top: -3px; }
-.xensi-auth-options button, .xensi-auth-switch button { border: 0; padding: 0; color: #ff737c; background: transparent; font: inherit; transition: color .16s ease; }
-.xensi-auth-options button:hover, .xensi-auth-switch button:hover { color: #fff1f2; }
-.xensi-auth-options button { color: #a8b0b3; font: 600 13.5px var(--font-ui); }
-.xensi-auth-options button:hover, .xensi-auth-options button:focus-visible { color: #ff737c; outline: 0; }
-.xensi-auth-message { margin: -2px 0 0; padding: 11px 13px; border: 1px solid rgba(255,70,87,.34); border-radius: 12px; color: #ffadb3; background: rgba(255,70,87,.07); font: 600 12.5px/1.48 var(--font-ui); }
-.xensi-auth-message.success { border-color: rgba(141,251,211,.28); color: #8dfbd3; background: rgba(141,251,211,.06); }
-.xensi-auth-inline { margin: -1px 0 0; color: #a7b0b5; font: 600 12px/1.42 var(--font-ui); letter-spacing: 0; text-transform: none; }
-.xensi-auth-inline.available { color: #8dfbd3; }
-.xensi-auth-inline.unavailable, .xensi-auth-inline.error, .xensi-auth-inline.invalid { color: #ffadb3; }
-.xensi-auth-state-card { align-items: stretch; }
-.xensi-auth-state-card > svg { color: #ff4657; }
-.xensi-auth-confirm-copy { margin: -4px 0 0; color: #a4adb1; font: 600 13.5px/1.6 var(--font-ui); }
-.xensi-auth-submit { height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid #ff6973; border-radius: 13px; color: #19080c; background: #ff4657; font: 600 12px var(--font-ui); letter-spacing: var(--tracking-normal); text-transform: var(--case-label); transition: transform .18s ease, background .18s ease, border-color .18s ease; }
-.xensi-auth-submit:hover, .xensi-auth-submit:focus-visible { transform: translateY(-1px); border-color: #ff8b92; background: #ff5a65; outline: 0; }
-.xensi-auth-submit:disabled { opacity: .7; cursor: wait; transform: none; }
-.xensi-auth-guest { margin-top: -6px; border: 0; padding: 0; color: #9ea7ab; background: transparent; font: 600 13px/1.4 var(--font-ui); transition: color .16s ease, transform .16s ease; }
-.xensi-auth-guest:hover, .xensi-auth-guest:focus-visible { color: #f3f0e9; transform: translateY(-1px); outline: 0; }
-.xensi-auth-switch { margin: 0; color: #a0a9ad; font: 600 13.5px/1.5 var(--font-ui); text-align: center; }
 @keyframes authCardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) {
-  .xensi-auth-shell { animation: none; }
-  .xensi-auth-submit, .xensi-auth-guest { transition: none; }
-}
-@media (max-width: 1380px) {
-  .xensi-auth-shell { width: min(100%, 462px); }
-  .xensi-auth-card { padding: 30px 32px; gap: 16px; }
-}
-@media (max-height: 780px) {
-  .xensi-auth-page { padding: 20px; }
-  .xensi-auth-card { gap: 14px; padding-top: 28px; padding-bottom: 28px; }
-  .xensi-auth-card-logo { margin-bottom: 4px; }
-  .xensi-auth-card header h2 { font-size: 28px; }
-  .xensi-auth-card header p { margin-top: 8px; line-height: 1.5; }
-  .xensi-auth-field input { height: 46px; }
-  .xensi-auth-submit { height: 48px; }
-}
 .preset-sync-message {
   display: flex;
   align-items: center;

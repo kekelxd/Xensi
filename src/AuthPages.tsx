@@ -1,5 +1,6 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CheckCircle2, Eye, EyeOff, Lock, Mail, RotateCcw, UserRound } from 'lucide-react'
+import { ArrowRight, CheckCircle2, CircleAlert, Eye, EyeOff, MailCheck, RotateCcw } from 'lucide-react'
+import authArt from './assets/xensi-hero-art.webp'
 import { XensiLogo } from './AppNavigation'
 import {
   AuthMode,
@@ -14,6 +15,10 @@ import {
   type AuthLocale,
 } from './authService'
 import { useI18n, type Locale, type TranslationKey } from './i18n'
+import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Field, FieldError, FieldGroup, FieldLabel, FieldSeparator } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 
 type AuthScreenProps = {
   mode: AuthMode
@@ -92,20 +97,33 @@ function readCallbackError() {
   return values.get('error') ?? values.get('error_code') ?? hash.get('error') ?? hash.get('error_code')
 }
 
-function AuthField({ children, icon, id, label }: { children: ReactNode; icon: ReactNode; id: string; label: string }) {
-  return <div className="xensi-auth-field">
-    <label htmlFor={id}>{icon}{label}</label>
-    {children}
+function PasswordInput({ id, value, onChange, visible, onToggle, autoComplete, placeholder, disabled, invalid, showLabel, hideLabel }: { id: string; value: string; onChange: (value: string) => void; visible: boolean; onToggle: () => void; autoComplete: string; placeholder: string; disabled: boolean; invalid?: boolean; showLabel: string; hideLabel: string }) {
+  return <div className="relative">
+    <Input id={id} type={visible ? 'text' : 'password'} value={value} onChange={(event) => onChange(event.target.value)} autoComplete={autoComplete} placeholder={placeholder} disabled={disabled} aria-invalid={invalid || undefined} required className="h-12 pr-12" />
+    <Button variant="ghost" size="icon" className="absolute top-1/2 right-1 size-10 -translate-y-1/2 active:-translate-y-1/2" onClick={onToggle} aria-label={visible ? hideLabel : showLabel} disabled={disabled}>
+      {visible ? <EyeOff /> : <Eye />}
+    </Button>
   </div>
 }
 
+// Split layout (shadcn login-02): form column on the left, brand art on the right from lg up.
 function AuthLayout({ children }: { children: ReactNode }) {
-  return <main className="xensi-auth-page">
-    <div className="xensi-auth-shell">
-      {children}
+  return <main className="xensi-auth-page grid min-h-[100dvh] bg-background font-sans text-foreground lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+    <div className="xensi-auth-shell flex min-h-[100dvh] flex-col px-6 py-7 sm:px-10 lg:px-14">
+      <XensiLogo className="self-start" />
+      <div className="flex flex-1 items-center justify-center py-8">
+        <div className="w-full max-w-[380px]">{children}</div>
+      </div>
+    </div>
+    <div aria-hidden="true" className="relative hidden overflow-hidden border-0 border-l border-solid border-border lg:block">
+      <img src={authArt} alt="" className="absolute inset-0 size-full object-cover object-[70%_center]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--background)_0%,rgba(7,8,12,.55)_28%,rgba(7,8,12,.1)_70%)]" />
     </div>
   </main>
 }
+
+const title = 'm-0 font-heading text-[28px] font-semibold leading-tight tracking-[-0.015em] text-foreground'
+const lead = 'm-0 text-[15px] leading-relaxed text-muted-foreground'
 
 export function AuthScreen({ mode, onNavigate, onAuthenticated }: AuthScreenProps) {
   const { locale, t } = useI18n()
@@ -256,98 +274,96 @@ export function AuthScreen({ mode, onNavigate, onAuthenticated }: AuthScreenProp
     setResendCooldown(60)
   }
 
+  const statusMessage = message && <Alert role={status === 'error' ? 'alert' : 'status'} variant={status === 'error' ? 'destructive' : 'success'} aria-live="polite" className={`xensi-auth-message ${status}`}>
+    {status === 'error' ? <CircleAlert /> : <CheckCircle2 />}<span className="col-start-2">{message}</span>
+  </Alert>
+
   if (mode === 'auth-callback') {
     const success = callbackState === 'success'
     return <AuthLayout>
-      <div className="xensi-auth-card xensi-auth-state-card">
-          <XensiLogo className="xensi-auth-card-logo" />
-          <CheckCircle2 size={30} aria-hidden="true" />
-          <header>
-            <h2>{success ? t('auth.callback.successTitle') : t('auth.callback.errorTitle')}</h2>
-            <p>{success ? t('auth.callback.successText') : t('auth.callback.errorText')}</p>
-          </header>
-          <button className="xensi-auth-submit" type="button" onClick={success ? onAuthenticated : () => onNavigate('login')}>
-            {success ? t('auth.callback.continue') : t('auth.signIn')}
-            <ArrowRight size={16} />
-          </button>
+      <div className="xensi-auth-card xensi-auth-state-card grid gap-6">
+        <span className={`grid size-12 place-content-center rounded-full border border-solid ${success ? 'border-success/35 bg-success/10 text-success' : 'border-destructive/35 bg-destructive/10 text-destructive'}`}>{success ? <CheckCircle2 size={22} aria-hidden="true" /> : <CircleAlert size={22} aria-hidden="true" />}</span>
+        <div className="grid gap-2">
+          <h1 className={title}>{success ? t('auth.callback.successTitle') : t('auth.callback.errorTitle')}</h1>
+          <p className={lead}>{success ? t('auth.callback.successText') : t('auth.callback.errorText')}</p>
+        </div>
+        <Button size="lg" className="xensi-auth-submit w-full" onClick={success ? onAuthenticated : () => onNavigate('login')}>
+          {success ? t('auth.callback.continue') : t('auth.signIn')}
+          <ArrowRight />
+        </Button>
       </div>
     </AuthLayout>
   }
 
   if (mode === 'register' && confirmationEmail) {
     return <AuthLayout>
-      <div className="xensi-auth-card xensi-auth-state-card">
-          <XensiLogo className="xensi-auth-card-logo" />
-          <CheckCircle2 size={30} aria-hidden="true" />
-          <header>
-            <h2>{t('auth.confirm.title')}</h2>
-            <p>{t('auth.confirm.subtitle', { email: confirmationEmail })}</p>
-          </header>
-          <p className="xensi-auth-confirm-copy">{t('auth.confirm.instructions')}</p>
-          {message && <p className={`xensi-auth-message ${status}`} role={status === 'error' ? 'alert' : 'status'} aria-live="polite">{message}</p>}
-          <button className="xensi-auth-submit" type="button" onClick={resendConfirmation} disabled={status === 'loading' || resendCooldown > 0}>
-            {resendCooldown > 0 ? t('auth.confirm.resendCooldown', { seconds: resendCooldown }) : t('auth.confirm.resend')}
-            <RotateCcw size={16} />
-          </button>
-          <p className="xensi-auth-switch">
-            <button type="button" onClick={() => onNavigate('login')}>{t('auth.confirm.backToSignIn')}</button>
-          </p>
+      <div className="xensi-auth-card xensi-auth-state-card grid gap-6">
+        <span className="grid size-12 place-content-center rounded-full border border-solid border-success/35 bg-success/10 text-success"><MailCheck size={22} aria-hidden="true" /></span>
+        <div className="grid gap-2">
+          <h1 className={title}>{t('auth.confirm.title')}</h1>
+          <p className={lead}>{t('auth.confirm.subtitle', { email: confirmationEmail })}</p>
+        </div>
+        <p className="m-0 text-sm leading-relaxed text-muted-foreground">{t('auth.confirm.instructions')}</p>
+        {statusMessage}
+        <Button size="lg" variant="outline" className="xensi-auth-submit w-full" onClick={resendConfirmation} disabled={status === 'loading' || resendCooldown > 0}>
+          <RotateCcw />
+          {resendCooldown > 0 ? t('auth.confirm.resendCooldown', { seconds: resendCooldown }) : t('auth.confirm.resend')}
+        </Button>
+        <Button variant="link" className="justify-self-center" onClick={() => onNavigate('login')}>{t('auth.confirm.backToSignIn')}</Button>
       </div>
     </AuthLayout>
   }
 
+  const busy = status === 'loading'
   return <AuthLayout>
-    <form className="xensi-auth-card" onSubmit={submit}>
-        <XensiLogo className="xensi-auth-card-logo" />
-        <header>
-          <h2>{t(copy.title)}</h2>
-          <p>{t(copy.subtitle)}</p>
-        </header>
+    <form className="xensi-auth-card grid gap-7" onSubmit={submit} noValidate>
+      <div className="grid gap-2">
+        <h1 className={title}>{t(copy.title)}</h1>
+        <p className={lead}>{t(copy.subtitle)}</p>
+      </div>
 
-        {needsEmail && <AuthField icon={<Mail size={15} />} id="auth-email" label={t('auth.emailLabel')}>
-          <input id="auth-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder={t('auth.emailPlaceholder')} disabled={status === 'loading'} required />
-        </AuthField>}
+      <FieldGroup>
+        {needsEmail && <Field>
+          <FieldLabel htmlFor="auth-email">{t('auth.emailLabel')}</FieldLabel>
+          <Input id="auth-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder={t('auth.emailPlaceholder')} disabled={busy} required className="h-12" />
+        </Field>}
 
-        {mode === 'register' && <AuthField icon={<UserRound size={15} />} id="auth-nickname" label={t('auth.nicknameLabel')}>
-          <input id="auth-nickname" type="text" value={nickname} onChange={(event) => setNickname(event.target.value)} autoComplete="nickname" minLength={3} maxLength={24} placeholder={t('auth.nicknamePlaceholder')} disabled={status === 'loading'} required />
-          {nicknameMessage && <p className={`xensi-auth-inline ${nicknameState}`} role={nicknameState === 'unavailable' || nicknameState === 'error' ? 'alert' : 'status'} aria-live="polite">{nicknameMessage}</p>}
-        </AuthField>}
+        {mode === 'register' && <Field>
+          <FieldLabel htmlFor="auth-nickname">{t('auth.nicknameLabel')}</FieldLabel>
+          <Input id="auth-nickname" type="text" value={nickname} onChange={(event) => setNickname(event.target.value)} autoComplete="nickname" minLength={3} maxLength={24} placeholder={t('auth.nicknamePlaceholder')} disabled={busy} aria-invalid={nicknameState === 'invalid' || nicknameState === 'unavailable' || undefined} required className="h-12" />
+          {nicknameMessage && <FieldError className={`xensi-auth-inline ${nicknameState}`} aria-live="polite" tone={nicknameState === 'available' ? 'success' : nicknameState === 'checking' ? 'neutral' : 'error'} role={nicknameState === 'unavailable' || nicknameState === 'error' ? 'alert' : 'status'}>{nicknameMessage}</FieldError>}
+        </Field>}
 
-        {needsPassword && <AuthField icon={<Lock size={15} />} id="auth-password" label={mode === 'reset-password' ? t('auth.newPasswordLabel') : t('auth.passwordLabel')}>
-          <div className="xensi-auth-password">
-            <input id="auth-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder={mode === 'reset-password' ? t('auth.newPasswordPlaceholder') : t('auth.passwordPlaceholder')} disabled={status === 'loading'} required />
-            <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')} disabled={status === 'loading'}>
-              {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-            </button>
+        {needsPassword && <Field>
+          <div className="flex items-center justify-between gap-3">
+            <FieldLabel htmlFor="auth-password">{mode === 'reset-password' ? t('auth.newPasswordLabel') : t('auth.passwordLabel')}</FieldLabel>
+            {mode === 'login' && <Button variant="link" size="sm" className="h-auto p-0 text-[13px] font-medium text-muted-foreground no-underline hover:text-primary hover:no-underline" onClick={() => onNavigate('forgot-password')}>{t('auth.forgot')}</Button>}
           </div>
-        </AuthField>}
+          <PasswordInput id="auth-password" value={password} onChange={setPassword} visible={showPassword} onToggle={() => setShowPassword((value) => !value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder={mode === 'reset-password' ? t('auth.newPasswordPlaceholder') : t('auth.passwordPlaceholder')} disabled={busy} showLabel={t('auth.showPassword')} hideLabel={t('auth.hidePassword')} />
+        </Field>}
 
-        {needsConfirmPassword && <AuthField icon={<Lock size={15} />} id="auth-confirm-password" label={t('auth.confirmPasswordLabel')}>
-          <div className="xensi-auth-password">
-            <input id="auth-confirm-password" type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" placeholder={t('auth.confirmPasswordPlaceholder')} disabled={status === 'loading'} required />
-            <button type="button" onClick={() => setShowConfirmPassword((value) => !value)} aria-label={showConfirmPassword ? t('auth.hidePassword') : t('auth.showPassword')} disabled={status === 'loading'}>
-              {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-            </button>
-          </div>
-          {passwordsMismatch && <p className="xensi-auth-inline unavailable" role="alert">{t('auth.error.passwordMismatch')}</p>}
-        </AuthField>}
+        {needsConfirmPassword && <Field>
+          <FieldLabel htmlFor="auth-confirm-password">{t('auth.confirmPasswordLabel')}</FieldLabel>
+          <PasswordInput id="auth-confirm-password" value={confirmPassword} onChange={setConfirmPassword} visible={showConfirmPassword} onToggle={() => setShowConfirmPassword((value) => !value)} autoComplete="new-password" placeholder={t('auth.confirmPasswordPlaceholder')} disabled={busy} invalid={passwordsMismatch} showLabel={t('auth.showPassword')} hideLabel={t('auth.hidePassword')} />
+          {passwordsMismatch && <FieldError className="xensi-auth-inline unavailable">{t('auth.error.passwordMismatch')}</FieldError>}
+        </Field>}
+      </FieldGroup>
 
-        {mode === 'login' && <div className="xensi-auth-options">
-          <button type="button" onClick={() => onNavigate('forgot-password')}>{t('auth.forgot')}</button>
-        </div>}
+      {statusMessage}
 
-        {message && <p className={`xensi-auth-message ${status}`} role={status === 'error' ? 'alert' : 'status'} aria-live="polite">{message}</p>}
+      <div className="grid gap-4">
+        <Button type="submit" size="lg" className="xensi-auth-submit w-full" disabled={busy} aria-busy={busy}>
+          {busy ? t(copy.loading) : t(copy.action)}
+          {mode === 'forgot-password' ? <RotateCcw /> : <ArrowRight />}
+        </Button>
+        <FieldSeparator />
+        <Button variant="outline" size="lg" className="xensi-auth-guest w-full" onClick={onAuthenticated}>{t('auth.continueGuest')}</Button>
+      </div>
 
-        <button className="xensi-auth-submit" type="submit" disabled={status === 'loading'}>
-          {status === 'loading' ? t(copy.loading) : t(copy.action)}
-          {mode === 'forgot-password' ? <RotateCcw size={16} /> : <ArrowRight size={16} />}
-        </button>
-
-        <button className="xensi-auth-guest" type="button" onClick={onAuthenticated}>{t('auth.continueGuest')}</button>
-
-        {mode === 'login'
-          ? <p className="xensi-auth-switch">{t('auth.loginSwitch')} <button type="button" onClick={() => onNavigate('register')}>{t('auth.createAccount')}</button></p>
-          : <p className="xensi-auth-switch">{t('auth.registerSwitch')} <button type="button" onClick={() => onNavigate('login')}>{t('auth.signIn')}</button></p>}
+      <p className="xensi-auth-switch m-0 text-center text-sm text-muted-foreground">
+        {mode === 'login' ? t('auth.loginSwitch') : t('auth.registerSwitch')}{' '}
+        <Button variant="link" className="h-auto p-0 text-sm" onClick={() => onNavigate(mode === 'login' ? 'register' : 'login')}>{mode === 'login' ? t('auth.createAccount') : t('auth.signIn')}</Button>
+      </p>
     </form>
   </AuthLayout>
 }

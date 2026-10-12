@@ -37,12 +37,14 @@ test.describe('XENSI auth routes', () => {
 
     await page.evaluate(async () => { await document.fonts.ready })
     await expect.poll(() => page.locator('.xensi-auth-shell').evaluate(element => element.getAnimations().filter(animation => animation.playState === 'running').length)).toBe(0)
+    // Split layout: the form is centered inside its own column (the art panel takes the other half from lg up).
     const card = await page.locator('.xensi-auth-card').boundingBox()
-    const viewport = page.viewportSize()
+    const column = await page.locator('.xensi-auth-shell').boundingBox()
     expect(card).not.toBeNull()
-    expect(viewport).not.toBeNull()
-    expect(Math.abs((card!.x + card!.width / 2) - viewport!.width / 2)).toBeLessThanOrEqual(2)
-    expect(Math.abs((card!.y + card!.height / 2) - viewport!.height / 2)).toBeLessThanOrEqual(2)
+    expect(column).not.toBeNull()
+    expect(Math.abs((card!.x + card!.width / 2) - (column!.x + column!.width / 2))).toBeLessThanOrEqual(2)
+    expect(card!.y).toBeGreaterThan(column!.y)
+    expect(card!.y + card!.height).toBeLessThanOrEqual(column!.y + column!.height)
 
     const overflow = await page.evaluate(() => ({
       viewportHeight: document.documentElement.clientHeight,

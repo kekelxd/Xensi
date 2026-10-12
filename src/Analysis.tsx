@@ -1,8 +1,7 @@
 import { XensiPageHeader } from './design/Primitives'
 import { AnimatedMetric } from './design/AnimatedMetric'
-import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { RefreshCw, X, Play, Trash2 } from 'lucide-react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Info, RefreshCw, Play, Trash2, TriangleAlert } from 'lucide-react'
 import { useI18n } from './i18n'
 import type { AnalysisSection } from './AppNavigation'
 import { CalibrationAnalysis } from './CalibrationAnalysis'
@@ -17,6 +16,23 @@ import { ANALYSIS_COPY } from './analysisCopy'
 import { AnalysisChart } from './AnalysisChart'
 import { AnalysisSessionContext } from './AnalysisSessionContext'
 import { useSessionLabels } from './useSessionLabels'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+function FilterSelect({ label, value, onValueChange, className, children }: { label: string; value: string | undefined; onValueChange: (value: string) => void; className?: string; children: React.ReactNode }) {
+  const id = useId()
+  return <div className={`grid min-w-[160px] gap-2 max-sm:flex-[1_1_100%] ${className ?? ''}`}>
+    <Label htmlFor={id}>{label}</Label>
+    <Select value={value ?? ''} onValueChange={onValueChange}>
+      <SelectTrigger id={id} aria-label={label} size="sm"><SelectValue placeholder="—" /></SelectTrigger>
+      <SelectContent>{children}</SelectContent>
+    </Select>
+  </div>
+}
+const Option = ({ value, children }: { value: string; children: React.ReactNode }) => <SelectItem value={value} data-value={value}>{children}</SelectItem>
 
 type Props = { section: AnalysisSection; onStartTraining?: () => void }
 export function Analysis(props: Props) {
@@ -63,17 +79,17 @@ function AnalysisDashboard({ onStartTraining }: Props) {
   const kicker = locale === 'en' ? 'Analysis · real sessions only' : locale === 'es' ? 'Análisis · solo sesiones reales' : 'Análise · só sessões reais'
   const heroValue = data && metric ? aggregateValue(data.current, metric) : null
   return <section className="analysis-workspace analysis-dashboard analysis-v1 xb-page xb-analysis">
-    <XensiPageHeader kicker={kicker} title={copy.title} description={copy.subtitle} actions={<button className="xb-icon-btn" type="button" title={copy.refresh} aria-label={copy.refresh} onClick={refresh}><RefreshCw size={18}/></button>} />
+    <XensiPageHeader kicker={kicker} title={copy.title} description={copy.subtitle} actions={<Button variant="outline" size="icon" title={copy.refresh} aria-label={copy.refresh} onClick={refresh}><RefreshCw /></Button>} />
     <div className="analysis-v1-filters xb-control-strip">
-      <label>{copy.period}<select value={period} onChange={e=>setPeriod(e.target.value as AnalysisPeriod)}>{(['7d','30d','90d','all'] as const).map(p=><option key={p} value={p}>{copy[p]}</option>)}</select></label>
-      <label>{copy.exercise}<select value={exercise} onChange={e=>{const v=e.target.value as typeof exercise;setExercise(v);setVariant(null);setMetricKey(v==='all'?null:SESSION_REGISTRY[v].primaryMetric)}}>
-        <option value="all">{copy.allExercises}</option>{options.map(s=><option key={s.exerciseId} value={s.exerciseId}>{labels.exerciseName(s)}</option>)}{exercise!=='all'&&!options.some(s=>s.exerciseId===exercise)&&<option value={exercise}>{exercise}</option>}</select></label>
-      {exercise!=='all'&&<><label className="av1-configuration">{copy.configuration}<select value={chosenVariant??''} onChange={e=>setVariant(e.target.value||null)}>
-        {!chosenVariant&&<option value="">—</option>}{data?.variants.filter(v=>v.session.exerciseId===exercise).map(v=><option key={variantKey(v.session)} value={variantKey(v.session)}>{labels.configuration(v.session)}</option>)}</select></label>
-        <label>{copy.metric}<select value={metric?.key??''} onChange={e=>setMetricKey(e.target.value as AnalysisMetricKey)}>{metrics.map(m=><option key={m.key} value={m.key}>{t(m.label)}</option>)}</select></label></>}
+      <FilterSelect label={copy.period} value={period} onValueChange={v=>setPeriod(v as AnalysisPeriod)}>{(['7d','30d','90d','all'] as const).map(p=><Option key={p} value={p}>{copy[p]}</Option>)}</FilterSelect>
+      <FilterSelect label={copy.exercise} value={exercise} onValueChange={v=>{const next=v as typeof exercise;setExercise(next);setVariant(null);setMetricKey(next==='all'?null:SESSION_REGISTRY[next].primaryMetric)}}>
+        <Option value="all">{copy.allExercises}</Option>{options.map(s=><Option key={s.exerciseId} value={s.exerciseId}>{labels.exerciseName(s)}</Option>)}{exercise!=='all'&&!options.some(s=>s.exerciseId===exercise)&&<Option value={exercise}>{exercise}</Option>}</FilterSelect>
+      {exercise!=='all'&&<><FilterSelect className="av1-configuration" label={copy.configuration} value={chosenVariant??undefined} onValueChange={v=>setVariant(v||null)}>
+        {data?.variants.filter(v=>v.session.exerciseId===exercise).map(v=><Option key={variantKey(v.session)} value={variantKey(v.session)}>{labels.configuration(v.session)}</Option>)}</FilterSelect>
+        <FilterSelect label={copy.metric} value={metric?.key} onValueChange={v=>setMetricKey(v as AnalysisMetricKey)}>{metrics.map(m=><Option key={m.key} value={m.key}>{t(m.label)}</Option>)}</FilterSelect></>}
     </div>
     {state.status==='loading'?<p className="av1-state xb-state" role="status">{copy.loading}</p>:state.status==='error'?<p className="av1-state xb-state" role="alert">{copy.error}</p>:data&&<>
-      {!data.total?<div className="av1-empty xb-empty"><span className="xb-empty-mark" aria-hidden="true">00</span><h2>{copy.empty}</h2><p>{copy.emptyText}</p>{onStartTraining&&<button className="xb-btn xb-btn-primary" onClick={onStartTraining}><Play size={15}/>{copy.train}</button>}</div>:<>
+      {!data.total?<div className="av1-empty xb-empty"><span className="xb-empty-mark" aria-hidden="true">00</span><h2>{copy.empty}</h2><p>{copy.emptyText}</p>{onStartTraining&&<Button onClick={onStartTraining}><Play />{copy.train}</Button>}</div>:<>
       <div className="analysis-v1-summary xb-scoreboard" aria-label={copy.title}>
         {metric&&<><div className="is-lead"><span>{copy[metric.aggregation]}</span><strong><AnimatedMetric value={heroValue} format={value => formatAnalysisValue(value,metric,locale)} /></strong><small>{t(metric.label)}</small></div>
         <div><span>{copy.primaryPB}</span><strong><AnimatedMetric value={pb?.value ?? null} format={value => primary ? formatAnalysisValue(value,primary,locale) : '—'} /></strong><small>{!pb?copy.noPB:primary?t(primary.label):''}</small></div>
@@ -97,22 +113,19 @@ function AnalysisDashboard({ onStartTraining }: Props) {
         {data.recent.map((s,index)=>{const m=getAnalysisMetrics(s.exerciseId)[0];return <button key={s.id} type="button" onClick={()=>openDetails(s)}><i aria-hidden="true">{String(index+1).padStart(2,'0')}</i><span><b>{labels.exerciseName(s)}</b><small>{s.config!.spatial ? `${s.config!.spatial.roundCount} ${t('spatial.rounds')} · HRTF` : `${s.config!.durationSeconds}s · ${t(`difficulty.${s.config!.difficulty}`)}`}</small></span><strong>{formatAnalysisValue(getMetricValue(s,m),m,locale)}</strong><time dateTime={s.finishedAt}>{labels.date(s)}</time></button>})}
       </div></section>
     </>}
-    <MotionDialog open={Boolean(shownDetails)} className="modal-backdrop" onClick={closeDetails} onKeyDown={e=>{if(e.key==='Escape'){if(confirmRemoval)cancelRemoval();else closeDetails()}}}>{shownDetails && (<MotionDialogPanel className="modal av1-details xb-modal" role="dialog" aria-modal="true" aria-label={copy.details} onClick={e=>e.stopPropagation()} onKeyDown={e=>{
-        if (e.key !== 'Tab') return
-        const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')]
-        const first = buttons[0], last = buttons[buttons.length - 1]
-        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus() }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus() }
-      }}>
-        <button autoFocus className="modal-close xb-modal-close" title={t('common.close')} aria-label={t('common.close')} onClick={closeDetails}><X size={20}/></button>
-        <h2>{labels.exerciseName(shownDetails)}</h2><p>{labels.date(shownDetails)} · {t('sessions.completed')}</p>
+    <Dialog open={Boolean(shownDetails)} onOpenChange={open=>{if(!open)closeDetails()}}>
+      {shownDetails && <DialogContent closeLabel={t('common.close')} className="av1-details max-w-[640px]" aria-label={copy.details} aria-labelledby={undefined}
+        onEscapeKeyDown={e=>{if(confirmRemoval){e.preventDefault();cancelRemoval()}}} onCloseAutoFocus={e=>e.preventDefault()}>
+        <DialogHeader><DialogTitle>{labels.exerciseName(shownDetails)}</DialogTitle><DialogDescription>{labels.date(shownDetails)} · {t('sessions.completed')}</DialogDescription></DialogHeader>
         <dl className="analysis-v1-context">{getAnalysisMetrics(shownDetails.exerciseId).map(m=><div key={m.key}><dt>{t(m.label)}</dt><dd>{formatAnalysisValue(getMetricValue(shownDetails,m),m,locale)}</dd></div>)}</dl>
         <AnalysisSessionContext session={shownDetails}/>
-        {deleteError&&<p role="alert">{copy.deleteError}</p>}
-        {confirmRemoval ? <div className="xensi-inline-confirmation" role="alertdialog" aria-labelledby="analysis-removal-title" aria-describedby="analysis-removal-description">
-          <h3 id="analysis-removal-title">{copy.deleteSession}</h3><p id="analysis-removal-description">{copy.confirmDelete}</p>
-          <div><button autoFocus className="secondary-button" disabled={deleting} onClick={cancelRemoval}>{t('common.cancel')}</button><button className="primary-button" disabled={deleting} onClick={()=>void removeSession()}><Trash2 size={16}/>{copy.deleteSession}</button></div>
-        </div> : <button ref={removalTrigger} className="secondary-button" disabled={deleting} onClick={()=>setConfirmRemoval(true)}><Trash2 size={16}/>{copy.deleteSession}</button>}
-      </MotionDialogPanel>)}</MotionDialog>
+        {deleteError&&<Alert variant="destructive" role="alert"><Info /><span className="col-start-2">{copy.deleteError}</span></Alert>}
+        {confirmRemoval ? <Alert variant="destructive" role="alertdialog" aria-labelledby="analysis-removal-title" aria-describedby="analysis-removal-description">
+          <TriangleAlert />
+          <AlertTitle id="analysis-removal-title">{copy.deleteSession}</AlertTitle><AlertDescription id="analysis-removal-description">{copy.confirmDelete}</AlertDescription>
+          <div className="col-start-2 mt-3 flex flex-wrap gap-2.5"><Button variant="outline" autoFocus disabled={deleting} onClick={cancelRemoval}>{t('common.cancel')}</Button><Button variant="destructive" disabled={deleting} onClick={()=>void removeSession()}><Trash2 />{copy.deleteSession}</Button></div>
+        </Alert> : <DialogFooter><Button ref={removalTrigger} variant="outline" disabled={deleting} onClick={()=>setConfirmRemoval(true)}><Trash2 />{copy.deleteSession}</Button></DialogFooter>}
+      </DialogContent>}
+    </Dialog>
   </section>
 }

@@ -8880,9 +8880,7 @@ body:has(.home-reboot) {
 .analysis-v1 > header h1 { font-size: 32px; line-height: 1.2; letter-spacing: 0; }
 .analysis-v1 > header p { font-size: 14px; }
 .analysis-v1-filters { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; padding-bottom: 24px; border-bottom: 1px solid #272e34; }
-.analysis-v1-filters label { display: grid; gap: 8px; color: #a9b2b8; font-size: 12px; min-width: 130px; max-width: 100%; }
 .analysis-v1-filters .av1-configuration { flex: 1; min-width: 240px; }
-.analysis-v1-filters select { width: 100%; min-width: 0; height: 38px; border: 1px solid #394149; background: #11171c; border-radius: 4px; color: #e6eaed; padding: 0 10px; font-size: 13px; }
 .analysis-v1-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 24px; padding: 24px 0; }
 .analysis-v1-summary > div { display: grid; align-content: start; gap: 8px; }
 .analysis-v1-summary span,.analysis-v1-summary small { color: #a9b2b8; font-size: 12px; }
@@ -8921,11 +8919,9 @@ body:has(.home-reboot) {
 .analysis-v1-recents > button { display: grid; grid-template-columns: minmax(160px,1fr) 140px minmax(180px,1fr); align-items: center; gap: 16px; padding: 14px 8px; border: 0; border-bottom: 1px solid #232b31; background: none; text-align: left; color: #e6eaed; cursor: pointer; }
 .analysis-v1-recents > button:hover,.analysis-v1-recents > button:focus-visible { background: #172028; }
 .analysis-v1-recents span { display: grid; gap: 6px; }.analysis-v1-recents small,.analysis-v1-recents time { color: #a9b2b8; font-size: 12px; }
-.av1-details.modal { width: min(640px,calc(100% - 32px)); max-height: 85dvh; overflow-y: auto; border-radius: 8px; }
-.av1-details > .secondary-button { margin-top: 24px; }
 .av1-tooltip.analysis-chart-tooltip { animation: none; }
 @media(max-width:760px) {
-  .analysis-v1-filters label { flex: 1; min-width: 140px; }.analysis-v1-filters .av1-configuration { min-width: 100%; }
+.analysis-v1-filters .av1-configuration { min-width: 100%; }
   .analysis-v1-summary { grid-template-columns: 1fr 1fr; gap: 24px 16px; }
   .av1-period > div { grid-template-columns: 1fr 1fr; gap: 20px; }.av1-period > div > span:last-child { grid-column: 1/-1; }
   .analysis-v1 .analysis-pb-list > section { grid-template-columns: 1fr 1fr; }

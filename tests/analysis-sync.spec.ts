@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { pickSelect } from './fixtures/radixSelect'
 import { login, mockCloud, userA } from './fixtures/accountCloud'
 import { readyHistory, seedSession } from './fixtures/sessionHistory'
 
@@ -15,7 +16,7 @@ test('queries full account statistics beyond the Sessions cache and filters real
   page.on('request',r=>{if(r.url().endsWith('/xensi_analysis_v1'))requests.push(r.postDataJSON())})
   await login(page);await readyHistory(page)
   await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Análise', exact: true }).click()
-  await page.getByRole('combobox',{name:'Exercício',exact:true}).selectOption('flick')
+  await pickSelect(page,'Exercício','flick')
   await expect(page.locator('.analysis-v1-summary')).toContainText('351')
   await expect(page.locator('.av1-point')).toHaveCount(300)
   await expect(page.locator('.av1-note')).toContainText('estatísticas incluem todo o período')

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { pickSelect } from './fixtures/radixSelect'
 import { login, mockCloud, userA } from './fixtures/accountCloud'
 import { readyHistory, readSessions } from './fixtures/sessionHistory'
 
@@ -24,7 +25,7 @@ test.describe('Spatial Sessions account transport and Analysis',()=>{
     expect(cloud.historyCalls.every(call=>call.owner===userA)).toBe(true)
     await page.reload();await readyHistory(page)
     await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Análise', exact: true }).click()
-    await page.getByRole('combobox',{name:'Exercício',exact:true}).selectOption('spatial_hunt')
+    await pickSelect(page,'Exercício','spatial_hunt')
     await expect(page.locator('.analysis-pb-panel strong')).toHaveText('0,0°')
     await expect(page.locator('.analysis-v1-recents > button')).toHaveCount(4)
     await expect(page.locator('.analysis-v1-recents')).toContainText('9,8°')

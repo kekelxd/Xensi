@@ -5,6 +5,8 @@ self.addEventListener('activate', event => event.waitUntil(self.clients.claim())
 self.addEventListener('push', event => {
   let data = {}
   try { data = event.data ? event.data.json() : {} } catch { /* ignore malformed payload */ }
+  // Open tabs play the in-app alert sound.
+  self.clients.matchAll({ type: 'window' }).then(list => list.forEach(c => c.postMessage({ type: 'squad-push', kind: data.tag })))
   event.waitUntil(self.registration.showNotification(data.title || 'XENSI Squad Finder', {
     body: data.body || '',
     tag: data.tag || 'squad',

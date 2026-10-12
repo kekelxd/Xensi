@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 import { compatible, platforms, ranksFor, regions, registry, validDiscord, type SquadGame, type SquadPlatform } from './registry'
 import { errorCopy, squadCopy, statusCopy, valueCopy } from './copy'
+import { armAlertSound, playAlert } from './sound'
 import { disablePush, enablePush, pushState, type PushState } from './push'
 import { squadRpc, type Access, type Block, type Contact, type Moderation, type Notification, type Request, type Room } from './service'
 import './squad.css'
@@ -159,6 +160,10 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
         }
         if (area === 'moderation' && access.moderator) next.moderation = await rpc<Moderation>('mod_list', { status: reportStatus, offset: page * pageSize })
         if (!active || version !== generation.current || readAuthSessionState().userId !== uid) return
+        const known = seen.current
+        const fresh = next.notifications.filter(n => (n.kind === 'new_request' || n.kind === 'request_accepted') && !known.has(n.id))
+        if (known.size && fresh.length) playAlert(fresh.some(n => n.kind === 'request_accepted') ? 'approved' : 'request')
+        next.notifications.forEach(n => known.add(n.id))
         setSnapshot(next); setError('')
         if (!access.eligible) { setContact(null); if (area !== 'moderation') setDialog(null) }
         if (contactRef.current && !next.requests.some(q => q.room_id === contactRef.current?.roomId && q.status === 'accepted' && q.room.status === 'reserved')) setContact(null)
@@ -182,7 +187,15 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
     document.addEventListener('visibilitychange', clear)
     return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', clear) }
   }, [contact])
+  const seen = useRef(new Set<string>())
   const [push, setPush] = useState<PushState>('unsupported')
+  useEffect(() => {
+    const disarm = armAlertSound()
+    const onMessage = (e: MessageEvent) => { if (e.data?.type === 'squad-push') playAlert(e.data.kind === 'request_accepted' ? 'approved' : 'request') }
+    navigator.serviceWorker?.addEventListener('message', onMessage)
+    return () => { disarm(); navigator.serviceWorker?.removeEventListener('message', onMessage) }
+  }, [])
+  useEffect(() => { seen.current = new Set() }, [uid])
   useEffect(() => { if (uid) void pushState().then(setPush).catch(() => setPush('unsupported')) }, [uid])
   const togglePush = async () => {
     try { setPush(push === 'on' ? await disablePush() : await enablePush(lang)) } catch (e) { setError(errorMessage(e)) }

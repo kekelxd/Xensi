@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { Bell, BellOff } from 'lucide-react'
 import { MotionDropdown } from '../design/MotionSurfaces'
 import type { Locale } from '../i18n'
-import { disablePush, enablePush, pushState, type PushState } from './push'
+import { disablePush, enablePush, pushBlocker, pushState, type PushState } from './push'
 import { withBasePath } from '../routes'
 import { valueCopy } from './copy'
 import { squadRpc, type Notification } from './service'
@@ -17,8 +17,8 @@ const hints: Record<string, [string, string]> = {
   request_accepted: ['Abra Minhas Solicitações para ver o Discord do anfitrião.', 'Open My Requests to see the host’s Discord.'],
 }
 const ui = {
-  pt: { label: 'Notificações do Squad', empty: 'Sem notificações do Squad.', push: 'Ativar avisos no navegador', pushOn: 'Avisos no navegador: ligados', denied: 'Avisos bloqueados no navegador. Libere nas configurações do site.', failed: 'Não foi possível ativar os avisos neste navegador.', dismissed: 'Permissão não concedida. Tente novamente e clique em Permitir.', open: 'Abrir Squad Finder' },
-  en: { label: 'Squad notifications', empty: 'No Squad notifications.', push: 'Enable browser alerts', pushOn: 'Browser alerts: on', denied: 'Alerts are blocked in your browser. Allow them in the site settings.', failed: 'Could not enable alerts in this browser.', dismissed: 'Permission not granted. Try again and click Allow.', open: 'Open Squad Finder' },
+  pt: { label: 'Notificações do Squad', empty: 'Sem notificações do Squad.', push: 'Ativar avisos no navegador', pushOn: 'Avisos no navegador: ligados', unsupported: 'Este navegador não permite avisos push. No iPhone, adicione o site à tela inicial.', denied: 'Avisos bloqueados no navegador. Libere nas configurações do site.', failed: 'Não foi possível ativar os avisos neste navegador.', dismissed: 'Permissão não concedida. Tente novamente e clique em Permitir.', open: 'Abrir Squad Finder' },
+  en: { label: 'Squad notifications', empty: 'No Squad notifications.', push: 'Enable browser alerts', pushOn: 'Browser alerts: on', unsupported: 'This browser does not allow push alerts. On iPhone, add the site to the Home Screen.', denied: 'Alerts are blocked in your browser. Allow them in the site settings.', failed: 'Could not enable alerts in this browser.', dismissed: 'Permission not granted. Try again and click Allow.', open: 'Open Squad Finder' },
 }
 
 export function SquadBell({ userId, locale, open, disabled, triggerRef, onToggle, onOpenSquad }: Props) {
@@ -75,7 +75,7 @@ export function SquadBell({ userId, locale, open, disabled, triggerRef, onToggle
       {!items.length && <p className="xensi-nav-bell-empty">{text.empty}</p>}
       {items.map(n => <button key={n.id} type="button" role="menuitem" onClick={() => go(n)}><span><b>{valueCopy[n.kind]?.[idx] ?? n.kind}</b>{hints[n.kind] && <small>{hints[n.kind][idx]}</small>}<small>{fmt(n.created_at)}</small></span></button>)}
       <i className="xensi-nav-dropdown-divider" aria-hidden="true" />
-      {push === 'denied' ? <p className="xensi-nav-bell-empty"><BellOff size={14} /> {text.denied}</p> : push !== 'unsupported' && <button type="button" role="menuitem" onClick={() => void togglePush()}><span><b>{push === 'on' ? text.pushOn : text.push}</b></span></button>}
+      {push === 'denied' ? <p className="xensi-nav-bell-empty"><BellOff size={14} /> {text.denied}</p> : push === 'unsupported' ? <p className="xensi-nav-bell-empty">{text.unsupported} <small>({pushBlocker() ?? 'unknown'})</small></p> : <button type="button" role="menuitem" onClick={() => void togglePush()}><span><b>{push === 'on' ? text.pushOn : text.push}</b></span></button>}
       {note && <p className="xensi-nav-bell-empty" role="status">{note}</p>}
       <button type="button" role="menuitem" onClick={onOpenSquad}><span><b>{text.open}</b></span></button>
     </MotionDropdown>

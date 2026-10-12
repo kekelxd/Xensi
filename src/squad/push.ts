@@ -4,7 +4,10 @@ import { withBasePath } from '../routes'
 export type PushState = 'unsupported' | 'denied' | 'off' | 'on'
 
 const vapidKey = () => (import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined)?.trim()
-export const pushSupported = () => typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && !!vapidKey()
+export type PushBlocker = 'no-key' | 'no-service-worker' | 'no-push' | 'no-notification' | 'insecure'
+export const pushBlocker = (): PushBlocker | null =>
+  !vapidKey() ? 'no-key' : !window.isSecureContext ? 'insecure' : !('serviceWorker' in navigator) ? 'no-service-worker' : !('PushManager' in window) ? 'no-push' : !('Notification' in window) ? 'no-notification' : null
+export const pushSupported = () => typeof window !== 'undefined' && pushBlocker() === null
 
 const keyBytes = (b64: string) => {
   const raw = atob(b64.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(b64.length / 4) * 4, '='))

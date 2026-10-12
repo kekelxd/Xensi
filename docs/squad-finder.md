@@ -230,3 +230,19 @@ then explicitly enable the DB flags. Frontend assets alone cannot enable access.
 Deferred product features: multi-slot rooms, chat, voice, Discord OAuth/bots,
 automatic invites, AI matchmaking, reputation, permanent groups, feed/comments,
 uploads and behavior recommendations. None is silently enabled for V1.1.
+
+## Web Push (2026-10-12)
+
+Browser push for `new_request` (host) and `request_accepted` (requester). Payloads
+are generic and never carry Discord; tapping opens `/squad/my-room` or
+`/squad/requests`, where `host_contact` is fetched on demand under the usual rules.
+
+Pieces: `public/sw.js`, `src/squad/push.ts`, migration
+`20261012120000_squad_finder_web_push.sql` (subscriptions table, service-only target RPCs, subscribe/unsubscribe
+RPCs, `pg_net` trigger on `lfg_private.events`), Edge Function `supabase/functions/squad-push`.
+
+Setup (not applied anywhere yet):
+1. `npx web-push generate-vapid-keys`; set `VITE_VAPID_PUBLIC_KEY` in GitHub Actions.
+2. `supabase secrets set VAPID_PUBLIC_KEY=… VAPID_PRIVATE_KEY=… VAPID_SUBJECT=mailto:… PUSH_SHARED_SECRET=…`
+3. `supabase functions deploy squad-push --no-verify-jwt`
+4. Apply the migration, then insert `function_url` and `shared_secret` rows into `lfg_private.push_config`.

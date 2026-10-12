@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { Ban, ChevronLeft, ChevronRight, Copy, DoorOpen, Gamepad2, Inbox, Plus, RefreshCw, Search, ShieldCheck, UsersRound } from 'lucide-react'
+import { Bell, BellOff, Ban, ChevronLeft, ChevronRight, Copy, DoorOpen, Gamepad2, Inbox, Plus, RefreshCw, Search, ShieldCheck, UsersRound } from 'lucide-react'
 import { initializeAuth, readAuthSessionState, type AuthSessionState } from '../authService'
 import { useI18n } from '../i18n'
 import { AvatarArtwork } from '../AvatarArtwork'
@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 import { compatible, platforms, ranksFor, regions, registry, validDiscord, type SquadGame, type SquadPlatform } from './registry'
 import { errorCopy, squadCopy, statusCopy, valueCopy } from './copy'
+import { disablePush, enablePush, pushState, type PushState } from './push'
 import { squadRpc, type Access, type Block, type Contact, type Moderation, type Notification, type Request, type Room } from './service'
 import './squad.css'
 
@@ -181,6 +182,11 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
     document.addEventListener('visibilitychange', clear)
     return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', clear) }
   }, [contact])
+  const [push, setPush] = useState<PushState>('unsupported')
+  useEffect(() => { if (uid) void pushState().then(setPush).catch(() => setPush('unsupported')) }, [uid])
+  const togglePush = async () => {
+    try { setPush(push === 'on' ? await disablePush() : await enablePush(lang)) } catch (e) { setError(errorMessage(e)) }
+  }
   const navigate = (next: Area) => {
     setArea(next); setPage(0); setHostPage(0); setMessage(''); setError(''); setSnapshot(emptySnapshot()); setContact(null)
     window.history.pushState({}, '', areaPath[next])
@@ -242,6 +248,7 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
   const tabIcons = { find: Search, mine: DoorOpen, requests: Inbox, blocks: Ban, moderation: ShieldCheck }
   const tabs: Area[] = a?.moderator ? ['find', 'mine', 'requests', 'blocks', 'moderation'] : ['find', 'mine', 'requests', 'blocks']
   const createButton = <Button disabled={busy || !a?.creation_enabled || a.publication_restricted || snapshot.rooms.some(r => r.status === 'open' || r.status === 'reserved') && area === 'mine'} onClick={() => open('create')}><Plus />{text.create}</Button>
+  const pushButton = push === 'unsupported' ? null : push === 'denied' ? <p className={cn(muted, 'flex items-center gap-1.5 text-xs')}><BellOff className="size-4 shrink-0" aria-hidden="true" />{text.pushDenied}</p> : <Button variant="outline" size="sm" title={text.pushHint} disabled={busy} aria-pressed={push === 'on'} onClick={() => void togglePush()}>{push === 'on' ? <Bell /> : <BellOff />}{push === 'on' ? text.pushOn : text.pushOff}</Button>
   const refreshButton = <Button variant="outline" size="sm" onClick={() => setRefresh(n => n + 1)} disabled={loading || busy}><RefreshCw />{text.retry}</Button>
   const roomGrid = (wide = false) => cn('grid gap-5', wide ? 'grid-cols-[repeat(auto-fill,minmax(min(420px,100%),1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))]')
   const cardBody = 'gap-3.5 p-5 sm:p-6'
@@ -264,10 +271,10 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
             <Card className="gap-2.5 p-6"><h2 className={cn(heading, 'text-xl')}>{text.yourRoom}</h2><p className={muted}>{text.yourRoomHint}</p><div className="mt-auto flex flex-wrap gap-2 pt-1.5">{createButton}<Button variant="outline" onClick={() => navigate('mine')}>{text.manageRoom}</Button></div></Card>
           </div>}
           {area !== 'moderation' && <details className="group px-1"><summary className="cursor-pointer py-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground">{text.notifications} ({snapshot.notifications.length})</summary>{snapshot.notifications.length ? <ul className="m-0 grid gap-1.5 py-2 pl-5 text-sm text-foreground">{snapshot.notifications.map(n => <li key={n.id}>{value(n.kind)} <time dateTime={n.created_at} className="ml-2.5 text-xs text-muted-foreground">{date(n.created_at)}</time></li>)}</ul> : <p className={cn(muted, 'py-2')}>{text.noNotifications}</p>}</details>}
-          {area !== 'find' && <div className="flex items-center justify-between gap-4">{refreshButton}{area === 'mine' && createButton}</div>}
+          {area !== 'find' && <div className="flex flex-wrap items-center justify-between gap-4"><div className="flex flex-wrap items-center gap-2">{refreshButton}{pushButton}</div>{area === 'mine' && createButton}</div>}
           {(area === 'find' || area === 'mine') && (!a?.creation_enabled || a.publication_restricted) && <p className={muted}>{text.creationOff}</p>}
           {area === 'find' && <Card className="gap-4 p-5 sm:p-6" aria-label={text.filtersTitle} role="region">
-            <div className="flex items-center justify-between gap-3"><h2 className={cn(heading, 'text-lg')}>{text.filtersTitle}</h2>{refreshButton}</div>
+            <div className="flex items-center justify-between gap-3"><h2 className={cn(heading, 'text-lg')}>{text.filtersTitle}</h2><div className="flex flex-wrap items-center gap-2">{refreshButton}{pushButton}</div></div>
             <GameCards label={text.game} value={filters.game} allLabel={text.allGames} allMeta={`${games.length} ${text.gamesCount}`} onValueChange={game => setFilter({ game, platform: '', mode: '' })} />
             <div className="grid gap-3.5 sm:grid-cols-3">
               <SelectField label={text.platform} value={filters.platform} allLabel={text.all} format={format} options={filters.game in registry ? registry[filters.game as SquadGame].platforms : Object.keys(platforms)} onValueChange={platform => setFilter({ platform })} />

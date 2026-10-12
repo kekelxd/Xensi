@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Activity, MonitorUp, Play, RotateCcw, TriangleAlert } from 'lucide-react'
+import { Activity, ChevronDown, MonitorUp, Play, RotateCcw, TriangleAlert } from 'lucide-react'
 import { analyzeRefreshIntervals, type RefreshRateStats } from './refreshRateMetrics'
 import { useI18n } from './i18n'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 const REFRESH_WARMUP_MS = 750
 const REFRESH_SAMPLE_MS = 4000
@@ -184,38 +189,47 @@ export function RefreshRateTest() {
 
   return <section className="diagnostic-tool-workspace refresh-workspace">
     <header className="diagnostic-tool-heading">
-      <div className="panel-label"><MonitorUp size={15} /> {t('refresh.diagnostics')}</div>
+      <Badge variant="outline" className="mx-auto"><MonitorUp /> {t('refresh.diagnostics')}</Badge>
       <h1>{t('refresh.title')}</h1>
       <p>{t('refresh.subtitle')}</p>
     </header>
 
     <div className={`refresh-stage ${status}`} aria-live="polite">
       <div className="refresh-orbit" aria-hidden="true"><i /><i /><i /></div>
-      {status === 'invalid' ? <div className="diagnostic-invalid"><TriangleAlert size={24} /><strong>{t('refresh.invalidTitle')}</strong><p>{invalidMessage}</p></div> : <>
+      {status === 'invalid' ? <Alert variant="warning" role="status" className="max-w-[520px] text-left"><TriangleAlert /><AlertTitle>{t('refresh.invalidTitle')}</AlertTitle><AlertDescription>{invalidMessage}</AlertDescription></Alert> : <>
         <span>{status === 'running' ? warming ? t('refresh.warming') : t('refresh.measuring') : status === 'done' ? t('refresh.complete') : t('refresh.ready')}</span>
         <strong>{result ? result.observedHz.toLocaleString(localeTag, { maximumFractionDigits: 1 }) : '--'}<small>Hz</small></strong>
         <p>{result ? t('refresh.observedSentence', { hz: result.observedHz.toLocaleString(localeTag, { maximumFractionDigits: 1 }) }) : t('refresh.keepActive')}</p>
       </>}
       <div className="diagnostic-progress" aria-label={t('refresh.progress')}><i style={{ width: `${progress}%` }} /></div>
-      <button type="button" className="primary-button" onClick={start} disabled={status === 'running'}>{status === 'done' || status === 'invalid' ? <RotateCcw size={16} /> : <Play size={16} />}{status === 'done' || status === 'invalid' ? t('refresh.again') : t('refresh.start')}</button>
+      <Button onClick={start} disabled={status === 'running'}>{status === 'done' || status === 'invalid' ? <RotateCcw /> : <Play />}{status === 'done' || status === 'invalid' ? t('refresh.again') : t('refresh.start')}</Button>
     </div>
 
-    <div className="diagnostic-metrics-grid refresh-metrics">
-      <div><span>{t('refresh.observed')}</span><strong>{result ? `${result.observedHz.toFixed(1)} Hz` : '--'}</strong></div>
-      <div><span>{t('refresh.frameInterval')}</span><strong>{result ? `${result.frameIntervalMs.toFixed(2)} ms` : '--'}</strong></div>
-      <div><span>{t('refresh.stability')}</span><strong>{result ? `${result.stability.toFixed(1)}%` : '--'}<small>{result ? classification : ''}</small></strong></div>
-      <div><span>{t('refresh.delayed')}</span><strong>{result ? result.delayedFrames : '--'}</strong></div>
-    </div>
+    <Card className="refresh-metrics mx-auto mt-3.5 grid w-full max-w-[1180px] grid-cols-2 gap-px overflow-hidden bg-border p-0 lg:grid-cols-4">
+      {([
+        [t('refresh.observed'), result ? `${result.observedHz.toFixed(1)} Hz` : '--', ''],
+        [t('refresh.frameInterval'), result ? `${result.frameIntervalMs.toFixed(2)} ms` : '--', ''],
+        [t('refresh.stability'), result ? `${result.stability.toFixed(1)}%` : '--', result ? classification : ''],
+        [t('refresh.delayed'), result ? String(result.delayedFrames) : '--', ''],
+      ] as const).map(([label, value, hint]) => <div key={label} className="grid content-start gap-2.5 bg-card px-5 py-5">
+        <span className="text-xs font-medium leading-none text-muted-foreground">{label}</span>
+        <strong className={cn('font-mono text-2xl font-medium leading-none tabular-nums', result ? 'text-success' : 'text-foreground')}>{value}</strong>
+        {hint && <small className="text-xs text-muted-foreground">{hint}</small>}
+      </div>)}
+    </Card>
 
     {result && <MotionComparison observedHz={result.observedHz} />}
 
-    <details className="diagnostic-details">
-      <summary><Activity size={15} /> {t('refresh.details')}</summary>
-      <div><span>{t('refresh.mean')}</span><b>{result ? `${result.meanIntervalMs.toFixed(3)} ms` : '--'}</b></div>
-      <div><span>{t('refresh.p95')}</span><b>{result ? `${result.p95IntervalMs.toFixed(3)} ms` : '--'}</b></div>
-      <div><span>{t('refresh.samples')}</span><b>{result?.samples ?? '--'}</b></div>
-      <div><span>{t('refresh.outliers')}</span><b>{result?.outliers ?? '--'}</b></div>
-    </details>
+    <Card className="mx-auto mt-3 w-full max-w-[1180px] p-0">
+      <details className="group/details">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 font-heading text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden"><Activity size={15} className="text-muted-foreground" /> {t('refresh.details')}<ChevronDown size={16} className="ml-auto text-muted-foreground transition-transform group-open/details:rotate-180" /></summary>
+        <dl className="m-0 grid px-5 pb-3">
+          {([[t('refresh.mean'), result ? `${result.meanIntervalMs.toFixed(3)} ms` : '--'], [t('refresh.p95'), result ? `${result.p95IntervalMs.toFixed(3)} ms` : '--'], [t('refresh.samples'), result?.samples ?? '--'], [t('refresh.outliers'), result?.outliers ?? '--']] as const).map(([term, detail]) => <div key={term} className="flex items-baseline justify-between gap-4 border-0 border-t border-solid border-border py-2.5">
+            <dt className="text-xs font-medium text-muted-foreground">{term}</dt><dd className="m-0 font-mono text-[13px] tabular-nums text-foreground">{detail}</dd>
+          </div>)}
+        </dl>
+      </details>
+    </Card>
     <p className="diagnostic-disclaimer">{t('refresh.disclaimer')}</p>
   </section>
 }

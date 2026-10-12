@@ -1,6 +1,5 @@
-import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
-import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { Bug, Lightbulb, MessageSquareText, Send, X } from 'lucide-react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { Bug, Check, Info, Lightbulb, MessageSquareText, Send } from 'lucide-react'
 import {
   createAlphaFeedbackPayload,
   submitAlphaFeedback,
@@ -8,7 +7,14 @@ import {
   type AlphaFeedbackType,
 } from './feedbackService'
 import { useI18n, type Locale } from './i18n'
-import { useDialogFocus } from './useDialogFocus'
+import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+
+const segment = 'font-medium text-muted-foreground aria-pressed:border-primary/60 aria-pressed:bg-primary/10 aria-pressed:text-foreground'
 
 type AlphaFeedbackState = 'idle' | 'sending' | 'success' | 'error'
 
@@ -86,7 +92,6 @@ type AlphaFeedbackModalProps = {
 export function AlphaFeedbackModal({ open, onClose }: AlphaFeedbackModalProps) {
   const { locale } = useI18n()
   const text = feedbackCopy[locale]
-  const dialogRef = useRef<HTMLElement>(null)
   const titleRef = useRef<HTMLInputElement>(null)
   const formId = useId()
   const [type, setType] = useState<AlphaFeedbackType>('bug')
@@ -98,8 +103,6 @@ export function AlphaFeedbackModal({ open, onClose }: AlphaFeedbackModalProps) {
   const sending = state === 'sending'
   const locked = sending || state === 'success'
 
-  useDialogFocus(dialogRef, open)
-
   useEffect(() => {
     if (!open) return
     setType('bug')
@@ -108,7 +111,6 @@ export function AlphaFeedbackModal({ open, onClose }: AlphaFeedbackModalProps) {
     setReproducibility('sometimes')
     setState('idle')
     setStatusMessage('')
-    window.setTimeout(() => titleRef.current?.focus(), 0)
   }, [open])
 
 
@@ -159,38 +161,34 @@ export function AlphaFeedbackModal({ open, onClose }: AlphaFeedbackModalProps) {
     }
   }
 
-  const handleDialogKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.key === 'Escape') closeWhenSafe()
-  }
-
   return (
-    <MotionDialog open={open} className="modal-backdrop alpha-feedback-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeWhenSafe() }}>
-      <MotionDialogPanel
-        ref={dialogRef}
-        className="modal alpha-feedback-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={`${formId}-title`}
-        aria-describedby={`${formId}-description`}
-        onKeyDown={handleDialogKeyDown}
+    <Dialog open={open} onOpenChange={next => { if (!next) closeWhenSafe() }}>
+      <DialogContent
+        closeLabel={text.close}
+        className="alpha-feedback-modal max-w-[520px]"
+        onOpenAutoFocus={(event) => { event.preventDefault(); titleRef.current?.focus() }}
+        onEscapeKeyDown={(event) => { if (sending) event.preventDefault() }}
+        onInteractOutside={(event) => { if (sending) event.preventDefault() }}
       >
-        <button type="button" className="modal-close alpha-feedback-close" onClick={closeWhenSafe} disabled={sending} aria-label={text.close}><X size={17} /></button>
-        <MessageSquareText size={20} className="modal-icon alpha-feedback-icon" />
-        <h2 id={`${formId}-title`}>{text.title}</h2>
-        <p id={`${formId}-description`}>{text.description}</p>
+        <DialogHeader>
+          <MessageSquareText size={20} className="text-primary" aria-hidden="true" />
+          <DialogTitle>{text.title}</DialogTitle>
+          <DialogDescription>{text.description}</DialogDescription>
+        </DialogHeader>
 
-        <form className="alpha-feedback-form" onSubmit={handleSubmit}>
-          <fieldset className="alpha-feedback-group">
-            <legend>{text.type}</legend>
-            <div className="alpha-feedback-segments">
-              <button type="button" onClick={() => updateType('bug')} disabled={locked} aria-pressed={type === 'bug'}><Bug size={14} />{text.bug}</button>
-              <button type="button" onClick={() => updateType('suggestion')} disabled={locked} aria-pressed={type === 'suggestion'}><Lightbulb size={14} />{text.suggestion}</button>
+        <form className="alpha-feedback-form grid gap-5" onSubmit={handleSubmit}>
+          <fieldset className="m-0 grid min-w-0 gap-2.5 border-0 p-0">
+            <legend className="mb-2.5 p-0 text-[13px] font-medium text-muted-foreground">{text.type}</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {([['bug', Bug, text.bug], ['suggestion', Lightbulb, text.suggestion]] as const).map(([value, Icon, label]) => (
+                <Button key={value} type="button" variant="outline" size="sm" className={segment} onClick={() => updateType(value)} disabled={locked} aria-pressed={type === value}><Icon />{label}</Button>
+              ))}
             </div>
           </fieldset>
 
-          <label className="alpha-feedback-field" htmlFor={`${formId}-feedback-title`}>
-            <span>{text.titleLabel}</span>
-            <input
+          <div className="grid gap-2">
+            <Label htmlFor={`${formId}-feedback-title`}>{text.titleLabel}</Label>
+            <Input
               ref={titleRef}
               id={`${formId}-feedback-title`}
               value={title}
@@ -199,11 +197,11 @@ export function AlphaFeedbackModal({ open, onClose }: AlphaFeedbackModalProps) {
               disabled={locked}
               required
             />
-          </label>
+          </div>
 
-          <label className="alpha-feedback-field" htmlFor={`${formId}-feedback-message`}>
-            <span>{text.messageLabel}</span>
-            <textarea
+          <div className="grid gap-2">
+            <Label htmlFor={`${formId}-feedback-message`}>{text.messageLabel}</Label>
+            <Textarea
               id={`${formId}-feedback-message`}
               value={message}
               onChange={(event) => handleTextChange(event.target.value, setMessage)}
@@ -211,31 +209,31 @@ export function AlphaFeedbackModal({ open, onClose }: AlphaFeedbackModalProps) {
               disabled={locked}
               required
             />
-          </label>
+          </div>
 
           {type === 'bug' && (
-            <fieldset className="alpha-feedback-group">
-              <legend>{text.reproducibility}</legend>
-              <div className="alpha-feedback-segments is-compact">
-                <button type="button" onClick={() => setReproducibility('always')} disabled={locked} aria-pressed={reproducibility === 'always'}>{text.always}</button>
-                <button type="button" onClick={() => setReproducibility('sometimes')} disabled={locked} aria-pressed={reproducibility === 'sometimes'}>{text.sometimes}</button>
-                <button type="button" onClick={() => setReproducibility('once')} disabled={locked} aria-pressed={reproducibility === 'once'}>{text.once}</button>
+            <fieldset className="m-0 grid min-w-0 gap-2.5 border-0 p-0">
+              <legend className="mb-2.5 p-0 text-[13px] font-medium text-muted-foreground">{text.reproducibility}</legend>
+              <div className="grid grid-cols-3 gap-2">
+                {([['always', text.always], ['sometimes', text.sometimes], ['once', text.once]] as const).map(([value, label]) => (
+                  <Button key={value} type="button" variant="outline" size="sm" className={segment} onClick={() => setReproducibility(value)} disabled={locked} aria-pressed={reproducibility === value}>{label}</Button>
+                ))}
               </div>
             </fieldset>
           )}
 
           {statusMessage && (
-            <p className={`alpha-feedback-status is-${state}`} role={state === 'error' ? 'alert' : 'status'} aria-live={state === 'error' ? 'assertive' : 'polite'}>
-              {statusMessage}
-            </p>
+            <Alert variant={state === 'error' ? 'destructive' : 'success'} role={state === 'error' ? 'alert' : 'status'} aria-live={state === 'error' ? 'assertive' : 'polite'}>
+              {state === 'error' ? <Info /> : <Check />}<span className="col-start-2">{statusMessage}</span>
+            </Alert>
           )}
 
-          <footer className="alpha-feedback-actions">
-            <button type="button" className="secondary-button" onClick={closeWhenSafe} disabled={sending}>{state === 'success' ? text.close : text.cancel}</button>
-            <button type="submit" className="primary-button" disabled={locked}><Send size={14} />{sending ? text.sending : text.submit}</button>
-          </footer>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeWhenSafe} disabled={sending}>{state === 'success' ? text.close : text.cancel}</Button>
+            <Button type="submit" disabled={locked}><Send />{sending ? text.sending : text.submit}</Button>
+          </DialogFooter>
         </form>
-      </MotionDialogPanel>
-    </MotionDialog>
+      </DialogContent>
+    </Dialog>
   )
 }

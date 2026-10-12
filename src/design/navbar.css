@@ -40,6 +40,25 @@
 .xensi-universal-shell .xensi-primary-nav > .xensi-nav-more-trigger { display: none; }
 .xensi-universal-shell .xensi-nav-secondary > .xensi-nav-compact-utility,.xensi-universal-shell .xensi-nav-home > .xensi-nav-home-icon { display: none; }
 .xensi-nav-secondary > button::after { display: none; }
+/* Desktop scale: the navbar grows with the 16:9 canvas so it keeps proportion with page titles (56px+) and cards. */
+@media (min-width:1201px) {
+  .app-shell.xensi-universal-shell { --nav-height: clamp(76px, 4.6vw, 92px); --nav-radius: 18px; }
+  .xensi-universal-shell .xensi-navigation { padding: 0 clamp(22px, 1.7vw, 32px); gap: clamp(20px, 1.6vw, 32px); }
+  .xensi-universal-shell .xensi-nav-brand { font-size: clamp(24px, 1.6vw, 30px); }
+  .xensi-universal-shell .xensi-primary-nav { gap: clamp(16px, 1.6vw, 34px); }
+  .xensi-universal-shell .xensi-primary-nav > button,.xensi-universal-shell .xensi-nav-secondary > button,.xensi-universal-shell .xensi-nav-secondary > .xensi-nav-menu-group > button { font-size: clamp(13px, .86vw, 16px); }
+  .xensi-universal-shell .xensi-active-indicator { bottom: calc(var(--nav-height) / 2 - 1.35em); }
+  .xensi-universal-shell .xensi-nav-actions { gap: clamp(10px, .8vw, 16px); }
+  .xensi-universal-shell .xensi-nav-utility { width: clamp(40px, 2.4vw, 46px); height: clamp(40px, 2.4vw, 46px); border-radius: 10px; }
+  .xensi-nav-account-slot,.xensi-universal-shell .xensi-auth-skeleton { width: auto; min-width: clamp(140px, 9vw, 176px); }
+  .xensi-universal-shell .xensi-user-trigger { width: auto; gap: 10px; }
+  .xensi-universal-shell .xensi-nav-account-avatar { width: clamp(42px, 2.7vw, 52px); height: clamp(42px, 2.7vw, 52px); border-width: 2px; border-color: color-mix(in srgb, var(--xensi-brand) 55%, #4b4c54); font-size: 20px; }
+  .xensi-universal-shell .xensi-nav-account-avatar .xensi-avatar { width: 100%; height: 100%; }
+  .xensi-universal-shell .xensi-user-trigger.active .xensi-nav-account-avatar { border-color: var(--xensi-brand); }
+  .xensi-universal-shell .xensi-nav-username { max-width: clamp(84px, 7vw, 140px); font-size: clamp(13px, .86vw, 16px); }
+  .xensi-universal-shell .xensi-login-trigger { width: auto; min-width: clamp(132px, 8.4vw, 160px); min-height: clamp(42px, 2.6vw, 48px); padding: 0 16px !important; border-radius: 10px !important; font-size: clamp(13px, .86vw, 15px) !important; }
+  .xensi-universal-shell .xensi-auth-skeleton { height: clamp(42px, 2.6vw, 48px); }
+}
 @media (max-width:1200px) {
   .xensi-universal-shell .xensi-navigation { gap: 16px; padding-inline: 18px; }
   .xensi-universal-shell .xensi-primary-nav { gap: 12px; }

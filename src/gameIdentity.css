@@ -2,59 +2,13 @@
 .xensi-game-badge.badge-sm { width: 34px; height: 34px; font-size: 12px; }
 .xensi-game-badge.badge-lg { width: 56px; height: 56px; font-size: 19px; }
 .xensi-game-badge.is-selected { border-color: #ff5966; color: #ff7b83; }
-.xensi-game-selector { display: grid; gap: 17px; }
-.xensi-game-selector section { display: grid; gap: 9px; }
-.xensi-game-selector h4 { margin: 0; color: #7e8691; font: 600 11px/1.2 var(--font-ui); letter-spacing: var(--tracking-normal); text-transform: var(--case-label); }
-.xensi-game-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
-.xensi-game-picker > button { position: relative; display: flex; gap: 12px; align-items: center; min-height: 82px; padding: 13px; overflow: hidden; text-align: left; border: 1px solid #33343b; border-radius: 9px; background: #101218; color: #c9ccd1; transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease; }
-.xensi-game-picker > button::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(110deg, #ff59660b, transparent); opacity: 0; transition: opacity 160ms ease; pointer-events: none; }
-.xensi-game-picker > button:hover, .xensi-game-picker > button:focus-visible { transform: translateY(-2px); border-color: #8b555c; background: #13151c; }
-.xensi-game-picker > button:hover .xensi-game-badge, .xensi-game-picker > button:focus-visible .xensi-game-badge { transform: translateY(-1px); border-color: #7f555a; }
-.xensi-game-picker > button:hover::before, .xensi-game-picker > button:focus-visible::before, .xensi-game-picker > button[aria-pressed='true']::before { opacity: 1; }
-.xensi-game-picker > button[aria-pressed='true'] { border-color: #ff5966; box-shadow: inset 0 0 0 1px #ff59661a; color: #fff; }
-.xensi-game-picker > button:focus-visible { outline: 2px solid #9ee5ce; outline-offset: 2px; }
-.xensi-game-picker-copy { display: grid; gap: 6px; min-width: 0; padding-right: 8px; }
-.xensi-game-picker-copy strong { font: 600 13px/1.4 var(--font-ui); }
-.xensi-game-picker-copy small { color: #a8afb8; font: 500 12px/1.45 var(--font-ui); }
-.xensi-game-primary { position: absolute; right: 9px; bottom: 8px; color: #8dfbd3; font: 600 11px/1 var(--font-ui); letter-spacing: var(--tracking-normal); text-transform: var(--case-label); }
-.xensi-game-check { position: absolute; top: 8px; right: 8px; color: #ff7b83; opacity: 0; transform: scale(.55); transition: opacity 170ms ease, transform 170ms ease; }
-.xensi-game-picker > button[aria-pressed='true'] .xensi-game-check { opacity: 1; transform: scale(1); }
-.xensi-game-picker.is-compact { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.xensi-game-picker.is-compact > button { min-height: 57px; padding: 10px; gap: 9px; }
-.xensi-game-picker.is-compact .xensi-game-picker-copy strong { font-size: 11px; }
-.modal-backdrop:has(.warmup-setup-modal), .modal-backdrop:has(.finder-setup-modal) { z-index: 60; }
-.warmup-setup-modal:has(.xensi-game-picker), .modal.finder-setup-modal { width: min(820px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; }
+.modal-backdrop:has(.finder-setup-modal) { z-index: 60; }
+.modal.finder-setup-modal { width: min(820px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; }
 .choice-card.game-choice:has(.xensi-game-badge) { display: flex; align-items: flex-start; justify-content: center; padding-top: 10px; }
 .choice-card.game-choice .xensi-game-badge { display: inline-flex; font-weight: 500; font-size: 19px; }
-.xensi-wizard-stepper { display: grid; grid-template-columns: repeat(var(--wizard-steps, 3), 1fr); gap: 6px; margin: 14px 0 18px; }
-.xensi-wizard-stepper:has(> div:nth-child(2):last-child) { --wizard-steps: 2; }
-.xensi-wizard-stepper > div { position: relative; display: flex; align-items: center; gap: 7px; padding-bottom: 9px; border-bottom: 2px solid #252b34; color: #626a76; font: 600 11px/1.2 var(--font-ui); letter-spacing: var(--tracking-normal); text-transform: var(--case-label); transition: color 180ms ease, border-color 180ms ease; }
-.xensi-wizard-stepper i { width: 19px; height: 19px; display: grid; place-items: center; flex: none; border: 1px solid #343b47; border-radius: 50%; font-style: normal; transition: color 180ms ease, border-color 180ms ease, background 180ms ease; }
-.xensi-wizard-stepper .active { color: #f2eee8; border-color: #ff5966; }
-.xensi-wizard-stepper .active i { color: #ff7b83; border-color: #ff5966; background: rgba(255,89,102,.08); }
-.xensi-wizard-stepper .complete { color: #8dfbd3; border-color: rgba(141,251,211,.55); }
-.xensi-wizard-stepper .complete i { color: #09100e; border-color: #8dfbd3; background: #8dfbd3; }
 .xensi-wizard-panel { min-height: 265px; animation: xensi-step-forward 190ms ease both; }
 .xensi-wizard-panel.is-back { animation-name: xensi-step-back; }
 @keyframes xensi-step-forward { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes xensi-step-back { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
-.xensi-config-fields { display: grid; gap: 14px; }
-.xensi-config-fields > header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 12px; border: 1px solid #2f343d; border-radius: 9px; background: #0d1117; }
-.xensi-config-fields > header div { display: grid; gap: 3px; }
-.xensi-config-fields > header div span { color: #727b87; font: 600 11px/1.2 var(--font-ui); letter-spacing: var(--tracking-normal); text-transform: var(--case-label); }
-.xensi-config-fields > header strong { color: #f0ede7; font: 600 14px/1.35 var(--font-ui); }
-.xensi-config-fields > header small { display: flex; align-items: center; gap: 5px; color: #8dfbd3; font: 600 11px/1.3 var(--font-ui); }
-.xensi-config-fields > header small.is-temporary { color: #ff8a74; }
-.xensi-preset-select { display: grid; grid-template-columns: auto minmax(180px, 280px); align-items: center; justify-content: space-between; gap: 12px; margin: 0; color: #8f97a2; font: 600 11px/1.4 var(--font-ui); }
-.xensi-preset-select select { min-width: 0; height: 36px; padding: 0 28px 0 10px; border: 1px solid #39404a; border-radius: 7px; color: #eeeae3; background: #12161d; font: 600 11px var(--font-ui); }
-.xensi-config-inputs { display: grid; grid-template-columns: 1fr 1fr minmax(180px, .8fr); gap: 9px; }
-.xensi-config-inputs label { display: grid; gap: 6px; margin: 0; color: #929aa5; font: 600 11px/1.3 var(--font-ui); letter-spacing: var(--tracking-normal); text-transform: var(--case-label); }
-.xensi-config-inputs input { width: 100%; height: 44px; margin: 0; padding: 0 11px; border: 1px solid #373d46; border-radius: 8px; color: #f6f2eb; background: #10141b; font: 500 14px var(--font-mono); transition: border-color 170ms ease, background 170ms ease; }
-.xensi-config-inputs input:hover { border-color: #5b626d; }
-.xensi-config-inputs input:focus { outline: 0; border-color: #ff5966; background: #13171e; }
-.xensi-physical-reference { min-height: 44px; align-self: end; display: flex; align-items: center; gap: 9px; padding: 8px 11px; border: 1px solid rgba(141,251,211,.2); border-radius: 8px; color: #8dfbd3; background: rgba(141,251,211,.035); }
-.xensi-physical-reference span { display: grid; gap: 2px; color: #78838d; font: 600 11px/1.2 var(--font-ui); letter-spacing: var(--tracking-normal); text-transform: var(--case-label); }
-.xensi-physical-reference strong { color: #dffcef; font: 500 12px/1.3 var(--font-mono); letter-spacing: 0; text-transform: none; }
-@media (max-width: 760px) { .xensi-game-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); } .xensi-game-picker.is-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); } .xensi-game-picker > button { padding: 12px 10px; gap: 9px; } .xensi-config-inputs { grid-template-columns: 1fr 1fr; } .xensi-physical-reference { grid-column: 1 / -1; } }
-@media (max-width: 440px) { .xensi-game-picker, .xensi-game-picker.is-compact { grid-template-columns: 1fr 1fr; } .xensi-game-picker > button { min-height: 70px; } .xensi-game-picker.is-compact > button { min-height: 54px; } .xensi-game-picker.is-compact .xensi-game-picker-copy strong { font-size: 11px; } .xensi-config-fields > header { grid-template-columns: auto 1fr; } .xensi-config-fields > header small { grid-column: 1 / -1; } .xensi-preset-select, .xensi-config-inputs { grid-template-columns: 1fr; } .xensi-physical-reference { grid-column: auto; } .xensi-wizard-panel { min-height: 300px; } }
-@media (prefers-reduced-motion: reduce) { .xensi-game-picker > button, .xensi-game-picker > button::before, .xensi-game-badge, .xensi-game-check, .xensi-wizard-stepper > div, .xensi-wizard-stepper i { transition: none; } .xensi-game-picker > button:hover, .xensi-game-picker > button:focus-visible { transform: none; } .xensi-wizard-panel { animation: none; } }
+@media (max-width: 440px) { .xensi-wizard-panel { min-height: 300px; } }
+@media (prefers-reduced-motion: reduce) { .xensi-game-badge { transition: none; } .xensi-wizard-panel { animation: none; } }

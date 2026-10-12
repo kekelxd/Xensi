@@ -29,6 +29,8 @@
 .xensi-universal-shell :is(.modal, .profile-v1-modal) h2 { font: var(--weight-display) var(--text-2xl)/var(--leading-snug) var(--font-display); text-transform: var(--case-label); letter-spacing: 0; }
 
 @media (max-width: 760px) {
+  /* Title first, actions below: a side-by-side action squeezes the title into a narrow column. */
+  .xensi-universal-shell .xensi-page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
   .xensi-universal-shell .xensi-page-header h1 { font-size: clamp(32px, 9vw, 40px); }
 }
 .xensi-universal-shell .modal-close { border-radius: 0; }

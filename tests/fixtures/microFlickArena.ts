@@ -52,7 +52,7 @@ export async function configureMicro(page: Page) {
   await page.getByRole('button', { name: /Continuar/ }).click()
   await page.getByRole('textbox', { name: 'Sensibilidade', exact: true }).fill('1')
   await page.getByRole('textbox', { name: 'DPI do mouse' }).fill('800')
-  await expect(page.getByRole('button', { name: /Adaptativa/ })).toHaveCount(0)
+  await expect(page.getByRole('radio', { name: /Adaptativa/ })).toHaveCount(0)
   await page.getByRole('button', { name: /Continuar/ }).click()
 }
 

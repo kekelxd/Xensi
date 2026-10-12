@@ -1,6 +1,5 @@
-import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
-import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, Clipboard, Play, Save, Settings2, Target, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowLeft, ArrowRight, Check, Clipboard, Play, Save, Settings2, Target } from 'lucide-react'
 import { FinderCanvas } from './FinderCanvas'
 import { CalibrationLanding } from './CalibrationLanding'
 import { GAME_BY_ID, type GameId } from './games'
@@ -13,7 +12,8 @@ import { WizardStepPanel, WizardStepper } from './SetupWizard'
 import { presetCopy } from './presetCopy'
 import { useSensitivityPreset, type PresetLaunch } from './useSensitivityPreset'
 import { getPresetRepository } from './presetRepository'
-import { useDialogFocus } from './useDialogFocus'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 const FINDER_GAMES: GameId[] = ['cs2', 'valorant', 'overwatch2', 'warzone']
 type FinderSetupStep = 1 | 2
@@ -28,8 +28,6 @@ export function SensitivityFinderModal({ initialPreset = null }: SensitivityFind
   const [setupOpen, setSetupOpen] = useState(Boolean(initialPreset))
   const [setupStep, setSetupStep] = useState<FinderSetupStep>(1)
   const [stepDirection, setStepDirection] = useState<1 | -1>(1)
-  const setupRef = useRef<HTMLElement>(null)
-  useDialogFocus(setupRef, setupOpen)
   const config = useSensitivityPreset('cs2', initialPreset, true)
   const gameId = config.draft.gameId as GameId
   const { dpi, sensitivity: baseSensitivity } = config.draft
@@ -109,19 +107,22 @@ export function SensitivityFinderModal({ initialPreset = null }: SensitivityFind
   const openSetup = () => { setSetupStep(1); setStepDirection(1); setSetupOpen(true) }
 
   return <><CalibrationLanding finder rounds="8" seconds="30s" onStart={openSetup} />
-    <MotionDialog open={Boolean(setupOpen)} className="modal-backdrop">{setupOpen && (<MotionDialogPanel ref={setupRef} className="modal finder-setup-modal" role="dialog" aria-modal="true" aria-label={t('finder.setupTitle')} onKeyDown={event => { if (event.key === 'Escape') setSetupOpen(false) }}><button className="modal-close" onClick={() => setSetupOpen(false)} aria-label={t('common.close')}><X size={18} /></button><Settings2 className="modal-icon" size={21} /><h2>{t('finder.setupTitle')}</h2><p>{t('finder.setupDescription')}</p>
-      <WizardStepper current={setupStep} steps={[t('warmup.stepGame'), t('warmup.stepSettings')]} />
-      <div className="warmup-step-content"><WizardStepPanel key={setupStep} step={setupStep} direction={stepDirection}>
-        {setupStep === 1 && <><h3>{t('warmup.chooseGame')}</h3><GamePicker gameIds={FINDER_GAMES} value={gameId} onChange={config.selectGame} presets={config.presets} /></>}
-        {setupStep === 2 && <SensitivityConfigFields draft={config.draft} presets={config.presets} onSelectPreset={config.selectPreset} onSensitivityChange={setBaseSensitivity} onDpiChange={setDpi} sensitivityInvalid={!Number.isFinite(parsedBaseSensitivity) || parsedBaseSensitivity < game.sensitivityMin || parsedBaseSensitivity > game.sensitivityMax} dpiInvalid={!Number.isFinite(parsedDpi) || parsedDpi <= 0} />}
-      </WizardStepPanel></div>
-      <div className="warmup-wizard-actions">
-        {setupStep === 2 && <button className="secondary-button" onClick={() => { setStepDirection(-1); setSetupStep(1) }}><ArrowLeft size={15} /> {t('warmup.back')}</button>}
-        {setupStep === 1
-          ? <button className="primary-button" onClick={() => { setStepDirection(1); setSetupStep(2) }}>{t('warmup.next')} <ArrowRight size={15} /></button>
-          : <button className="primary-button" disabled={!setupValid} onClick={start}><Play size={15} /> {t('finder.start')}</button>}
-      </div>
-    </MotionDialogPanel>)}</MotionDialog>
+    <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
+      <DialogContent closeLabel={t('common.close')} className="finder-setup-modal max-w-[820px] gap-6">
+        <DialogHeader><Settings2 size={21} className="text-primary" aria-hidden="true" /><DialogTitle>{t('finder.setupTitle')}</DialogTitle><DialogDescription>{t('finder.setupDescription')}</DialogDescription></DialogHeader>
+        <WizardStepper current={setupStep} steps={[t('warmup.stepGame'), t('warmup.stepSettings')]} />
+        <div className="min-h-[220px]"><WizardStepPanel key={setupStep} step={setupStep} direction={stepDirection}>
+          {setupStep === 1 && <div className="grid gap-4"><h3 className="m-0 font-heading text-base font-semibold text-foreground">{t('warmup.chooseGame')}</h3><GamePicker gameIds={FINDER_GAMES} value={gameId} onChange={config.selectGame} presets={config.presets} /></div>}
+          {setupStep === 2 && <SensitivityConfigFields draft={config.draft} presets={config.presets} onSelectPreset={config.selectPreset} onSensitivityChange={setBaseSensitivity} onDpiChange={setDpi} sensitivityInvalid={!Number.isFinite(parsedBaseSensitivity) || parsedBaseSensitivity < game.sensitivityMin || parsedBaseSensitivity > game.sensitivityMax} dpiInvalid={!Number.isFinite(parsedDpi) || parsedDpi <= 0} />}
+        </WizardStepPanel></div>
+        <DialogFooter className="border-0 border-t border-solid border-border pt-5">
+          {setupStep === 2 && <Button variant="outline" onClick={() => { setStepDirection(-1); setSetupStep(1) }}><ArrowLeft /> {t('warmup.back')}</Button>}
+          {setupStep === 1
+            ? <Button onClick={() => { setStepDirection(1); setSetupStep(2) }}>{t('warmup.next')} <ArrowRight /></Button>
+            : <Button disabled={!setupValid} onClick={start}><Play /> {t('finder.start')}</Button>}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </>
 }
 

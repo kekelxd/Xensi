@@ -1,4 +1,3 @@
-import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
 import { XensiPageHeader } from './design/Primitives'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
@@ -26,6 +25,17 @@ import { createDefaultRoutine, createRoutineItem, formatRoutineDuration, getRout
 import { getRoutineRepository } from './routineRepository'
 import { useRoutineState } from './useRoutineState'
 import { useI18n, type TranslationKey } from './i18n'
+import { Alert } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupCard, RadioGroupChip } from '@/components/ui/radio-group'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
 type SetupStep = 1 | 2 | 3
 type RoutinePhase = 'builder' | 'countdown' | 'playing' | 'transition' | 'result'
@@ -57,6 +67,9 @@ function ExerciseMicroPreview({ modeId }: { modeId: WarmupExercise }) {
   </div>
 }
 
+const eyebrow = 'text-xs font-medium leading-none text-muted-foreground'
+const heading = 'm-0 font-heading font-semibold leading-tight tracking-[-0.01em] text-foreground'
+
 function RoutineItemCard({
   item,
   index,
@@ -85,33 +98,33 @@ function RoutineItemCard({
   const { t } = useI18n()
   const exercise = exerciseById(item.modeId)
   const Icon = exercise.icon
-  return <article className={`routine-builder-item${expanded ? ' expanded' : ''}`}>
-    <div className="routine-item-compact">
-      <div className="routine-builder-order" aria-label={t('routines.itemOrder', { current: index + 1, total })}>
-        <GripVertical size={15} />
-        <span>{String(index + 1).padStart(2, '0')}</span>
+  return <Card className={cn('routine-builder-item gap-0 p-0', expanded && 'expanded border-foreground/15')}>
+    <div className="flex min-w-0 flex-wrap items-center gap-3 px-4 py-3.5 sm:flex-nowrap sm:px-5">
+      <div className="flex flex-none items-center gap-1.5 text-subtle" aria-label={t('routines.itemOrder', { current: index + 1, total })}>
+        <GripVertical size={15} aria-hidden="true" />
+        <span className="font-mono text-xs font-medium text-primary">{String(index + 1).padStart(2, '0')}</span>
       </div>
-      <div className="routine-builder-title">
-        <Icon size={18} />
-        <span>
-          <strong>{isRoutineModeAvailable(item.modeId) ? exercise.name : t('routines.unavailable')}</strong>
-          <small>{formatRoutineDuration(item.durationSeconds)} · {difficultyLabel(item.difficulty)}</small>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <span className="grid size-9 flex-none place-content-center rounded-lg border border-solid border-border bg-black/25 text-primary"><Icon size={17} aria-hidden="true" /></span>
+        <span className="grid min-w-0 gap-1">
+          <strong className="truncate font-heading text-[15px] font-semibold text-foreground">{isRoutineModeAvailable(item.modeId) ? exercise.name : t('routines.unavailable')}</strong>
+          <small className="text-xs text-muted-foreground">{formatRoutineDuration(item.durationSeconds)} · {difficultyLabel(item.difficulty)}</small>
         </span>
       </div>
-      <div className="routine-row-actions">
-        <button type="button" onClick={onMoveUp} disabled={index === 0} aria-label={t('routine.moveUp')}><ArrowUp size={14} /></button>
-        <button type="button" onClick={onMoveDown} disabled={index === total - 1} aria-label={t('routine.moveDown')}><ArrowDown size={14} /></button>
-        <button type="button" onClick={onDuplicate} aria-label={t('routine.duplicate')}><Copy size={14} /></button>
-        <button className="routine-edit-action" type="button" onClick={onToggle} aria-expanded={expanded}><Pencil size={13} /> {t('routines.edit')}</button>
-        <button type="button" onClick={onRemove} aria-label={t('routine.remove')}><X size={15} /></button>
+      <div className="flex flex-none items-center gap-1">
+        <Button variant="ghost" size="icon" className="size-9" onClick={onMoveUp} disabled={index === 0} aria-label={t('routine.moveUp')}><ArrowUp /></Button>
+        <Button variant="ghost" size="icon" className="size-9" onClick={onMoveDown} disabled={index === total - 1} aria-label={t('routine.moveDown')}><ArrowDown /></Button>
+        <Button variant="ghost" size="icon" className="size-9" onClick={onDuplicate} aria-label={t('routine.duplicate')}><Copy /></Button>
+        <Button variant="outline" size="sm" className="routine-edit-action" onClick={onToggle} aria-expanded={expanded}><Pencil /> {t('routines.edit')}</Button>
+        <Button variant="ghost" size="icon" className="size-9 hover:text-destructive" onClick={onRemove} aria-label={t('routine.remove')}><X /></Button>
       </div>
     </div>
-    {expanded && <div className="routine-item-expanded">{children}</div>}
-  </article>
+    {expanded && <div className="routine-item-expanded border-0 border-t border-solid border-border px-4 py-4 sm:px-5">{children}</div>}
+  </Card>
 }
 
 function RoutineSummaryMetric({ label, value }: { label: string; value: string }) {
-  return <div><span>{label}</span><strong>{value}</strong></div>
+  return <div className="grid content-start gap-2 bg-card px-4 py-3"><span className={eyebrow}>{label}</span><strong className="font-mono text-lg font-medium leading-none tabular-nums text-foreground">{value}</strong></div>
 }
 
 function RoutineLibraryCard({
@@ -125,7 +138,7 @@ function RoutineLibraryCard({
   onDuplicate,
   onRename,
   onDelete,
-  onToggleActions,
+  onActionsChange,
 }: {
   routine: CustomRoutine
   presetLabel: string
@@ -137,36 +150,37 @@ function RoutineLibraryCard({
   onDuplicate: () => void
   onRename: () => void
   onDelete: () => void
-  onToggleActions: () => void
+  onActionsChange: (open: boolean) => void
 }) {
   const { t } = useI18n()
   const total = getRoutineTotalSeconds(routine.items)
-  return <article className="routine-library-card">
-    <header>
-      <div>
-        <span>{t('routines.savedPlaylist')}</span>
-        <h2>{routine.name}</h2>
+  return <Card spotlight className="routine-library-card gap-4 p-5">
+    <div className="flex items-start justify-between gap-3">
+      <div className="grid min-w-0 gap-1.5">
+        <span className={eyebrow}>{t('routines.savedPlaylist')}</span>
+        <h2 className={cn(heading, 'text-xl [overflow-wrap:anywhere]')}>{routine.name}</h2>
       </div>
-      <div className="routine-card-actions">
-        <button type="button" className="routine-menu-trigger" aria-label={t('routines.actions', { name: routine.name })} aria-expanded={actionOpen} onClick={onToggleActions}><MoreHorizontal size={18} /></button>
-        {actionOpen && <div className="routine-card-menu" role="menu">
-          <button type="button" role="menuitem" onClick={onEdit}><Pencil size={14} /> {t('routines.edit')}</button>
-          <button type="button" role="menuitem" onClick={onDuplicate}><Copy size={14} /> {t('routines.duplicate')}</button>
-          <button type="button" role="menuitem" onClick={onRename}><Pencil size={14} /> {t('routines.rename')}</button>
-          <button type="button" role="menuitem" onClick={onDelete}><Trash2 size={14} /> {t('routines.delete')}</button>
-        </div>}
-      </div>
-    </header>
-    <p className="routine-card-context">{presetLabel}</p>
-    <div className="routine-card-meta">
-      <span>{formatRoutineDuration(total)}</span>
-      <span>{routine.items.length} {t('routine.exercises')}</span>
+      <DropdownMenu open={actionOpen} onOpenChange={onActionsChange}>
+        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="routine-menu-trigger size-9 flex-none" aria-label={t('routines.actions', { name: routine.name })}><MoreHorizontal /></Button></DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem onSelect={onEdit}><Pencil /> {t('routines.edit')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onDuplicate}><Copy /> {t('routines.duplicate')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onRename}><Pencil /> {t('routines.rename')}</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onSelect={onDelete}><Trash2 /> {t('routines.delete')}</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
-    <p className="routine-card-sequence">{sequence}</p>
-    <footer>
-      <button type="button" className="primary-button routine-start-button" disabled={disabled || validateRoutine(routine).length > 0 || !GAME_BY_ID[routine.gameId as GameId]} onClick={onStart}><Play size={14} /> {t('routines.start')}</button>
-    </footer>
-  </article>
+    <p className="m-0 text-sm text-muted-foreground">{presetLabel}</p>
+    <div className="flex flex-wrap gap-1.5">
+      <Badge variant="secondary">{formatRoutineDuration(total)}</Badge>
+      <Badge variant="secondary">{routine.items.length} {t('routine.exercises')}</Badge>
+    </div>
+    <p className="m-0 text-xs leading-relaxed text-subtle">{sequence}</p>
+    <div className="mt-auto border-0 border-t border-solid border-border pt-4">
+      <Button className="routine-start-button w-full" disabled={disabled || validateRoutine(routine).length > 0 || !GAME_BY_ID[routine.gameId as GameId]} onClick={onStart}><Play /> {t('routines.start')}</Button>
+    </div>
+  </Card>
 }
 
 export function Routine() {
@@ -466,21 +480,21 @@ export function Routine() {
 
   if (phase === 'builder' && screen === 'library') {
     return <section className="warmup-workspace routine-workspace routine-library-workspace">
-      <XensiPageHeader className="routine-library-hero" title={t('routines.library')} description={t('routines.subtitle')} actions={<button type="button" className="primary-button routine-create-button" disabled={sync.status !== 'ready' || sync.busy} onClick={createNewRoutine}><Plus size={15} /> {t('routines.createNew')}</button>} />
+      <XensiPageHeader className="routine-library-hero" title={t('routines.library')} description={t('routines.subtitle')} actions={<Button className="routine-create-button" disabled={sync.status !== 'ready' || sync.busy} onClick={createNewRoutine}><Plus /> {t('routines.createNew')}</Button>} />
 
-      <div className="routine-library-heading"><button type="button" className="icon-button" title={t('presets.retry')} aria-label={t('presets.retry')} disabled={sync.busy} onClick={refreshLibrary}><RotateCcw size={16} /></button>{sync.userId && sync.pendingImport > 0 && <button type="button" className="icon-button" title={t('routines.import')} aria-label={t('routines.import')} onClick={() => repository.offerImport()}><Save size={16} /></button>}</div>
-      {sync.error && <p role="alert" className="profile-v1-error">{t(sync.error === 'import' ? 'routines.importFailure' : 'routines.saveFailure')}</p>}
-      <section className="routine-library-panel" aria-label={t('routines.mine')}>
-        <div className="routine-library-heading">
-          <h2>{t('routines.mine')}</h2>
-          <span>{t('routines.savedCount', { count: library.length })}</span>
+      <div className="mb-4 flex gap-2"><Button variant="outline" size="icon" title={t('presets.retry')} aria-label={t('presets.retry')} disabled={sync.busy} onClick={refreshLibrary}><RotateCcw /></Button>{sync.userId && sync.pendingImport > 0 && <Button variant="outline" size="icon" title={t('routines.import')} aria-label={t('routines.import')} onClick={() => repository.offerImport()}><Save /></Button>}</div>
+      {sync.error && <Alert variant="destructive" role="alert" className="mb-4"><span className="col-start-2">{t(sync.error === 'import' ? 'routines.importFailure' : 'routines.saveFailure')}</span></Alert>}
+      <section className="routine-library-panel grid gap-4" aria-label={t('routines.mine')}>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className={cn(heading, 'text-xl')}>{t('routines.mine')}</h2>
+          <span className="text-xs font-medium text-muted-foreground">{t('routines.savedCount', { count: library.length })}</span>
         </div>
-        {sync.status !== 'ready' ? <p role="status">{t('routines.loading')}</p> : library.length === 0 ? <div className="routine-library-empty">
-          <Sparkles size={24} />
-          <strong>{t('routines.emptyTitle')}</strong>
-          <p>{t('routines.emptyText')}</p>
-          <button type="button" className="primary-button" onClick={createNewRoutine}><Plus size={14} /> {t('routines.create')}</button>
-        </div> : <div className="routine-library-grid">
+        {sync.status !== 'ready' ? <p role="status" className="m-0 text-sm text-muted-foreground">{t('routines.loading')}</p> : library.length === 0 ? <Card className="routine-library-empty grid min-h-[300px] place-content-center justify-items-center gap-3 border-dashed p-8 text-center">
+          <Sparkles size={24} className="text-primary" />
+          <strong className={cn(heading, 'text-xl')}>{t('routines.emptyTitle')}</strong>
+          <p className="m-0 text-sm text-muted-foreground">{t('routines.emptyText')}</p>
+          <Button className="mt-2" onClick={createNewRoutine}><Plus /> {t('routines.create')}</Button>
+        </Card> : <div className="routine-library-grid grid grid-cols-[repeat(auto-fill,minmax(min(320px,100%),1fr))] gap-4">
           {library.map((savedRoutine) => (
             <RoutineLibraryCard
               key={savedRoutine.id}
@@ -489,7 +503,7 @@ export function Routine() {
               sequence={getRoutineSequence(savedRoutine)}
               actionOpen={actionMenuId === savedRoutine.id}
               disabled={sync.busy || presetState.status !== 'ready'}
-              onToggleActions={() => setActionMenuId((current) => current === savedRoutine.id ? null : savedRoutine.id)}
+              onActionsChange={open => setActionMenuId(open ? savedRoutine.id : null)}
               onStart={() => startRoutine(savedRoutine)}
               onEdit={() => openBuilder(savedRoutine)}
               onDuplicate={() => duplicateRoutine(savedRoutine)}
@@ -500,84 +514,84 @@ export function Routine() {
         </div>}
       </section>
 
-      <MotionDialog open={Boolean(renameTarget)} className="modal-backdrop">{renameTarget && (<MotionDialogPanel className="modal routine-action-modal" role="dialog" aria-modal="true" aria-label={t('routines.renameTitle')}>
-          <button className="modal-close" onClick={() => setRenameTarget(null)} aria-label={t('common.close')}><X size={18} /></button>
-          <Pencil size={20} className="modal-icon" />
-          <h2>{t('routines.renameTitle')}</h2>
-          <p>{t('routines.renameText')}</p>
-          <label>{t('routine.name')}<input value={renameValue} maxLength={48} autoFocus onChange={(event) => setRenameValue(event.target.value)} /></label>
-          {sync.error && <p role="alert" className="profile-v1-error">{t(sync.error === 'import' ? 'routines.importFailure' : 'routines.saveFailure')}</p>}
-          <div className="warmup-result-actions">
-            <button className="secondary-button" type="button" onClick={() => setRenameTarget(null)}>{t('routines.cancel')}</button>
-            <button className="primary-button" type="button" disabled={sync.busy || !renameValue.trim()} onClick={confirmRenameRoutine}><Save size={14} /> {t('routines.saveName')}</button>
-          </div>
-        </MotionDialogPanel>)}</MotionDialog>
+      <Dialog open={Boolean(renameTarget)} onOpenChange={open => { if (!open) setRenameTarget(null) }}>
+        <DialogContent closeLabel={t('common.close')} className="routine-action-modal">
+          <DialogHeader><Pencil size={20} className="text-primary" aria-hidden="true" /><DialogTitle>{t('routines.renameTitle')}</DialogTitle><DialogDescription>{t('routines.renameText')}</DialogDescription></DialogHeader>
+          <div className="grid gap-2"><Label htmlFor="routine-rename">{t('routine.name')}</Label><Input id="routine-rename" value={renameValue} maxLength={48} autoFocus onChange={(event) => setRenameValue(event.target.value)} /></div>
+          {sync.error && <p role="alert" className="m-0 text-sm text-destructive">{t(sync.error === 'import' ? 'routines.importFailure' : 'routines.saveFailure')}</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameTarget(null)}>{t('routines.cancel')}</Button>
+            <Button disabled={sync.busy || !renameValue.trim()} onClick={confirmRenameRoutine}><Save /> {t('routines.saveName')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <MotionDialog open={Boolean(deleteTarget)} className="modal-backdrop">{deleteTarget && (<MotionDialogPanel className="modal routine-action-modal" role="dialog" aria-modal="true" aria-label={t('routines.deleteTitle')}>
-          <button className="modal-close" onClick={() => setDeleteTarget(null)} aria-label={t('common.close')}><X size={18} /></button>
-          <Trash2 size={20} className="modal-icon" />
-          <h2>{t('routines.deleteQuestion')}</h2>{sync.error && <p role="alert" className="profile-v1-error">{t(sync.error === 'import' ? 'routines.importFailure' : 'routines.saveFailure')}</p>}
-          <p>{t('routines.deleteText', { name: deleteTarget.name })}</p>
-          <div className="warmup-result-actions">
-            <button className="secondary-button" type="button" onClick={() => setDeleteTarget(null)}>{t('routines.cancel')}</button>
-            <button className="primary-button danger-button" type="button" disabled={sync.busy} onClick={confirmDeleteRoutine}><Trash2 size={14} /> {t('routines.delete')}</button>
-          </div>
-        </MotionDialogPanel>)}</MotionDialog>
+      <Dialog open={Boolean(deleteTarget)} onOpenChange={open => { if (!open) setDeleteTarget(null) }}>
+        <DialogContent closeLabel={t('common.close')} className="routine-action-modal">
+          <DialogHeader><Trash2 size={20} className="text-destructive" aria-hidden="true" /><DialogTitle>{t('routines.deleteQuestion')}</DialogTitle><DialogDescription>{deleteTarget && t('routines.deleteText', { name: deleteTarget.name })}</DialogDescription></DialogHeader>
+          {sync.error && <p role="alert" className="m-0 text-sm text-destructive">{t(sync.error === 'import' ? 'routines.importFailure' : 'routines.saveFailure')}</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>{t('routines.cancel')}</Button>
+            <Button variant="destructive" disabled={sync.busy} onClick={confirmDeleteRoutine}><Trash2 /> {t('routines.delete')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   }
 
   if (phase === 'builder') {
+    const chipGroup = 'flex flex-wrap gap-1.5'
     return <section className="warmup-workspace routine-workspace routine-builder-workspace" ref={setupRef}>
-      <XensiPageHeader className="routine-builder-hero" title={t('routine.title')} description={t('routine.subtitle')} actions={<button type="button" className="secondary-button routine-back-library" onClick={() => { refreshLibrary(); setScreen('library') }}><ArrowLeft size={14} /> {t('routines.back')}</button>} />
+      <XensiPageHeader className="routine-builder-hero" title={t('routine.title')} description={t('routine.subtitle')} actions={<Button variant="outline" className="routine-back-library" onClick={() => { refreshLibrary(); setScreen('library') }}><ArrowLeft /> {t('routines.back')}</Button>} />
 
-      <div className="routine-builder-layout">
-        <section className="routine-builder-context">
+      <div className="routine-builder-layout grid items-start gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+        <Card className="routine-builder-context gap-5 p-5 lg:sticky lg:top-28">
           <WizardStepper current={setupStep} steps={[t('warmup.stepGame'), t('warmup.stepSettings'), t('warmup.stepCrosshair')]} />
           <div className="routine-context-panel">
             <WizardStepPanel key={setupStep} step={setupStep} direction={stepDirection}>
-              {setupStep === 1 && <>
-                <h2>{t('routine.contextTitle')}</h2>
+              {setupStep === 1 && <div className="grid gap-4">
+                <h2 className={cn(heading, 'text-base')}>{t('routine.contextTitle')}</h2>
                 <GamePicker gameIds={GAMES.map(item => item.id)} value={selectedGame} onChange={config.selectGame} presets={config.presets} />
-              </>}
+              </div>}
               {setupStep === 2 && <SensitivityConfigFields draft={config.draft} presets={config.presets} onSelectPreset={config.selectPreset} onSensitivityChange={setSensitivity} onDpiChange={setDpi} sensitivityInvalid={parsedSensitivity === null} dpiInvalid={parsedDpi === null} />}
-              {setupStep === 3 && <>
-                <h2>{t('warmup.crosshairTitle')}</h2>
-                <div className="warmup-crosshairs" role="radiogroup" aria-label={t('calibration.crosshairType')}>
-                  {CROSSHAIRS.map((item) => { const Icon = item.icon; return <button type="button" key={item.id} className={crosshair === item.id ? 'selected' : ''} aria-pressed={crosshair === item.id} onClick={() => setCrosshair(item.id)}><Icon size={16} /><span>{t(item.label)}</span></button> })}
-                </div>
-              </>}
+              {setupStep === 3 && <div className="grid gap-4">
+                <h2 className={cn(heading, 'text-base')}>{t('warmup.crosshairTitle')}</h2>
+                <RadioGroup className="warmup-crosshairs grid-cols-2 gap-2" aria-label={t('calibration.crosshairType')} value={crosshair} onValueChange={value => setCrosshair(value as CrosshairStyle)}>
+                  {CROSSHAIRS.map((item) => { const Icon = item.icon; return <RadioGroupChip key={item.id} value={item.id} className="h-11 [&_svg]:text-primary"><Icon />{t(item.label)}</RadioGroupChip> })}
+                </RadioGroup>
+              </div>}
             </WizardStepPanel>
           </div>
-          <div className="warmup-wizard-actions routine-context-actions">
-            {setupStep > 1 && <button className="secondary-button" type="button" onClick={() => { setStepDirection(-1); setSetupStep((setupStep - 1) as SetupStep) }}><ArrowLeft size={15} /> {t('warmup.back')}</button>}
-            {setupStep < 3 && <button className="primary-button" type="button" onClick={() => { setStepDirection(1); setSetupStep((setupStep + 1) as SetupStep) }} disabled={setupStep === 2 && !validSetup}>{t('warmup.next')} <ArrowRight size={15} /></button>}
+          <div className="routine-context-actions flex justify-end gap-2 border-0 border-t border-solid border-border pt-4">
+            {setupStep > 1 && <Button variant="outline" onClick={() => { setStepDirection(-1); setSetupStep((setupStep - 1) as SetupStep) }}><ArrowLeft /> {t('warmup.back')}</Button>}
+            {setupStep < 3 && <Button onClick={() => { setStepDirection(1); setSetupStep((setupStep + 1) as SetupStep) }} disabled={setupStep === 2 && !validSetup}>{t('warmup.next')} <ArrowRight /></Button>}
           </div>
-        </section>
+        </Card>
 
-        <section className="routine-playlist-panel" aria-label={t('routine.playlist')}>
-          <div className="routine-playlist-head">
-            <label>{t('routine.name')}<input value={routine.name} maxLength={48} onChange={(event) => { setSaveState('idle'); setRoutine(current => ({ ...current, name: event.target.value })) }} /></label>
-            <div className="routine-builder-summary" aria-label={t('routine.summary')}>
+        <Card className="routine-playlist-panel gap-5 p-5" aria-label={t('routine.playlist')} role="region">
+          <div className="grid gap-4 xl:grid-cols-[minmax(180px,1fr)_auto_auto] xl:items-end">
+            <div className="grid min-w-0 gap-2"><Label htmlFor="routine-name">{t('routine.name')}</Label><Input id="routine-name" value={routine.name} maxLength={48} onChange={(event) => { setSaveState('idle'); setRoutine(current => ({ ...current, name: event.target.value })) }} /></div>
+            <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-solid border-border bg-border" aria-label={t('routine.summary')}>
               <RoutineSummaryMetric label={t('routine.totalDuration')} value={formatRoutineDuration(totalSeconds)} />
               <RoutineSummaryMetric label={t('routine.exerciseCount')} value={String(orderedItems.length)} />
               <RoutineSummaryMetric label={t('common.gameReference')} value={game.shortLabel} />
             </div>
-            {sync.error && <p role="alert" className="profile-v1-error">{t(sync.error === 'import' ? 'routines.importFailure' : 'routines.saveFailure')}</p>}
-            <div className="routine-playlist-actions">
-              <button className="secondary-button" type="button" disabled={sync.busy || sync.status !== 'ready'} onClick={saveRoutine}><Save size={14} /> {saveState === 'saved' ? t('routine.saved') : t('routine.save')}</button>
-              <button className="primary-button" type="button" disabled={!canStart} onClick={() => startRoutine()}><Play size={14} /> {t('routine.start')}</button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" disabled={sync.busy || sync.status !== 'ready'} onClick={saveRoutine}><Save /> {saveState === 'saved' ? t('routine.saved') : t('routine.save')}</Button>
+              <Button disabled={!canStart} onClick={() => startRoutine()}><Play /> {t('routine.start')}</Button>
             </div>
           </div>
+          {sync.error && <p role="alert" className="m-0 text-sm text-destructive">{t(sync.error === 'import' ? 'routines.importFailure' : 'routines.saveFailure')}</p>}
 
-          {orderedItems.length === 0 ? <div className="routine-empty-state">
-            <Sparkles size={22} />
-            <strong>{t('routine.emptyTitle')}</strong>
-            <p>{t('routine.emptyDescription')}</p>
-            <button className="primary-button" type="button" onClick={() => setAddOpen(true)}><Plus size={14} /> {t('routine.addExercise')}</button>
-          </div> : <div className="routine-builder-list">
-            <div className="routine-playlist-label">
-              <h2>{t('routine.playlist')}</h2>
-              <span>{orderedItems.length} {t('routine.exercises')}</span>
+          {orderedItems.length === 0 ? <div className="routine-empty-state grid min-h-[260px] place-content-center justify-items-center gap-3 rounded-xl border border-dashed border-border p-8 text-center">
+            <Sparkles size={22} className="text-primary" />
+            <strong className={cn(heading, 'text-lg')}>{t('routine.emptyTitle')}</strong>
+            <p className="m-0 text-sm text-muted-foreground">{t('routine.emptyDescription')}</p>
+            <Button className="mt-2" onClick={() => setAddOpen(true)}><Plus /> {t('routine.addExercise')}</Button>
+          </div> : <div className="routine-builder-list grid gap-3 border-0 border-t border-solid border-border pt-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className={cn(heading, 'text-lg')}>{t('routine.playlist')}</h2>
+              <span className="text-xs font-medium text-muted-foreground">{orderedItems.length} {t('routine.exercises')}</span>
             </div>
             {orderedItems.map((item, index) => (
               <RoutineItemCard
@@ -593,27 +607,30 @@ export function Routine() {
                 onDuplicate={() => duplicateItem(item)}
                 onRemove={() => removeItem(item.id)}
               >
-                <div className="routine-item-controls">
-                  <label>
-                    <span>{t('routine.duration')}</span>
-                    <div className="routine-chip-row" aria-label={t('routine.duration')}>
-                      {ROUTINE_ITEM_DURATIONS.map((duration) => <button key={duration} type="button" className={item.durationSeconds === duration ? 'selected' : ''} onClick={() => updateItem(item.id, { durationSeconds: duration })}>{duration / 60}m</button>)}
-                    </div>
-                  </label>
-                  <label>
-                    <span>{t('warmup.difficulty')}</span>
-                    <div className="routine-chip-row" aria-label={t('warmup.difficulty')}>
-                      {difficultyKeys.filter((difficulty) => supportsRoutineDifficulty(item.modeId, difficulty)).map((difficulty) => <button key={difficulty} type="button" className={item.difficulty === difficulty ? 'selected' : ''} onClick={() => updateItem(item.id, { difficulty })}>{difficultyLabel(difficulty)}</button>)}
-                    </div>
-                  </label>
-                  <label>
-                    <span>{t('routine.exercise')}</span>
-                    <select value={item.modeId} onChange={(event) => updateItem(item.id, { modeId: event.target.value as WarmupExercise })} aria-label={t('routine.exercise')}>
-                      {!isRoutineModeAvailable(item.modeId) && <option value={item.modeId}>{t('routines.unavailable')}</option>}
-                      {EXERCISES.filter(exercise => exercise.completionMode !== 'rounds').map((exercise) => <option key={exercise.id} value={exercise.id}>{exercise.name}</option>)}
-                    </select>
-                  </label>
-                  <div className="routine-expanded-preview">
+                <div className="routine-item-controls grid items-start gap-4 md:grid-cols-[auto_auto_minmax(180px,1fr)_auto]">
+                  <div className="grid gap-2">
+                    <span className={eyebrow}>{t('routine.duration')}</span>
+                    <RadioGroup className={chipGroup} aria-label={t('routine.duration')} value={String(item.durationSeconds)} onValueChange={value => updateItem(item.id, { durationSeconds: Number(value) as RoutineItemDuration })}>
+                      {ROUTINE_ITEM_DURATIONS.map((duration) => <RadioGroupChip key={duration} value={String(duration)}>{duration / 60}m</RadioGroupChip>)}
+                    </RadioGroup>
+                  </div>
+                  <div className="grid gap-2">
+                    <span className={eyebrow}>{t('warmup.difficulty')}</span>
+                    <RadioGroup className={chipGroup} aria-label={t('warmup.difficulty')} value={item.difficulty} onValueChange={value => updateItem(item.id, { difficulty: value as WarmupDifficulty })}>
+                      {difficultyKeys.filter((difficulty) => supportsRoutineDifficulty(item.modeId, difficulty)).map((difficulty) => <RadioGroupChip key={difficulty} value={difficulty}>{difficultyLabel(difficulty)}</RadioGroupChip>)}
+                    </RadioGroup>
+                  </div>
+                  <div className="grid min-w-0 gap-2">
+                    <Label htmlFor={`routine-exercise-${item.id}`}>{t('routine.exercise')}</Label>
+                    <Select value={item.modeId} onValueChange={value => updateItem(item.id, { modeId: value as WarmupExercise })}>
+                      <SelectTrigger id={`routine-exercise-${item.id}`} size="sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {!isRoutineModeAvailable(item.modeId) && <SelectItem value={item.modeId}>{t('routines.unavailable')}</SelectItem>}
+                        {EXERCISES.filter(exercise => exercise.completionMode !== 'rounds').map((exercise) => <SelectItem key={exercise.id} value={exercise.id}>{exercise.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="routine-expanded-preview w-[132px] max-md:hidden">
                     <ExerciseMicroPreview modeId={item.modeId} />
                   </div>
                 </div>
@@ -621,37 +638,37 @@ export function Routine() {
             ))}
           </div>}
 
-          <div className="routine-builder-footer">
-            <button className="secondary-button" type="button" onClick={() => setAddOpen(true)}><Plus size={14} /> {t('routine.addExercise')}</button>
-            <button className="secondary-button" type="button" onClick={copyRoutineCard}><Copy size={14} /> {t('routine.copyCard')}</button>
-            {issues.includes('mode') && <span role="alert">{t('routines.unavailable')}</span>}
-            {issues.includes('empty') && <span>{t('routine.emptyGuard')}</span>}
+          <div className="routine-builder-footer flex flex-wrap items-center gap-2 border-0 border-t border-solid border-border pt-5">
+            <Button variant="outline" onClick={() => setAddOpen(true)}><Plus /> {t('routine.addExercise')}</Button>
+            <Button variant="outline" onClick={copyRoutineCard}><Copy /> {t('routine.copyCard')}</Button>
+            {issues.includes('mode') && <span role="alert" className="text-sm text-destructive">{t('routines.unavailable')}</span>}
+            {issues.includes('empty') && <span className="text-sm text-muted-foreground">{t('routine.emptyGuard')}</span>}
           </div>
-        </section>
+        </Card>
       </div>
 
-      <MotionDialog open={Boolean(addOpen)} className="modal-backdrop">{addOpen && (<MotionDialogPanel className="modal routine-add-modal" role="dialog" aria-modal="true" aria-label={t('routine.addExercise')}>
-          <button className="modal-close" onClick={() => setAddOpen(false)} aria-label={t('common.close')}><X size={18} /></button>
-          <Plus size={20} className="modal-icon" />
-          <h2>{t('routine.addExercise')}</h2>
-          <p>{t('routine.addDescription')}</p>
-          <div className="routine-add-grid">
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent closeLabel={t('common.close')} className="routine-add-modal max-w-[820px]">
+          <DialogHeader><Plus size={20} className="text-primary" aria-hidden="true" /><DialogTitle>{t('routine.addExercise')}</DialogTitle><DialogDescription>{t('routine.addDescription')}</DialogDescription></DialogHeader>
+          <RadioGroup className="routine-add-grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3" aria-label={t('routine.exercise')} value={selectedAddMode} onValueChange={value => { const mode = value as WarmupExercise; setSelectedAddMode(mode); if (!supportsRoutineDifficulty(mode, selectedAddDifficulty)) setSelectedAddDifficulty('medium') }}>
             {EXERCISES.filter(exercise => exercise.completionMode !== 'rounds').map((exercise) => {
               const Icon = exercise.icon
-              return <button key={exercise.id} type="button" className={selectedAddMode === exercise.id ? 'selected' : ''} onClick={() => { setSelectedAddMode(exercise.id); if (!supportsRoutineDifficulty(exercise.id, selectedAddDifficulty)) setSelectedAddDifficulty('medium') }}>
-                <Icon size={19} /><strong>{exercise.name}</strong><small>{t(exercise.description)}</small>
-              </button>
+              return <RadioGroupCard key={exercise.id} value={exercise.id} indicator="corner" className="items-start p-3.5">
+                <Icon size={18} className="mt-0.5 flex-none text-primary" aria-hidden="true" />
+                <span className="grid min-w-0 gap-1"><strong className="font-semibold">{exercise.name}</strong><small className="text-xs font-normal leading-snug text-muted-foreground">{t(exercise.description)}</small></span>
+              </RadioGroupCard>
             })}
+          </RadioGroup>
+          <div className="routine-add-options grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2"><span className={eyebrow}>{t('routine.duration')}</span><RadioGroup className={chipGroup} aria-label={t('routine.duration')} value={String(selectedAddDuration)} onValueChange={value => setSelectedAddDuration(Number(value) as RoutineItemDuration)}>{ROUTINE_ITEM_DURATIONS.map((duration) => <RadioGroupChip key={duration} value={String(duration)}>{duration / 60} min</RadioGroupChip>)}</RadioGroup></div>
+            <div className="grid gap-2"><span className={eyebrow}>{t('warmup.difficulty')}</span><RadioGroup className={chipGroup} aria-label={t('warmup.difficulty')} value={selectedAddDifficulty} onValueChange={value => setSelectedAddDifficulty(value as WarmupDifficulty)}>{difficultyKeys.filter((difficulty) => supportsRoutineDifficulty(selectedAddMode, difficulty)).map((difficulty) => <RadioGroupChip key={difficulty} value={difficulty}>{difficultyLabel(difficulty)}</RadioGroupChip>)}</RadioGroup></div>
           </div>
-          <div className="routine-add-options">
-            <div><span>{t('routine.duration')}</span><div className="routine-chip-row">{ROUTINE_ITEM_DURATIONS.map((duration) => <button key={duration} type="button" className={selectedAddDuration === duration ? 'selected' : ''} onClick={() => setSelectedAddDuration(duration)}>{duration / 60} min</button>)}</div></div>
-            <div><span>{t('warmup.difficulty')}</span><div className="routine-chip-row">{difficultyKeys.filter((difficulty) => supportsRoutineDifficulty(selectedAddMode, difficulty)).map((difficulty) => <button key={difficulty} type="button" className={selectedAddDifficulty === difficulty ? 'selected' : ''} onClick={() => setSelectedAddDifficulty(difficulty)}>{difficultyLabel(difficulty)}</button>)}</div></div>
-          </div>
-          <div className="warmup-result-actions">
-            <button className="secondary-button" type="button" onClick={() => setAddOpen(false)}>{t('common.close')}</button>
-            <button className="primary-button" type="button" onClick={addItem}><Plus size={14} /> {t('routine.addExercise')}</button>
-          </div>
-        </MotionDialogPanel>)}</MotionDialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>{t('common.close')}</Button>
+            <Button onClick={addItem}><Plus /> {t('routine.addExercise')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   }
 
@@ -665,7 +682,7 @@ export function Routine() {
           {nextExercise && <p>{t('routine.nextExercise', { exercise: nextExercise.name })}</p>}
           {nextItem && <div className="routine-transition-score"><span>{t('routine.startsIn')}</span><strong>{transitionCountdown}</strong><small>{formatRoutineDuration(nextItem.durationSeconds)} · {difficultyLabel(nextItem.difficulty)}</small></div>}
           <div className="warmup-result-actions">
-            <button className="secondary-button" onClick={exitToBuilder}><LogOut size={15} /> {t('warmup.exit')}</button>
+            <Button variant="outline" onClick={exitToBuilder}><LogOut /> {t('warmup.exit')}</Button>
           </div>
         </section>
       </div>
@@ -741,8 +758,8 @@ export function Routine() {
           })}
         </div>
         <div className="warmup-result-actions">
-          <button className="secondary-button" onClick={exitToBuilder}><ArrowLeft size={15} /> {t('routine.backToBuilder')}</button>
-          <button className="secondary-button" onClick={() => startStage(0)}><RotateCcw size={15} /> {t('common.restart')}</button>
+          <Button variant="outline" onClick={exitToBuilder}><ArrowLeft /> {t('routine.backToBuilder')}</Button>
+          <Button onClick={() => startStage(0)}><RotateCcw /> {t('common.restart')}</Button>
         </div>
       </section>
     </section>

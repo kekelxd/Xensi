@@ -1,19 +1,17 @@
 import { XensiPageHeader } from './design/Primitives'
 import { AnimatedMetric } from './design/AnimatedMetric'
-import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
-import { ActiveIndicator, MotionExerciseCard } from './design/MotionSurfaces'
+import { AnimatePresence, motion } from 'motion/react'
+import { MotionExerciseCard } from './design/MotionSurfaces'
 import { useXensiMotion } from './design/motion'
-import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
-import { Activity, ArrowLeft, ArrowRight, Crosshair, Dot, Circle, Plus, LogOut, MousePointer2, Play, RotateCcw, Settings2, Sparkles, Target, TrendingUp, X, type LucideIcon } from 'lucide-react'
+import { Activity, ArrowLeft, ArrowRight, Crosshair, Dot, Circle, Plus, LogOut, MousePointer2, Play, RotateCcw, Settings2, Sparkles, Target, TrendingUp, type LucideIcon } from 'lucide-react'
 import { GAME_BY_ID, GAMES, type GameId } from './games'
 import { GamePicker } from './GamePicker'
 import { SensitivityConfigFields } from './SensitivityConfigFields'
 import { WizardStepPanel, WizardStepper } from './SetupWizard'
 import { useSensitivityPreset } from './useSensitivityPreset'
 import { createSessionContext, type SessionContext } from './playerProfileStore'
-import { useDialogFocus } from './useDialogFocus'
 import { normalizeSensitivity, parsePositiveNumberInput } from './sensitivity'
 import type { CrosshairStyle } from './TrackingArena'
 import { calculateWarmupAccuracy, getWarmupPointerGain, WARMUP_DIFFICULTIES, WARMUP_DURATION, type FixedWarmupDifficulty, type WarmupDifficulty, type WarmupExercise } from './warmupConfig'
@@ -32,6 +30,11 @@ import { PERSONAL_BEST_COPY } from './personalBestCopy'
 import { MicroFlick, MICRO_FLICK_PB_REQUIREMENTS } from './microFlick'
 import './spatialPreview.css'
 import { SpatialHuntLoader } from './SpatialHuntLoader'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { RadioGroup, RadioGroupCard, RadioGroupChip } from '@/components/ui/radio-group'
+
+const stepTitle = 'm-0 font-heading text-base font-semibold text-foreground'
 
 export type { WarmupMetrics } from './warmupTelemetry'
 
@@ -765,8 +768,6 @@ export function Warmup({
   const [phase, setPhase] = useState<WarmupPhase>(initialExercise ? 'setup' : 'hub')
   const recorder = useSessionRecorder()
   const sessions = getSessionRepository()
-  const setupRef = useRef<HTMLElement>(null)
-  useDialogFocus(setupRef, phase === 'setup')
   const [setupStep, setSetupStep] = useState<SetupStep>(1)
   const [stepDirection, setStepDirection] = useState<1 | -1>(1)
   const [inputReady, setInputReady] = useState(false)
@@ -893,20 +894,18 @@ export function Warmup({
     return (
       <section className="warmup-workspace">
         <XensiPageHeader className="warmup-heading" title={t('warmup.title')} description={t('warmup.subtitle')} />
-        <LayoutGroup id="train-filters"><div className="warmup-category-filters" role="group" aria-label={t('warmup.categories')}>
+        <div className="warmup-category-filters mb-6 flex flex-wrap gap-2" role="group" aria-label={t('warmup.categories')}>
           {(['all', ...Object.keys(EXERCISE_CATEGORIES)] as Array<ExerciseCategory | 'all'>).map(value => (
-            <button key={value} type="button" aria-pressed={category === value} onClick={() => {
+            <Button key={value} variant="outline" size="sm" aria-pressed={category === value} className="font-medium text-muted-foreground aria-pressed:border-primary/60 aria-pressed:bg-primary/10 aria-pressed:text-foreground" onClick={() => {
               setCategory(value)
               setPreviewExercise(null)
               setSniperFocused(false)
             }}>
-              {category === value && <ActiveIndicator />}
               {t(value === 'all' ? 'warmup.category.all' : EXERCISE_CATEGORIES[value])}
-              <span>{value === 'all' ? EXERCISES.length : EXERCISES.filter(item => item.category === value).length}</span>
-            </button>
+              <span className="text-xs tabular-nums text-subtle">{value === 'all' ? EXERCISES.length : EXERCISES.filter(item => item.category === value).length}</span>
+            </Button>
           ))}
         </div>
-        </LayoutGroup>
         <div className="warmup-exercises xensi-motion-cards">
           <AnimatePresence initial={false} mode="popLayout">
           {visibleExercises.map((item) => {
@@ -940,69 +939,76 @@ export function Warmup({
           </AnimatePresence>
         </div>
 
-        <MotionDialog open={Boolean(phase === 'setup')} className="modal-backdrop">{phase === 'setup' && (<MotionDialogPanel ref={setupRef} className="modal setup-modal warmup-setup-modal" role="dialog" aria-modal="true" aria-label={t('warmup.configureExercise', { exercise: exerciseConfig.name })} onKeyDown={event => { if (event.key === 'Escape') exitToHub() }}>
-              <button className="modal-close" onClick={exitToHub} aria-label={t('common.close')}><X size={18} /></button>
-              <Settings2 size={20} className="modal-icon" />
-              <h2>{t('warmup.configureExercise', { exercise: exerciseConfig.name })}</h2>
-              <p>{t(exerciseConfig.description)}</p>
+        <Dialog open={phase === 'setup'} onOpenChange={open => { if (!open) exitToHub() }}>
+          <DialogContent closeLabel={t('common.close')} className="warmup-setup-modal max-w-[820px] gap-6">
+            <DialogHeader>
+              <Settings2 size={20} className="text-primary" aria-hidden="true" />
+              <DialogTitle>{t('warmup.configureExercise', { exercise: exerciseConfig.name })}</DialogTitle>
+              <DialogDescription>{t(exerciseConfig.description)}</DialogDescription>
+            </DialogHeader>
 
-              <WizardStepper current={setupStep} steps={[t('warmup.stepGame'), t('warmup.stepSettings'), t('warmup.stepCrosshair')]} />
+            <WizardStepper current={setupStep} steps={[t('warmup.stepGame'), t('warmup.stepSettings'), t('warmup.stepCrosshair')]} />
 
-              <div className="warmup-step-content">
-                <WizardStepPanel key={setupStep} step={setupStep} direction={stepDirection}>
-                {setupStep === 1 && <>
-                  <h3>{t('warmup.chooseGame')}</h3>
-                  <GamePicker gameIds={GAMES.map(item => item.id)} value={selectedGame} onChange={config.selectGame} presets={config.presets} />
-                </>}
+            <div className="warmup-step-content min-h-[220px]">
+              <WizardStepPanel key={setupStep} step={setupStep} direction={stepDirection}>
+              {setupStep === 1 && <div className="grid gap-4">
+                <h3 className={stepTitle}>{t('warmup.chooseGame')}</h3>
+                <GamePicker gameIds={GAMES.map(item => item.id)} value={selectedGame} onChange={config.selectGame} presets={config.presets} />
+              </div>}
 
-                {setupStep === 2 && <>
-                  <SensitivityConfigFields draft={config.draft} presets={config.presets} onSelectPreset={config.selectPreset} onSensitivityChange={setSensitivity} onDpiChange={setDpi} sensitivityInvalid={parsedSensitivity === null} dpiInvalid={parsedDpi === null}>
-                    <div className="warmup-config-label">{t('warmup.difficulty')}</div>
-                    <div className="warmup-difficulty" role="radiogroup" aria-label={t('warmup.difficulty')}>
-                      {(Object.keys(WARMUP_DIFFICULTIES) as WarmupDifficulty[]).filter(level => supportsExerciseDifficulty(exercise, level)).map((level) => (
-                        <button type="button" key={level} className={difficulty === level ? 'selected' : ''} aria-pressed={difficulty === level} onClick={() => { setDifficulty(level); if (level === 'adaptive') setAdaptiveLevel('medium') }}>
-                          <i aria-hidden="true" /> <strong>{t(`difficulty.${level}` as TranslationKey)}</strong><small>{t(`difficulty.${level}Description` as TranslationKey)}</small>
-                        </button>
-                      ))}
-                    </div>
-                  </SensitivityConfigFields>
-                </>}
+              {setupStep === 2 && <SensitivityConfigFields draft={config.draft} presets={config.presets} onSelectPreset={config.selectPreset} onSensitivityChange={setSensitivity} onDpiChange={setDpi} sensitivityInvalid={parsedSensitivity === null} dpiInvalid={parsedDpi === null}>
+                <div className="grid gap-2.5">
+                  <span className="text-[13px] font-medium text-muted-foreground">{t('warmup.difficulty')}</span>
+                  <RadioGroup className="warmup-difficulty grid-cols-2 gap-2.5 sm:grid-cols-4" aria-label={t('warmup.difficulty')} value={difficulty} onValueChange={value => { const level = value as WarmupDifficulty; setDifficulty(level); if (level === 'adaptive') setAdaptiveLevel('medium') }}>
+                    {(Object.keys(WARMUP_DIFFICULTIES) as WarmupDifficulty[]).filter(level => supportsExerciseDifficulty(exercise, level)).map((level) => (
+                      <RadioGroupCard key={level} value={level} className="items-start p-3">
+                        <span className="grid min-w-0 gap-1"><strong className="font-semibold">{t(`difficulty.${level}` as TranslationKey)}</strong><small className="text-xs font-normal leading-snug text-muted-foreground">{t(`difficulty.${level}Description` as TranslationKey)}</small></span>
+                      </RadioGroupCard>
+                    ))}
+                  </RadioGroup>
+                </div>
+              </SensitivityConfigFields>}
 
-                {setupStep === 3 && <>
-                  <h3>{t('warmup.crosshairTitle')}</h3>
-                  <div className="warmup-crosshairs" role="radiogroup" aria-label={t('calibration.crosshairType')}>
-                    {CROSSHAIRS.map((item) => { const Icon = item.icon; return <button type="button" key={item.id} className={crosshair === item.id ? 'selected' : ''} onClick={() => setCrosshair(item.id)}><Icon size={16} /><span>{t(item.label)}</span></button> })}
-                  </div>
-                </>}
-                </WizardStepPanel>
-              </div>
+              {setupStep === 3 && <div className="grid gap-4">
+                <h3 className={stepTitle}>{t('warmup.crosshairTitle')}</h3>
+                <RadioGroup className="warmup-crosshairs grid-cols-2 gap-2.5 sm:grid-cols-4" aria-label={t('calibration.crosshairType')} value={crosshair} onValueChange={value => setCrosshair(value as CrosshairStyle)}>
+                  {CROSSHAIRS.map((item) => { const Icon = item.icon; return <RadioGroupChip key={item.id} value={item.id} className="h-11 [&_svg]:text-primary"><Icon />{t(item.label)}</RadioGroupChip> })}
+                </RadioGroup>
+              </div>}
+              </WizardStepPanel>
+            </div>
 
-              <div className="warmup-wizard-actions">
-                {setupStep > 1 && <button className="secondary-button" onClick={() => { setStepDirection(-1); setSetupStep((setupStep - 1) as SetupStep) }}><ArrowLeft size={15} /> {t('warmup.back')}</button>}
-                {setupStep < 3
-                  ? <button className="primary-button" onClick={() => { setStepDirection(1); setSetupStep((setupStep + 1) as SetupStep) }} disabled={setupStep === 2 && !validSetup}>{t('warmup.next')} <ArrowRight size={15} /></button>
-                  : <button className="primary-button" onClick={start} disabled={!validSetup}><Play size={15} /> {t('warmup.start')}</button>}
-              </div>
-            </MotionDialogPanel>)}</MotionDialog>
+            <DialogFooter className="warmup-wizard-actions border-0 border-t border-solid border-border pt-5">
+              {setupStep > 1 && <Button variant="outline" onClick={() => { setStepDirection(-1); setSetupStep((setupStep - 1) as SetupStep) }}><ArrowLeft /> {t('warmup.back')}</Button>}
+              {setupStep < 3
+                ? <Button onClick={() => { setStepDirection(1); setSetupStep((setupStep + 1) as SetupStep) }} disabled={setupStep === 2 && !validSetup}>{t('warmup.next')} <ArrowRight /></Button>
+                : <Button onClick={start} disabled={!validSetup}><Play /> {t('warmup.start')}</Button>}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-        <MotionDialog open={Boolean(phase === 'result')} className="modal-backdrop">{phase === 'result' && (<MotionDialogPanel className="modal warmup-result-modal">
-              <Sparkles size={22} className="modal-icon" />
-              <div className="panel-label">{t('warmup.reportTitle')}</div>
-              <h2>{exerciseConfig.name}</h2>
-              <p>{difficultyLabel} · {exercise === 'sniper-reaction' ? '' : `${game.label} · `}{WARMUP_DURATION}s</p>
-              <div className="warmup-result-score"><span>{t(metrics.micro ? 'micro.acquisition' : 'common.score')}</span><strong><AnimatedMetric value={metrics.micro ? metrics.micro.meanAcquisitionTimeMs : metrics.score} format={value => value === null ? '—' : metrics.micro ? `${format(value)} ms` : String(value)} /></strong></div>
-              {personalBest && <PersonalBestFeedback result={personalBest} exercise={exercise} gameLabel={game.label} />}
-              {pbUnavailable && <p role="status">{PERSONAL_BEST_COPY[locale].unavailable}</p>}
-              <WarmupReport metrics={metrics} previous={previousSession} exercise={exercise} onSelectRecommendation={openSetup} />
-              <div className="warmup-next-hint">
-                {t('warmup.fixedNextHint', { level: difficultyLabel })}
-              </div>
-              <div className="warmup-result-actions">
-                <button className="secondary-button" onClick={exitToHub}><LogOut size={15} /> {t('warmup.exit')}</button>
-                <button className="secondary-button" onClick={repeat}><RotateCcw size={15} /> {t('warmup.repeat')}</button>
-                <button className="primary-button" onClick={playNextRound}>{t('warmup.nextRound')} <ArrowRight size={15} /></button>
-              </div>
-            </MotionDialogPanel>)}</MotionDialog>
+        <Dialog open={phase === 'result'} onOpenChange={open => { if (!open) exitToHub() }}>
+          <DialogContent showCloseButton={false} className="warmup-result-modal max-w-[720px] gap-5">
+            <DialogHeader>
+              <Sparkles size={22} className="text-primary" aria-hidden="true" />
+              <span className="text-xs font-medium text-muted-foreground">{t('warmup.reportTitle')}</span>
+              <DialogTitle>{exerciseConfig.name}</DialogTitle>
+              <DialogDescription>{difficultyLabel} · {exercise === 'sniper-reaction' ? '' : `${game.label} · `}{WARMUP_DURATION}s</DialogDescription>
+            </DialogHeader>
+            <div className="warmup-result-score"><span>{t(metrics.micro ? 'micro.acquisition' : 'common.score')}</span><strong><AnimatedMetric value={metrics.micro ? metrics.micro.meanAcquisitionTimeMs : metrics.score} format={value => value === null ? '—' : metrics.micro ? `${format(value)} ms` : String(value)} /></strong></div>
+            {personalBest && <PersonalBestFeedback result={personalBest} exercise={exercise} gameLabel={game.label} />}
+            {pbUnavailable && <p role="status" className="m-0 text-sm text-muted-foreground">{PERSONAL_BEST_COPY[locale].unavailable}</p>}
+            <WarmupReport metrics={metrics} previous={previousSession} exercise={exercise} onSelectRecommendation={openSetup} />
+            <div className="warmup-next-hint">
+              {t('warmup.fixedNextHint', { level: difficultyLabel })}
+            </div>
+            <DialogFooter className="warmup-result-actions">
+              <Button variant="outline" onClick={exitToHub}><LogOut /> {t('warmup.exit')}</Button>
+              <Button variant="outline" onClick={repeat}><RotateCcw /> {t('warmup.repeat')}</Button>
+              <Button onClick={playNextRound}>{t('warmup.nextRound')} <ArrowRight /></Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </section>
     )
   }

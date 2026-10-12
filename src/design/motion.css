@@ -1,7 +1,4 @@
 /* Values are supplied from xensiMotion in main.tsx. Scope gestures to pilot UI. */
-.warmup-category-filters button { position: relative; transition: color var(--motion-fast) var(--motion-easeStandard), background-color var(--motion-fast) var(--motion-easeStandard), border-color var(--motion-fast) var(--motion-easeStandard); }
-.warmup-category-filters button[aria-pressed='true'] { text-decoration: none; }
-.warmup-category-filters .xensi-active-indicator { position: absolute; bottom: 3px; left: 12px; right: 12px; height: 2px; background: var(--accent); border-radius: 1px; pointer-events: none; }
 .xensi-motion-cards { position: relative; }
 .xensi-motion-cards > button { transition: border-color var(--motion-fast) var(--motion-easeStandard), background-color var(--motion-fast) var(--motion-easeStandard); }
 .xensi-motion-cards > button:hover { transform: none; box-shadow: none; border-color: rgba(255,114,81,.5); }
@@ -48,7 +45,6 @@ strong .xensi-metric-transition, strong .xensi-metric-transition > span { font: 
   .analysis-pb-panel details[open] > dl { animation: none; }
   .xensi-motion-cards > button > i { transition: none; translate: none; }
   .xensi-preview-layer .warmup-preview, .xensi-preview-layer .warmup-preview * { animation: none !important; }
-  .warmup-category-filters button, .xensi-motion-cards > button, .xensi-motion-cards > button > svg, .xensi-nav-dropdown > button,
-  :is(.xensi-motion-dialog, .xensi-navigation) :is(.primary-button, .secondary-button, .icon-button, .modal-close, .xensi-login-trigger) { transition: none; }
+  .xensi-motion-cards > button, .xensi-motion-cards > button > svg, .xensi-nav-dropdown > button, :is(.xensi-motion-dialog, .xensi-navigation) :is(.primary-button, .secondary-button, .icon-button, .modal-close, .xensi-login-trigger) { transition: none; }
   :is(.xensi-motion-dialog, .xensi-navigation) :is(.primary-button, .secondary-button, .icon-button, .modal-close, .xensi-login-trigger):enabled:active { scale: 1; }
 }

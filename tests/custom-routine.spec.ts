@@ -82,7 +82,7 @@ test.describe('Saved routines library', () => {
     await expect(page.getByRole('heading', { name: 'Monte sua playlist de treino' })).toBeVisible()
     await page.getByLabel('Nome da rotina').fill('Rotina editada')
     await page.locator('.routine-builder-footer').getByRole('button', { name: /Adicionar exercício/ }).click()
-    await page.getByRole('dialog', { name: 'Adicionar exercício' }).getByRole('button', { name: /Gridshot/ }).click()
+    await page.getByRole('dialog', { name: 'Adicionar exercício' }).getByRole('radio', { name: /Gridshot/ }).click()
     await page.getByRole('dialog', { name: 'Adicionar exercício' }).getByRole('button', { name: /Adicionar exercício/ }).click()
     await expect(page.locator('.routine-builder-item')).toHaveCount(4)
     await page.getByRole('button', { name: /^Salvar$/ }).click()

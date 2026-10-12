@@ -20,6 +20,11 @@ import { PERSONAL_BEST_COPY } from './personalBestCopy'
 import { readAuthSessionState } from './authService'
 import { formatAnalysisValue, getAnalysisMetrics } from './analysisMetrics'
 import './spatialHunt.css'
+import { GameSelect } from './GameSelect'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+
+const SPATIAL_GAMES = GAMES.map(item => ({ id: item.id, name: item.label }))
 
 const idle: SpatialView = { phase: 'idle', round: 1, countdown: 3, result: null }
 export default function SpatialHuntPage({ onExit }: { onExit: () => void }) {
@@ -173,7 +178,7 @@ export default function SpatialHuntPage({ onExit }: { onExit: () => void }) {
       {active && <Crosshair className="spatial-crosshair" size={28} aria-hidden="true" />}
     </div>
     {!active && <div className="spatial-controls">
-      <header><h1>{t('spatial.name')}</h1><span>{t('spatial.experimental')}</span><button className="icon-button" onClick={onExit} aria-label={t('spatial.exit')} title={t('spatial.exit')}><ArrowLeft size={20}/></button></header>
+      <header><h1>{t('spatial.name')}</h1><span>{t('spatial.experimental')}</span><Button variant="outline" size="icon" onClick={onExit} aria-label={t('spatial.exit')} title={t('spatial.exit')}><ArrowLeft /></Button></header>
       {error && <p role="alert">{t(error)}</p>}
       {view.phase === 'completed' && metrics ? <>
         <div className="spatial-results">{getAnalysisMetrics('spatial_hunt').map(metric => <div key={metric.key}><span>{t(metric.label)}</span><strong>{formatAnalysisValue(metrics[metric.key as keyof SpatialMetrics] as number | null, metric, locale)}</strong></div>)}</div>
@@ -183,12 +188,12 @@ export default function SpatialHuntPage({ onExit }: { onExit: () => void }) {
         <PersonalBestPanel exercise="spatial_hunt" />
       </> : view.phase === 'interrupted' ? <><h2>{t('spatial.interrupted')}</h2><p>{t('spatial.interruptedText')}</p></> : <>
         <p>{t('spatial.instruction')}</p><p className="spatial-headphones"><Headphones size={18}/>{t('spatial.headphones')}</p>
-        <label className="spatial-game">{t('common.gameReference')}<select value={config.draft.gameId} onChange={event => config.selectGame(event.target.value as GameId)} disabled={view.phase === 'preparing'}>{GAMES.map(item => <option value={item.id} key={item.id}>{item.label}</option>)}</select></label>
+        <div className="spatial-game grid gap-2"><Label htmlFor="spatial-game">{t('common.gameReference')}</Label><GameSelect id="spatial-game" games={SPATIAL_GAMES} value={config.draft.gameId} onValueChange={id => config.selectGame(id as GameId)} disabled={view.phase === 'preparing'} /></div>
         <SensitivityConfigFields draft={config.draft} presets={config.presets} onSelectPreset={config.selectPreset} onSensitivityChange={config.setSensitivity} onDpiChange={config.setDpi}/>
       </>}
       <p className="spatial-rule">{t('spatial.profile')}<br/>{t('spatial.pbRule')}</p>
       {view.phase === 'preparing' && <p role="status">{t('spatial.preparing')}</p>}
-      <div className="spatial-actions"><button className="primary-button" disabled={!ready || !valid || view.phase === 'preparing'} onClick={() => void start()}>{view.phase === 'completed' || view.phase === 'interrupted' ? <RotateCcw size={17}/> : <Play size={17}/>} {t(view.phase === 'completed' || view.phase === 'interrupted' ? 'spatial.retry' : 'spatial.start')}</button><button className="secondary-button" onClick={onExit}>{t('spatial.exit')}</button></div>
+      <div className="spatial-actions flex flex-wrap gap-2"><Button disabled={!ready || !valid || view.phase === 'preparing'} onClick={() => void start()}>{view.phase === 'completed' || view.phase === 'interrupted' ? <RotateCcw /> : <Play />} {t(view.phase === 'completed' || view.phase === 'interrupted' ? 'spatial.retry' : 'spatial.start')}</Button><Button variant="outline" onClick={onExit}>{t('spatial.exit')}</Button></div>
     </div>}
   </section>
 }

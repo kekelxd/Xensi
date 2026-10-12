@@ -33,7 +33,7 @@ test.describe('Sniper Reaction training', () => {
     test.setTimeout(90000)
     await page.getByRole('button', { name: /Sniper Reaction/ }).click()
     await page.getByRole('button', { name: /Continuar/ }).click()
-    await expect(page.getByRole('button', { name: /Adaptativa/ })).toHaveCount(0)
+    await expect(page.getByRole('radio', { name: /Adaptativa/ })).toHaveCount(0)
     await page.getByRole('button', { name: /Continuar/ }).click()
     if (isMobile) {
       await expect(page.getByRole('button', { name: /Iniciar aquecimento/ })).toBeVisible()

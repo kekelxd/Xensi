@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { useMemo, useState } from 'react'
 import { Check, ChevronRight, Crosshair, Download, Edit3, Gauge, Plus, RefreshCw, Search, Star, Trash2, X } from 'lucide-react'
 import { AvatarArtwork } from './AvatarArtwork'
-import { XENSI_AVATARS, type AvatarId } from './avatars'
+import { AvatarPicker } from './AvatarPicker'
 import { GAME_SENSITIVITY_PROFILES, GAME_SENSITIVITY_PROFILE_BY_ID, type GameSensitivityProfileId } from './gameSensitivityProfiles'
 import { useI18n, type Locale } from './i18n'
 import { calculatePresetCm360, readPlayerProfile, writePlayerProfile, type SensitivityPreset } from './playerProfileStore'
@@ -56,6 +56,8 @@ const copy = {
     editProfile: 'Editar perfil',
     nickname: 'Nickname',
     avatar: 'Avatar XENSI',
+    changeAvatar: 'Trocar',
+    doneAvatar: 'Concluir',
     saved: 'Alterações salvas',
     sensitivities: 'Sensibilidades salvas',
     add: 'Adicionar',
@@ -104,6 +106,8 @@ const copy = {
     editProfile: 'Edit profile',
     nickname: 'Nickname',
     avatar: 'XENSI avatar',
+    changeAvatar: 'Change',
+    doneAvatar: 'Done',
     saved: 'Changes saved',
     sensitivities: 'Saved sensitivities',
     add: 'Add',
@@ -152,6 +156,8 @@ const copy = {
     editProfile: 'Editar perfil',
     nickname: 'Nickname',
     avatar: 'Avatar XENSI',
+    changeAvatar: 'Cambiar',
+    doneAvatar: 'Listo',
     saved: 'Cambios guardados',
     sensitivities: 'Sensibilidades guardadas',
     add: 'Añadir',
@@ -398,12 +404,10 @@ export function PlayerProfile({ onConvert, onCalibrate }: PlayerProfileProps) {
     </div>
 
     <Dialog open={identityOpen} onOpenChange={setIdentityOpen}>
-      <DialogContent closeLabel={text.cancel} aria-describedby={undefined} className="max-w-[760px]">
+      <DialogContent closeLabel={text.cancel} aria-describedby={undefined} className="max-w-[640px]">
         <DialogHeader><span className={eyebrow}>{text.identity}</span><DialogTitle>{text.editIdentity}</DialogTitle></DialogHeader>
         <Label className="grid content-start items-stretch gap-2">{text.nickname}<Input value={identityDraft.nickname} maxLength={24} onChange={(event) => setIdentityDraft({ ...identityDraft, nickname: event.target.value })} /></Label>
-        <div className="grid gap-2"><span className="text-[13px] font-medium leading-none text-muted-foreground">{text.avatar}</span>
-          <div className="profile-avatar-picker grid max-h-[300px] grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-2 overflow-y-auto p-0.5">{XENSI_AVATARS.map((avatar) => { const selected = identityDraft.avatarId === avatar.id; return <button key={avatar.id} type="button" onClick={() => setIdentityDraft({ ...identityDraft, avatarId: avatar.id as AvatarId })} aria-label={avatar.label} aria-pressed={selected} className={cn('relative aspect-square min-w-0 cursor-pointer overflow-hidden rounded-none border-2 border-solid bg-muted p-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', selected ? 'border-primary' : 'border-transparent hover:border-input')}><AvatarArtwork avatarId={avatar.id} size="picker" selected={selected} className="size-full rounded-none border-0 shadow-none" /></button> })}</div>
-        </div>
+        <AvatarPicker locale={locale} value={identityDraft.avatarId} label={text.avatar} changeLabel={text.changeAvatar} doneLabel={text.doneAvatar} onChange={(avatarId) => setIdentityDraft({ ...identityDraft, avatarId })} />
         <DialogFooter><Button variant="outline" onClick={() => setIdentityOpen(false)}>{text.cancel}</Button><Button onClick={saveIdentity}><Check /> {text.save}</Button></DialogFooter>
       </DialogContent>
     </Dialog>

@@ -32,10 +32,15 @@ test('empty profile, avatar picker and navbar share normalized assets', async ({
   })).toBe(true)
 
   await page.getByRole('button', { name: 'Editar perfil' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Trocar' }).click()
+  await expect(page.getByRole('tab', { name: /^Gatos/ })).toHaveAttribute('aria-selected', 'true')
   const avatarButtons = page.locator('.profile-avatar-picker > button')
-  await expect(avatarButtons).toHaveCount(21)
+  await expect(avatarButtons).toHaveCount(8)
+  await expect(page.getByRole('button', { name: 'Gato com headset' })).toHaveAttribute('aria-pressed', 'true')
   await page.screenshot({ path: testInfo.outputPath('avatar-picker.png'), fullPage: true })
+  await page.getByRole('tab', { name: /^Cachorros/ }).click()
   await page.getByRole('button', { name: 'Cachorro feliz' }).click()
+  await expect(page.getByRole('button', { name: 'Cachorro feliz' })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Salvar', exact: true }).click()
 
   const profileAvatar = page.locator('.profile-v1-person .xensi-avatar img')
@@ -82,7 +87,10 @@ test('creates a preset and prefills converter and calibrator', async ({ page }, 
 test('avatar cells remain square and visually contained', async ({ page }) => {
   await openProfile(page)
   await page.getByRole('button', { name: 'Editar perfil' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Trocar' }).click()
+  await page.getByRole('tab', { name: /^Neon/ }).click()
   const cells = page.locator('.profile-avatar-picker > button')
+  await expect(cells.first()).toBeVisible()
   const count = await cells.count()
   for (let index = 0; index < count; index += 1) {
     const cell = cells.nth(index)

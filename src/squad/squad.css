@@ -3,3 +3,9 @@
 .lfg-workspace { width: min(var(--xensi-max-width), calc(100% - var(--xensi-gutter) * 2)); margin: 0 auto; padding: var(--xensi-page-space) 0 72px; }
 .lfg-layout { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 28px; align-items: start; margin-top: 28px; }
 @media (max-width: 1100px) { .lfg-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+/* GameSelect: short pop for the popover, slide-up for the mobile sheet; none with reduced motion. */
+.game-select-panel { animation: game-select-pop 140ms cubic-bezier(.2,.8,.2,1); }
+.game-select-panel.is-sheet { animation-name: game-select-sheet; animation-duration: 220ms; }
+@keyframes game-select-pop { from { opacity: 0; transform: translateY(-4px) scale(.98); } }
+@keyframes game-select-sheet { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .game-select-panel, .game-select-panel.is-sheet { animation: none; } }

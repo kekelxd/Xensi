@@ -29,3 +29,9 @@ export async function squadRpc<T>(userId: string, action: string, payload: Recor
   if (data?.error) throw new Error(data.error)
   return data as T
 }
+export async function clearNotifications() {
+  const client = getSupabaseClient()
+  if (!client) throw new Error('lfg_unconfigured')
+  const { error } = await client.rpc('xensi_notifications_clear')
+  if (error) throw new Error('lfg_network')
+}

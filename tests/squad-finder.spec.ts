@@ -131,7 +131,7 @@ test.describe('Squad Finder', () => {
     await page.screenshot({path:`test-results/squad-request-${info.project.name}.png`,animations:'disabled'})
     await dialog.getByRole('textbox',{name:'Usuário Discord'}).fill('guest.username')
     await expect(dialog.getByRole('button',{name:'Solicitar entrada'})).toBeDisabled()
-    await dialog.getByRole('checkbox').check();await dialog.getByRole('button',{name:'Solicitar entrada'}).click()
+    await dialog.getByRole('checkbox',{name:/^Confirmo o envio/}).check();await dialog.getByRole('button',{name:'Solicitar entrada'}).click()
     await expect(dialog).not.toBeVisible();expect(state.requested).toBe(true);expect(state.calls.some(c=>c.action==='host_contact')).toBe(false)
   })
   test('host approval reserves the slot; confirmation closes room', async ({page,context}) => {

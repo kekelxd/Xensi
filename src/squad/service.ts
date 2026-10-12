@@ -4,9 +4,9 @@ export type RoomStatus = 'open' | 'reserved' | 'closed' | 'expired' | 'cancelled
 export type RequestStatus = 'pending' | 'accepted' | 'declined' | 'withdrawn' | 'cancelled' | 'joined'
 export type Room = {
   id: string; game_id: SquadGame; platform: SquadPlatform; crossplay: boolean; region: string; game_mode: string; rank_info: string
-  microphone_required: boolean; status: RoomStatus; slots: number; expires_at: string; reserved_until: string | null; created_at: string; nickname: string; avatar_id: string | null
+  microphone_required: boolean; status: RoomStatus; slots: number; capacity: number; filled: number; expires_at: string; reserved_until: string | null; created_at: string; nickname: string; avatar_id: string | null
 }
-export type Request = { id: string; room_id: string; status: RequestStatus; requested_at: string; platform: SquadPlatform; nickname: string; avatar_id: string | null; room: Room; discord_username: string | null }
+export type Request = { id: string; room_id: string; status: RequestStatus; requested_at: string; platform: SquadPlatform; nickname: string; avatar_id: string | null; reserved_until: string | null; room: Room; discord_username: string | null }
 export type Access = { eligible: boolean; enabled: boolean; email_confirmed: boolean; moderator: boolean; creation_enabled: boolean; publication_restricted: boolean; suspended: boolean }
 export type Notification = { id: string; kind: string; room_id: string; created_at: string }
 export type Contact = { nickname: string; discord_username: string; reserved_until: string }

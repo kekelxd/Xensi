@@ -5,7 +5,7 @@ import { initializeAuth, readAuthSessionState, type AuthSessionState } from '../
 import { useI18n } from '../i18n'
 import { AvatarArtwork } from '../AvatarArtwork'
 import { isAvatarId, DEFAULT_AVATAR } from '../avatars'
-import { GameBadge } from '../GameBadge'
+import '../gameIdentity.css'
 import { XensiPageHeader } from '../design/Primitives'
 import { xensiMotion } from '../design/motion'
 import { withBasePath } from '../routes'
@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupCard } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { compatible, platforms, ranksFor, regions, registry, validDiscord, type SquadGame, type SquadPlatform } from './registry'
+import { platformIds, platforms, regions, registry, validDiscord, validFreeText, type SquadGame, type SquadPlatform } from './registry'
 import { errorCopy, squadCopy, statusCopy, valueCopy } from './copy'
 import { armAlertSound, playAlert } from './sound'
 import { disablePush, enablePush, pushState, type PushState } from './push'
@@ -38,7 +38,7 @@ const ALL = '__all'
 const games = Object.keys(registry) as SquadGame[]
 const MotionCard = motion.create(Card)
 const optionLabel = (v: string, value: (key: string) => string) => v in registry ? registry[v as SquadGame].name : v in platforms ? platforms[v as SquadPlatform] : value(v)
-const platformFamilies = (game: SquadGame) => [...new Set(registry[game].platforms.map(p => p === 'pc' ? 'PC' : p.startsWith('xbox') ? 'Xbox' : 'PS'))].join(' · ')
+const GameCode = ({ id, selected = false }: { id: SquadGame; selected?: boolean }) => <span aria-hidden="true" className={`xensi-game-badge badge-sm${selected ? ' is-selected' : ''}`}>{registry[id].code}</span>
 const heading = 'm-0 font-heading font-semibold leading-tight tracking-[-0.01em] text-foreground'
 const muted = 'm-0 text-sm leading-relaxed text-muted-foreground'
 
@@ -59,14 +59,14 @@ function SelectField({ label, value, options, onValueChange, format, allLabel, c
 function GameCards({ label, value, onValueChange, allLabel, allMeta, disabled }: { label: string; value: string; onValueChange: (v: string) => void; allLabel?: string; allMeta?: string; disabled?: boolean }) {
   return <div className="grid min-w-0 gap-2">
     <span className="font-sans text-[13px] font-medium leading-none text-muted-foreground">{label}</span>
-    <RadioGroup aria-label={label} disabled={disabled} value={value || (allLabel ? ALL : '')} onValueChange={v => onValueChange(v === ALL ? '' : v)} className={cn('grid-cols-2 gap-2.5', allLabel ? 'xl:grid-cols-4' : 'sm:grid-cols-3')}>
+    <RadioGroup aria-label={label} disabled={disabled} value={value || (allLabel ? ALL : '')} onValueChange={v => onValueChange(v === ALL ? '' : v)} className={cn('max-h-80 grid-cols-2 gap-2.5 overflow-y-auto pr-1', allLabel ? 'xl:grid-cols-4' : 'sm:grid-cols-3')}>
       {allLabel && <RadioGroupCard value={ALL}>
         <span aria-hidden="true" className="grid size-9 flex-none place-content-center rounded-lg border border-solid border-input bg-foreground/[.04] text-muted-foreground"><Gamepad2 className="size-[18px]" /></span>
         <span className="grid min-w-0 gap-1"><strong className="font-semibold text-balance">{allLabel}</strong>{allMeta && <small className="text-xs font-normal text-muted-foreground">{allMeta}</small>}</span>
       </RadioGroupCard>}
       {games.map(id => <RadioGroupCard key={id} value={id}>
-        <GameBadge gameId={id} size="sm" selected={value === id} />
-        <span className="grid min-w-0 gap-1"><strong className="font-semibold text-balance">{registry[id].name}</strong><small className="text-xs font-normal text-muted-foreground">{platformFamilies(id)}</small></span>
+        <GameCode id={id} selected={value === id} />
+        <span className="grid min-w-0 gap-1"><strong className="font-semibold text-balance">{registry[id].name}</strong></span>
       </RadioGroupCard>)}
     </RadioGroup>
   </div>
@@ -166,7 +166,7 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
         next.notifications.forEach(n => known.add(n.id))
         setSnapshot(next); setError('')
         if (!access.eligible) { setContact(null); if (area !== 'moderation') setDialog(null) }
-        if (contactRef.current && !next.requests.some(q => q.room_id === contactRef.current?.roomId && q.status === 'accepted' && q.room.status === 'reserved')) setContact(null)
+        if (contactRef.current && !next.requests.some(q => q.room_id === contactRef.current?.roomId && q.status === 'accepted')) setContact(null)
       } catch (e) {
         if (active && !abort.signal.aborted && version === generation.current) { setError(errorCopy[e instanceof Error ? e.message : '']?.[lang === 'pt' ? 0 : 1] ?? squadCopy[lang].network); setSnapshot(emptySnapshot()); setContact(null); setDialog(null) }
       } finally { running = false; if (active && version === generation.current) setLoading(false) }
@@ -235,18 +235,18 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
   const roomInfo = (room: Room) => <>
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">
-        <GameBadge gameId={room.game_id} size="sm" />
+        <GameCode id={room.game_id} />
         <h2 className={cn(heading, 'text-[19px]')}>{registry[room.game_id]?.name}</h2>
       </div>
       <Badge variant={room.status === 'open' ? 'success' : room.status === 'reserved' ? 'default' : 'outline'}>{statuses[room.status]}</Badge>
     </div>
-    <div className="flex flex-wrap gap-1.5"><Badge variant="secondary">{platforms[room.platform]}</Badge><Badge variant="secondary">{value(room.region)}</Badge><Badge variant="secondary">{value(room.game_mode)}</Badge></div>
+    <div className="flex flex-wrap gap-1.5"><Badge variant="secondary">{platforms[room.platform]}</Badge><Badge variant="secondary">{value(room.region)}</Badge>{room.game_mode && <Badge variant="secondary">{value(room.game_mode)}</Badge>}</div>
     <dl className="m-0 grid border-0 border-y border-solid border-border [&>div+div]:border-0 [&>div+div]:border-t [&>div+div]:border-solid [&>div+div]:border-border">
-      {[[text.rank, value(room.rank_info)], [text.mic, room.microphone_required ? text.mandatory : text.optional], [text.expires, date(room.expires_at)]].map(([term, detail]) => <div key={term} className="flex items-baseline justify-between gap-3 py-2.5">
+      {[[text.rank, room.rank_info ? value(room.rank_info) : '—'], [text.mic, room.microphone_required ? text.mandatory : text.optional], [text.expires, date(room.expires_at)]].map(([term, detail]) => <div key={term} className="flex items-baseline justify-between gap-3 py-2.5">
         <dt className="text-xs font-medium text-muted-foreground">{term}</dt><dd className="m-0 text-right text-[13px] font-medium text-foreground [overflow-wrap:anywhere]">{detail}</dd>
       </div>)}
     </dl>
-    {identity(room.avatar_id, room.nickname, room.status === 'open' ? text.slot : room.status === 'reserved' ? text.reservedSlot : statuses[room.status])}
+    {identity(room.avatar_id, room.nickname, room.status === 'open' || room.status === 'reserved' ? `${room.filled}/${room.capacity} ${text.slotsWord}${room.status === 'reserved' ? ` · ${text.full}` : ''}` : statuses[room.status])}
   </>
   const pagerControls = (current: number, hasMore: boolean, onPage: (delta: number) => void, disabled: boolean) => <div className="flex flex-wrap items-center justify-center gap-3 pt-2 text-[13px] font-medium text-muted-foreground">
     <Button variant="outline" size="sm" disabled={current === 0 || disabled} onClick={() => onPage(-1)}><ChevronLeft />{text.previous}</Button>
@@ -288,11 +288,10 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
           {(area === 'find' || area === 'mine') && (!a?.creation_enabled || a.publication_restricted) && <p className={muted}>{text.creationOff}</p>}
           {area === 'find' && <Card className="gap-4 p-5 sm:p-6" aria-label={text.filtersTitle} role="region">
             <div className="flex items-center justify-between gap-3"><h2 className={cn(heading, 'text-lg')}>{text.filtersTitle}</h2><div className="flex flex-wrap items-center gap-2">{refreshButton}{pushButton}</div></div>
-            <GameCards label={text.game} value={filters.game} allLabel={text.allGames} allMeta={`${games.length} ${text.gamesCount}`} onValueChange={game => setFilter({ game, platform: '', mode: '' })} />
-            <div className="grid gap-3.5 sm:grid-cols-3">
-              <SelectField label={text.platform} value={filters.platform} allLabel={text.all} format={format} options={filters.game in registry ? registry[filters.game as SquadGame].platforms : Object.keys(platforms)} onValueChange={platform => setFilter({ platform })} />
+            <GameCards label={text.game} value={filters.game} allLabel={text.allGames} allMeta={`${games.length} ${text.gamesCount}`} onValueChange={game => setFilter({ game, platform: '' })} />
+            <div className="grid gap-3.5 sm:grid-cols-2">
+              <SelectField label={text.platform} value={filters.platform} allLabel={text.all} format={format} options={platformIds} onValueChange={platform => setFilter({ platform })} />
               <SelectField label={text.region} value={filters.region} allLabel={text.all} format={format} options={regions} onValueChange={region => setFilter({ region })} />
-              <SelectField label={text.mode} value={filters.mode} allLabel={text.all} format={format} options={filters.game in registry ? registry[filters.game as SquadGame].modes : [...new Set(Object.values(registry).flatMap(g => g.modes))]} onValueChange={mode => setFilter({ mode })} />
             </div>
           </Card>}
           {area === 'find' && <h2 className={cn(heading, 'mt-1 text-lg')}>{text.roomsTitle}</h2>}
@@ -306,15 +305,16 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
                 <Button variant="outline" size="sm" disabled={busy} onClick={() => open('report', room)}>{text.report}</Button>
                 <Button variant="outline" size="sm" disabled={busy} onClick={() => open('block', room)}>{text.block}</Button>
               </div> : <>
-                {room.status === 'reserved' && <div className={section}><h3 className={cn(heading, 'font-sans text-sm')}>{text.waiting}</h3><p className={muted}>{text.reservation}: {room.reserved_until && date(room.reserved_until)}</p><div className="flex flex-wrap gap-2"><Button disabled={busy} onClick={() => open('confirm', room)}>{text.confirm}</Button><Button variant="outline" disabled={busy} onClick={() => open('release', room)}>{text.release}</Button></div></div>}
                 {['open', 'reserved'].includes(room.status) && <Button variant="outline" className="justify-self-start" disabled={busy} onClick={() => open('cancel', room)}>{text.end}</Button>}
                 <div className="grid">
                   {snapshot.requests.filter(q => q.room_id === room.id).slice(0, pageSize).map(q => <motion.div {...enter} key={q.id} className={section}>
                     {identity(q.avatar_id, q.nickname, <Badge variant={q.status === 'pending' ? 'outline' : q.status === 'accepted' ? 'default' : 'secondary'}>{statuses[q.status]}</Badge>)}
                     <p className={muted}>{platforms[q.platform]} · {date(q.requested_at)}</p>
+                    {q.status === 'accepted' && q.reserved_until && <p className={muted}>{text.confirmBy}: {date(q.reserved_until)}</p>}
                     {q.discord_username && privateContact(q.discord_username)}
                     <div className="flex flex-wrap gap-2">
                       {q.status === 'pending' && <><Button size="sm" disabled={busy || room.status !== 'open'} onClick={() => open('accept', room, q)}>{text.accept}</Button><Button variant="outline" size="sm" disabled={busy} onClick={() => void act('decline', { room_id: room.id, request_id: q.id })}>{text.decline}</Button></>}
+                      {q.status === 'accepted' && <><Button size="sm" disabled={busy} onClick={() => open('confirm', room, q)}>{text.confirm}</Button><Button variant="outline" size="sm" disabled={busy} onClick={() => open('release', room, q)}>{text.release}</Button></>}
                       <Button variant="ghost" size="sm" disabled={busy} onClick={() => open('report', room, q)}>{text.report}</Button><Button variant="ghost" size="sm" disabled={busy} onClick={() => open('block', room, q)}>{text.block}</Button>
                     </div>
                   </motion.div>)}
@@ -327,7 +327,7 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
           {!loading && area === 'requests' && <>{!snapshot.requests.length && <p className={cn(muted, 'py-7')}>{text.noRequests}</p>}<div className={roomGrid()}>{snapshot.requests.slice(0, pageSize).map(q => <MotionCard {...enter} key={q.id} spotlight className={cardBody}>
             {roomInfo(q.room)}
             <div className="flex items-center justify-between gap-3"><h3 className={cn(heading, 'font-sans text-sm')}>{statuses[q.status]}</h3><p className={cn(muted, 'text-xs')}>{date(q.requested_at)}</p></div>
-            {q.status === 'accepted' && q.room.status === 'reserved' && <div className={section}><h3 className={cn(heading, 'font-sans text-sm')}>{text.accepted}</h3><p className={muted}>{text.acceptedHint}</p><Button className="justify-self-start" disabled={busy} onClick={() => void act('host_contact', { room_id: q.room_id })}>{text.contact}</Button>{contact?.roomId === q.room_id && privateContact(contact.data.discord_username, contact.data.nickname)}</div>}
+            {q.status === 'accepted' && <div className={section}><h3 className={cn(heading, 'font-sans text-sm')}>{text.accepted}</h3><p className={muted}>{text.acceptedHint}</p><Button className="justify-self-start" disabled={busy} onClick={() => void act('host_contact', { room_id: q.room_id })}>{text.contact}</Button>{contact?.roomId === q.room_id && privateContact(contact.data.discord_username, contact.data.nickname)}</div>}
             <div className="mt-auto flex flex-wrap gap-2">{q.status === 'pending' && <Button variant="outline" size="sm" disabled={busy} onClick={() => void act('withdraw', { room_id: q.room_id, request_id: q.id })}>{text.withdraw}</Button>}<Button variant="ghost" size="sm" disabled={busy} onClick={() => open('report', q.room)}>{text.report}</Button><Button variant="ghost" size="sm" disabled={busy} onClick={() => open('block', q.room)}>{text.block}</Button></div>
           </MotionCard>)}</div>{pager(snapshot.requests.length > pageSize)}</>}
           {!loading && area === 'blocks' && <Card className="gap-3 p-5 sm:p-6">{!snapshot.blocks.length && <p className={muted}>{text.noBlocks}</p>}{snapshot.blocks.slice(0, pageSize).map(b => <div key={b.id} className="flex items-center justify-between gap-3 border-0 border-b border-solid border-border pb-3 text-sm font-medium text-foreground last-of-type:border-0"><span className="[overflow-wrap:anywhere]">{b.nickname}</span><Button variant="outline" size="sm" disabled={busy} onClick={() => void act('unblock', { id: b.id })}>{text.unblock}</Button></div>)}{pager(snapshot.blocks.length > pageSize)}</Card>}
@@ -359,9 +359,9 @@ function SquadDialog({ dialog, lang, knownDiscord, busy, error, onClose, onSubmi
   const trigger = useRef(document.activeElement as HTMLElement | null)
   const [game, setGame] = useState<SquadGame>(dialog.room?.game_id ?? 'valorant')
   const [platform, setPlatform] = useState<SquadPlatform>(dialog.room?.platform ?? 'pc')
-  const [region, setRegion] = useState('br'), [mode, setMode] = useState(registry[game].modes[0] as string), [rank, setRank] = useState('unranked')
-  const [discord, setDiscord] = useState(knownDiscord), [mic, setMic] = useState(true), [crossplay, setCrossplay] = useState(false), [consent, setConsent] = useState(false), [category, setCategory] = useState('harassment')
-  const [invalid, setInvalid] = useState(false)
+  const [region, setRegion] = useState('sa'), [mode, setMode] = useState(''), [rank, setRank] = useState(''), [slots, setSlots] = useState('1')
+  const [discord, setDiscord] = useState(knownDiscord), [mic, setMic] = useState(true), [consent, setConsent] = useState(false), [category, setCategory] = useState('harassment')
+  const [invalid, setInvalid] = useState(false), [invalidText, setInvalidText] = useState(false)
   const creating = dialog.action === 'create', requesting = dialog.action === 'request'
   const titles: Record<string, string> = { create: text.create, request: text.request, accept: text.accept, confirm: text.confirm, release: text.release, cancel: text.end, report: text.report, block: text.block, mod_decide: text.moderation, mod_capacity: text.capacity }
   const hints: Record<string, string> = { create: text.hostDisclosure, request: text.disclosure, accept: text.hostDisclosure, confirm: text.confirmHint, release: text.releaseHint, cancel: text.endHint, report: text.reportHint, block: text.blockHint, mod_decide: text.modHint, mod_capacity: text.modHint }
@@ -369,15 +369,16 @@ function SquadDialog({ dialog, lang, knownDiscord, busy, error, onClose, onSubmi
     event.preventDefault()
     if (busy) return
     if ((creating || requesting) && !validDiscord(discord)) { setInvalid(true); discordInput.current?.focus(); return }
+    if (creating && !(validFreeText(mode.trim()) && validFreeText(rank.trim()))) { setInvalidText(true); return }
     const payload: Record<string, unknown> = { room_id: dialog.room?.id, request_id: dialog.request?.id }
-    if (creating) Object.assign(payload, { game_id: game, platform, region, game_mode: mode, rank_info: rank, microphone_required: mic, crossplay, discord_username: discord })
+    if (creating) Object.assign(payload, { game_id: game, platform, region, game_mode: mode.trim(), rank_info: rank.trim(), slots: Number(slots), microphone_required: mic, crossplay: true, discord_username: discord })
     if (requesting) Object.assign(payload, { platform, discord_username: discord, consent })
     if (dialog.action === 'report') payload.category = category
     if (dialog.action === 'mod_decide') Object.assign(payload, { report_id: dialog.id, decision: dialog.decision, reason: category })
     if (dialog.action === 'mod_capacity') payload.enabled = dialog.enabled
     onSubmit(payload)
   }
-  const pickGame = (v: string) => { const next = v as SquadGame; setGame(next); setPlatform('pc'); setMode(registry[next].modes[0]); setRank('unranked'); setCrossplay(false) }
+  const pickGame = (v: string) => setGame(v as SquadGame)
   const title = dialog.action === 'mod_decide' ? value(dialog.decision ?? '') : titles[dialog.action] ?? text.confirm
   return <Dialog open onOpenChange={next => { if (!next) onClose() }}>
     <DialogContent showCloseButton={false} className={cn(creating ? 'max-w-[720px]' : 'max-w-[560px]')}
@@ -388,18 +389,19 @@ function SquadDialog({ dialog, lang, knownDiscord, busy, error, onClose, onSubmi
         {creating && <>
           <GameCards label={text.game} value={game} onValueChange={pickGame} />
           <div className="grid gap-3.5 sm:grid-cols-2">
-            <SelectField label={text.platform} value={platform} format={format} options={registry[game].platforms} onValueChange={v => setPlatform(v as SquadPlatform)} />
+            <SelectField label={text.platform} value={platform} format={format} options={platformIds} onValueChange={v => setPlatform(v as SquadPlatform)} />
             <SelectField label={text.region} value={region} format={format} options={regions} onValueChange={setRegion} />
-            <SelectField label={text.mode} value={mode} format={format} options={registry[game].modes} onValueChange={v => { setMode(v); setRank('unranked') }} />
-            <SelectField label={text.rank} value={rank} format={format} options={ranksFor(game, mode)} onValueChange={setRank} />
+            <SelectField label={text.slots} value={slots} format={v => v} options={['1', '2', '3', '4']} onValueChange={setSlots} />
+            <span aria-hidden="true" className="max-sm:hidden" />
+            <div className="grid gap-2"><Label htmlFor={`${discordId}-mode`}>{text.mode} <span className="font-normal text-muted-foreground">({text.optional.toLowerCase()})</span></Label><Input id={`${discordId}-mode`} maxLength={24} autoComplete="off" value={mode} aria-invalid={invalidText} onChange={e => { setMode(e.target.value); setInvalidText(false) }} /></div>
+            <div className="grid gap-2"><Label htmlFor={`${discordId}-rank`}>{text.rank} <span className="font-normal text-muted-foreground">({text.optional.toLowerCase()})</span></Label><Input id={`${discordId}-rank`} maxLength={24} autoComplete="off" value={rank} aria-invalid={invalidText} onChange={e => { setRank(e.target.value); setInvalidText(false) }} /></div>
           </div>
           <div className="grid gap-3">
             <CheckField checked={mic} onCheckedChange={setMic}>{text.mic}</CheckField>
-            {game !== 'cs2' && (game !== 'valorant' || platform !== 'pc') && <CheckField checked={crossplay} onCheckedChange={setCrossplay}>{text.crossplay}</CheckField>}
-            <p className="m-0 text-xs leading-relaxed text-muted-foreground">{text.crossplayHint}</p>
+            {invalidText && <p role="alert" className="m-0 text-xs text-destructive">{text.invalidText}</p>}
           </div>
         </>}
-        {requesting && dialog.room && <SelectField label={text.platform} value={platform} format={format} options={registry[game].platforms.filter(p => compatible(game, dialog.room!.platform, p, dialog.room!.crossplay))} onValueChange={v => setPlatform(v as SquadPlatform)} />}
+        {requesting && dialog.room && <SelectField label={text.platform} value={platform} format={format} options={platformIds} onValueChange={v => setPlatform(v as SquadPlatform)} />}
         {(creating || requesting) && <div className="grid gap-2">
           <Label htmlFor={discordId}>{text.discord}</Label>
           <Input ref={discordInput} id={discordId} name="discord" autoComplete="off" maxLength={32} value={discord} aria-invalid={invalid} aria-describedby={`${discordId}-hint ${discordId}-error`} onChange={e => { setDiscord(e.target.value); setInvalid(false) }} />

@@ -12,6 +12,8 @@ import { useDialogFocus } from './useDialogFocus'
 import { normalizeSensitivity, parsePositiveNumberInput } from './sensitivity'
 import type { CrosshairStyle } from './TrackingArena'
 import { WarmupArena, type ArenaHandle, type WarmupMetrics, type WarmupPhase } from './Warmup'
+import { getDegreesPerCount } from './aimModel'
+import { preloadSniperArena } from './sniperArenaLoader'
 import { getWarmupPointerGain, type FixedWarmupDifficulty, type WarmupDifficulty, type WarmupExercise } from './warmupConfig'
 import { EXERCISES } from './warmupExercises'
 import { createEmptyWarmupMetrics } from './warmupTelemetry'
@@ -186,6 +188,7 @@ function RoutineLibraryCard({
 export function Routine() {
   const { t, locale } = useI18n()
   const arenaRef = useRef<ArenaHandle>(null)
+  useEffect(() => { preloadSniperArena() }, [])
   const recorder = useSessionRecorder()
   const sessions = getSessionRepository()
   const setupRef = useRef<HTMLElement>(null)
@@ -232,6 +235,7 @@ export function Routine() {
   const normalizedSensitivity = parsedSensitivity === null ? null : normalizeSensitivity(parsedSensitivity, builderGame)
   const runtimeSensitivity = launchContext?.sensitivity ?? normalizedSensitivity
   const pointerGain = getWarmupPointerGain(game, runtimeSensitivity ?? game.sensitivityMin)
+  const degreesPerCount = getDegreesPerCount(game, runtimeSensitivity ?? game.sensitivityMin) ?? undefined
   const orderedItems = useMemo(() => routine.items.slice().sort((left, right) => left.order - right.order), [routine.items])
   const activeItem = orderedItems[stageIndex] ?? orderedItems[0]
   const exercise = activeItem ? exerciseById(activeItem.modeId) : EXERCISES[0]
@@ -696,6 +700,7 @@ export function Routine() {
         durationSeconds={activeItem.durationSeconds}
         crosshair={crosshair}
         pointerGain={pointerGain}
+        degreesPerCount={degreesPerCount}
         sessionId={sessionId}
         sensitivityLabel={`${game.shortLabel} ${format(normalizedSensitivity ?? 0, 3)}`}
         instruction={t(exercise.instruction)}
@@ -775,6 +780,7 @@ export function Routine() {
       durationSeconds={activeItem.durationSeconds}
       crosshair={crosshair}
       pointerGain={pointerGain}
+      degreesPerCount={degreesPerCount}
       sessionId={sessionId}
       sensitivityLabel={`${game.shortLabel} ${format(normalizedSensitivity ?? 0, 3)}`}
       instruction={t(exercise.instruction)}

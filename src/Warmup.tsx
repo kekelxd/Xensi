@@ -3,7 +3,7 @@ import { AnimatedMetric } from './design/AnimatedMetric'
 import { AnimatePresence, motion } from 'motion/react'
 import { MotionExerciseCard } from './design/MotionSurfaces'
 import { useXensiMotion } from './design/motion'
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from 'react'
+import { forwardRef, lazy, Suspense, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import { Activity, ArrowLeft, ArrowRight, Crosshair, Dot, Circle, Plus, LogOut, MousePointer2, Play, RotateCcw, Settings2, Sparkles, Target, TrendingUp, type LucideIcon } from 'lucide-react'
 import { GAME_BY_ID, GAMES, type GameId } from './games'
@@ -14,11 +14,13 @@ import { useSensitivityPreset } from './useSensitivityPreset'
 import { createSessionContext, type SessionContext } from './playerProfileStore'
 import { normalizeSensitivity, parsePositiveNumberInput } from './sensitivity'
 import type { CrosshairStyle } from './TrackingArena'
+import { drawCrosshair } from './crosshair'
+import { getDegreesPerCount } from './aimModel'
+import { getLoadedSniperArena, loadSniperArena, preloadSniperArena } from './sniperArenaLoader'
 import { calculateWarmupAccuracy, getWarmupPointerGain, WARMUP_DIFFICULTIES, WARMUP_DURATION, type FixedWarmupDifficulty, type WarmupDifficulty, type WarmupExercise } from './warmupConfig'
 import { useI18n, type TranslationKey } from './i18n'
 import { clampAimCoordinate, requestStablePointerLock, sanitizePointerMovement } from './pointerInput'
 import { EXERCISES, EXERCISE_CATEGORIES, supportsExerciseDifficulty, type ExerciseCategory } from './warmupExercises'
-import { SniperReaction, summarizeSniper } from './sniperReaction'
 import './sniperReaction.css'
 import { createEmptyWarmupMetrics, getAimBiasLabel, getAimDiagnosis, getWarmupRecommendation, type WarmupMetrics, type WarmupSessionSummary } from './warmupTelemetry'
 import { exerciseConfig, sessionSummary, type ExerciseConfig, type SessionReason } from './trainingSession'
@@ -70,28 +72,6 @@ const isTrackingExercise = (exercise: WarmupExercise) => exercise === 'tracking'
 const exerciseRadiusScale = (exercise: WarmupExercise) => exercise === 'gridshot' ? 0.78 : exercise === 'reflex' || exercise === 'strafetrack' ? 0.88 : 1
 const reflexWindow = (targetScale: number) => targetScale > 1 ? 1250 : targetScale > 0.8 ? 900 : 650
 
-function drawCrosshair(ctx: CanvasRenderingContext2D, x: number, y: number, style: CrosshairStyle, color: string) {
-  ctx.strokeStyle = color
-  ctx.fillStyle = color
-  ctx.lineWidth = style === 'plus' ? 2.2 : 1.5
-  if (style === 'dot') {
-    ctx.beginPath(); ctx.arc(x, y, 4.2, 0, Math.PI * 2); ctx.fill(); return
-  }
-  if (style === 'circle') {
-    ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.stroke()
-    ctx.beginPath(); ctx.arc(x, y, 2.4, 0, Math.PI * 2); ctx.fill(); return
-  }
-  const gap = style === 'plus' ? 2 : 7
-  const length = style === 'plus' ? 12 : 14
-  ctx.beginPath()
-  ctx.moveTo(x - gap - length, y); ctx.lineTo(x - gap, y)
-  ctx.moveTo(x + gap, y); ctx.lineTo(x + gap + length, y)
-  ctx.moveTo(x, y - gap - length); ctx.lineTo(x, y - gap)
-  ctx.moveTo(x, y + gap); ctx.lineTo(x, y + gap + length)
-  ctx.stroke()
-  if (style === 'classic') { ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill() }
-}
-
 function signed(value: number, suffix = '') {
   const rounded = Math.round(value * 10) / 10
   return `${rounded > 0 ? '+' : ''}${rounded}${suffix}`
@@ -141,6 +121,7 @@ function WarmupReport({ metrics, previous, exercise, onSelectRecommendation }: {
           <div><span>{t('sniper.reaction')}</span><strong>{metrics.sniper.hits ? `${format(metrics.reactionTimeMs)}ms` : '—'}</strong></div>
           <div><span>{t('common.accuracy')}</span><strong>{format(metrics.accuracy, 1)}%</strong></div>
           <div><span>{t('sniper.consistency')}</span><strong>{metrics.sniper.consistency === null ? '—' : `${format(metrics.sniper.consistency)}%`}</strong></div>
+          <div><span>{t('sniper.headshots')}</span><strong>{metrics.sniper.headshots ?? 0}</strong></div>
           <div><span>{t('sniper.earlyShots')}</span><strong>{metrics.sniper.earlyShots}</strong></div>
           <div><span>{t('sniper.best')}</span><strong>{metrics.sniper.bestReactionMs === null ? '—' : `${format(metrics.sniper.bestReactionMs)}ms`}</strong></div>
         </> : <>
@@ -193,7 +174,7 @@ function PersonalBestFeedback({ result, exercise, gameLabel }: { result: Persona
   </section>
 }
 
-type ArenaProps = {
+export type ArenaProps = {
   phase: WarmupPhase
   countdown: number
   exercise: WarmupExercise
@@ -201,6 +182,7 @@ type ArenaProps = {
   durationSeconds?: number
   crosshair: CrosshairStyle
   pointerGain: number
+  degreesPerCount?: number
   sessionId: number
   sensitivityLabel: string
   instruction: string
@@ -219,10 +201,13 @@ type ArenaProps = {
 
 export type ArenaHandle = { requestPointerLock: () => void }
 
-export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupArena({ phase, countdown, exercise, difficulty, durationSeconds = WARMUP_DURATION, crosshair, pointerGain, sessionId, sensitivityLabel, instruction, metrics, progressLabel, completionOverlay, exitFullscreenOnComplete = true, releasePointerLockOnComplete = true, onMetrics, onComplete, onPointerLockChange, recordingDifficulty, onSessionStart, onSessionInvalid }, ref) {
+// three.js only loads when a first-person exercise is opened.
+const SniperArena = lazy(() => loadSniperArena().then(module => ({ default: module.SniperArena })))
+const sniperArenaReady = (exercise: WarmupExercise) => exercise === 'sniper-reaction' && !getLoadedSniperArena() ? loadSniperArena() : null
+
+const CanvasArena = forwardRef<ArenaHandle, ArenaProps>(function CanvasArena({ phase, countdown, exercise, difficulty, durationSeconds = WARMUP_DURATION, crosshair, pointerGain, sessionId, sensitivityLabel, instruction, metrics, progressLabel, completionOverlay, exitFullscreenOnComplete = true, releasePointerLockOnComplete = true, onMetrics, onComplete, onPointerLockChange, recordingDifficulty, onSessionStart, onSessionInvalid }, ref) {
   const { t } = useI18n()
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const sniperRef = useRef<SniperReaction | null>(null)
   const microRef = useRef<MicroFlick | null>(null)
   const translateRef = useRef(t)
   useEffect(() => { translateRef.current = t }, [t])
@@ -355,14 +340,6 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
         }
         return
       }
-      if (exerciseRef.current === 'sniper-reaction') {
-        if (event.button !== 0 || phaseRef.current !== 'playing' || document.pointerLockElement !== canvas) return
-        const state = stateRef.current
-        if (!state.startedAt || state.complete || performance.now() - state.startedAt >= durationSecondsRef.current * 1000) return
-        const scale = Math.max(1, Math.min(state.width, state.height))
-        sniperRef.current?.shoot(performance.now() - state.startedAt, (state.aimX - state.width / 2) / scale, (state.aimY - state.height / 2) / scale)
-        return
-      }
       if (event.button !== 0 || phaseRef.current !== 'playing' || !isClickExercise(exerciseRef.current) || document.pointerLockElement !== canvas) return
       const state = stateRef.current
       const exercise = exerciseRef.current
@@ -485,53 +462,6 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
           }
           const feedback = time - state.startedAt < micro.feedbackUntil ? micro.feedback : null
           drawCrosshair(ctx, state.aimX, state.aimY, crosshairRef.current, feedback === 'hit' ? '#8dfbd3' : feedback === 'miss' ? '#ff7251' : '#f4f2eb')
-        }
-        frame = requestAnimationFrame(render)
-        return
-      }
-
-      if (exercise === 'sniper-reaction') {
-        const sniper = sniperRef.current
-        const scale = Math.min(width, height)
-        if (sniper) {
-          if (phaseRef.current === 'playing' && pointerLockedRef.current && !state.complete) {
-            if (!state.startedAt) { state.startedAt = time; recordStart(width, height) }
-            const elapsed = time - state.startedAt
-            const remaining = Math.max(0, durationSecondsRef.current - elapsed / 1000)
-            if (remaining > 0) sniper.update(elapsed)
-            if (time - state.lastMetricsAt >= 100 || remaining <= 0) {
-              const summary = summarizeSniper(sniper.attempts)
-              const next = { ...createEmptyWarmupMetrics(durationSecondsRef.current), hits: summary.hits, shots: summary.shots, accuracy: summary.accuracy, reactionTimeMs: summary.reactionTimeMs, remaining, score: summary.hits * 100, clickErrors: summary.misses, sniper: summary }
-              state.lastMetricsAt = time
-              onMetricsRef.current(next)
-              if (remaining <= 0) {
-                state.complete = true
-                sniper.stop()
-                if (releasePointerLockOnCompleteRef.current) document.exitPointerLock?.()
-                if (exitFullscreenOnCompleteRef.current && document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
-                onCompleteRef.current(next)
-              }
-            }
-          }
-          const opening = sniper.config.opening * scale
-          const left = (width - opening) / 2
-          ctx.fillStyle = '#171d26'
-          ctx.fillRect(width * .12, height * .15, left - width * .12, height * .7)
-          ctx.fillRect(left + opening, height * .15, left - width * .12, height * .7)
-          ctx.strokeStyle = '#ff7251'; ctx.lineWidth = 2
-          ctx.strokeRect(left, height * .15, opening, height * .7)
-          ctx.save(); ctx.beginPath(); ctx.rect(left, height * .15, opening, height * .7); ctx.clip()
-          if (sniper.phase === 'peek') {
-            ctx.fillStyle = '#ff7251'; ctx.beginPath(); ctx.arc(width / 2 + sniper.x * scale, height / 2 + sniper.y * scale, sniper.config.radius * scale, 0, Math.PI * 2); ctx.fill()
-          }
-          ctx.restore()
-          if (sniper.phase === 'feedback') {
-            const last = sniper.attempts[sniper.attempts.length - 1]
-            ctx.fillStyle = last.outcome === 'hit' ? '#8dfbd3' : '#ff7251'
-            ctx.textAlign = 'center'; ctx.font = '16px sans-serif'
-            ctx.fillText(`${translateRef.current(`sniper.${last.outcome}`)}${last.reactionMs === null ? '' : ` · ${Math.round(last.reactionMs)} ms`}`, width / 2, height * .9)
-          }
-          drawCrosshair(ctx, state.aimX, state.aimY, crosshairRef.current, '#f4f2eb')
         }
         frame = requestAnimationFrame(render)
         return
@@ -706,7 +636,7 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
       frame = requestAnimationFrame(render)
     }
     frame = requestAnimationFrame(render)
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); sniperRef.current?.stop(); microRef.current?.stop() }
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); microRef.current?.stop() }
   }, [])
 
   useEffect(() => {
@@ -729,7 +659,6 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
       hits: 0, shots: 0, score: 0, complete: false,
     })
     inputPausedAtRef.current = 0
-    sniperRef.current = exerciseRef.current === 'sniper-reaction' ? new SniperReaction(difficulty === 'adaptive' ? 'medium' : difficulty) : null
     microRef.current = exerciseRef.current === 'micro_flick' ? new MicroFlick(difficulty === 'adaptive' ? 'medium' : difficulty) : null
     if (!microRef.current) placeTarget()
     if (exerciseRef.current === 'gridshot') { placeTarget(0, 1); placeTarget(0, 2) }
@@ -756,6 +685,13 @@ export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupAr
   )
 })
 
+export const WarmupArena = forwardRef<ArenaHandle, ArenaProps>(function WarmupArena(props, ref) {
+  const Loaded = getLoadedSniperArena()
+  return props.exercise === 'sniper-reaction'
+    ? Loaded ? <Loaded ref={ref} {...props} /> : <Suspense fallback={<div className="warmup-arena-wrap sniper-arena-wrap" role="status" />}><SniperArena ref={ref} {...props} /></Suspense>
+    : <CanvasArena ref={ref} {...props} />
+})
+
 export function Warmup({
   initialExercise = null,
   onExerciseChange,
@@ -765,6 +701,7 @@ export function Warmup({
 }) {
   const { t, locale } = useI18n()
   const arenaRef = useRef<ArenaHandle>(null)
+  useEffect(() => { preloadSniperArena() }, [])
   const [phase, setPhase] = useState<WarmupPhase>(initialExercise ? 'setup' : 'hub')
   const recorder = useSessionRecorder()
   const sessions = getSessionRepository()
@@ -799,6 +736,7 @@ export function Warmup({
   const normalizedSensitivity = parsedSensitivity === null ? null : normalizeSensitivity(parsedSensitivity, game)
   const effectiveDifficulty: FixedWarmupDifficulty = difficulty === 'adaptive' ? adaptiveLevel : difficulty
   const pointerGain = getWarmupPointerGain(game, normalizedSensitivity ?? game.sensitivityMin)
+  const degreesPerCount = getDegreesPerCount(game, normalizedSensitivity ?? game.sensitivityMin) ?? undefined
   const exerciseConfig = EXERCISES.find((item) => item.id === exercise) ?? EXERCISES[0]
   const difficultyLabel = difficulty === 'adaptive'
     ? `${t('difficulty.adaptive')} · ${t(`difficulty.${adaptiveLevel}` as TranslationKey)}`
@@ -830,8 +768,9 @@ export function Warmup({
     setPhase('setup')
   }
 
-  const start = () => {
+  const start = async () => {
     if (!validSetup || normalizedSensitivity === null || parsedDpi === null) return
+    await sniperArenaReady(exercise)
     sessionContext.current = createSessionContext(selectedGame, normalizedSensitivity, Math.round(parsedDpi), config.draft.presetId)
     sessionContext.current.configuration = { difficulty: effectiveDifficulty, durationSeconds: WARMUP_DURATION }
     resetPersonalBest()
@@ -993,7 +932,7 @@ export function Warmup({
               <Sparkles size={22} className="text-primary" aria-hidden="true" />
               <span className="text-xs font-medium text-muted-foreground">{t('warmup.reportTitle')}</span>
               <DialogTitle>{exerciseConfig.name}</DialogTitle>
-              <DialogDescription>{difficultyLabel} · {exercise === 'sniper-reaction' ? '' : `${game.label} · `}{WARMUP_DURATION}s</DialogDescription>
+              <DialogDescription>{difficultyLabel} · {game.label} · {WARMUP_DURATION}s</DialogDescription>
             </DialogHeader>
             <div className="warmup-result-score"><span>{t(metrics.micro ? 'micro.acquisition' : 'common.score')}</span><strong><AnimatedMetric value={metrics.micro ? metrics.micro.meanAcquisitionTimeMs : metrics.score} format={value => value === null ? '—' : metrics.micro ? `${format(value)} ms` : String(value)} /></strong></div>
             {personalBest && <PersonalBestFeedback result={personalBest} exercise={exercise} gameLabel={game.label} />}
@@ -1024,7 +963,8 @@ export function Warmup({
         crosshair={crosshair}
         pointerGain={pointerGain}
         sessionId={sessionId}
-        sensitivityLabel={`${exercise === 'sniper-reaction' ? '' : `${game.shortLabel} `}${format(normalizedSensitivity ?? 0, 3)}`}
+        sensitivityLabel={`${game.shortLabel} ${format(normalizedSensitivity ?? 0, 3)}`}
+        degreesPerCount={degreesPerCount}
         instruction={t(exerciseConfig.instruction)}
         metrics={metrics}
         onMetrics={next => { recorder.sample(next); setMetrics(next) }}

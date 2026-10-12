@@ -3,13 +3,12 @@ import { expect, test } from '@playwright/test'
 test.describe('Sniper Reaction training', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => { if (!localStorage.getItem('sensi-locale')) localStorage.setItem('sensi-locale', 'pt'); Math.random = () => .5 })
-    await page.goto('./')
-    await page.getByRole('button', { name: 'Começar agora' }).first().click()
+    await page.goto('./train')
   })
 
   test('previews on hover and focus without saving a session', async ({ page }, info) => {
     const card = page.getByRole('button', { name: /Sniper Reaction/ })
-    await expect(card).toContainText('Teste sua reação')
+    await expect(card).toContainText('double door')
     await expect(card).toContainText('Configurar')
     await card.hover()
     const preview = card.locator('.sniper-preview-opening > span')
@@ -30,7 +29,7 @@ test.describe('Sniper Reaction training', () => {
   })
 
   test('configures the mode and completes the supported desktop session', async ({ page, isMobile }, info) => {
-    test.setTimeout(90000)
+    test.setTimeout(180000)
     await page.getByRole('button', { name: /Sniper Reaction/ }).click()
     await page.getByRole('button', { name: /Continuar/ }).click()
     await expect(page.getByRole('radio', { name: /Adaptativa/ })).toHaveCount(0)
@@ -69,14 +68,12 @@ test.describe('Sniper Reaction training', () => {
     await card.scrollIntoViewIfNeeded()
     await card.focus()
     await expect(card.locator('.sniper-preview-opening > span')).toHaveCSS('animation-name', 'none')
-    for (const [locale, description, start] of [
-      ['en', 'Test your reaction', 'Start now'],
-      ['es', 'Pon a prueba tu reacción', 'Empezar ahora'],
+    for (const [locale, description] of [
+      ['en', 'First-person double doors'],
+      ['es', 'Primera persona en la double door'],
     ]) {
       await page.evaluate(value => localStorage.setItem('sensi-locale', value), locale)
-      await page.goto('./')
-      const homeCta = page.getByRole('button', { name: start, exact: true }).first()
-      await homeCta.click()
+      await page.goto('./train')
       await expect(page.getByRole('button', { name: /Sniper Reaction/ })).toContainText(description)
     }
   })

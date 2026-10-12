@@ -168,6 +168,8 @@ Fonte única de verdade: `src/design/typography.css` (importado antes de qualque
 - Sem preflight, borda de um lado só precisa de `border-0 border-t border-solid` (sem o `border-0`, os outros lados herdam a largura `medium` do navegador).
 - **Squad Finder** migrado: filtros e criação de sala usam cards de jogo + `Select`, salas são `Card` com `Badge`, diálogos são o `Dialog` shadcn (foco, Esc e retorno de foco do Radix; o código de `inert` manual saiu). `squad.css` ficou só com o grid da página.
 - O `header, footer` global de `styles.css` não usa mais `backdrop-filter`: nada de vidro em cabeçalhos.
+- **Converter** migrado (2026-10-12): origem e destino são `Card` (destino com `accent`), jogo escolhido no `GameSelect` (`src/GameSelect.tsx`: `Select` com o `GameBadge` no item e no gatilho; serve para listas longas de jogos, onde cards não cabem), campos numéricos em `Input` mono, troca e cópia em `Button`, resumo num `Card` com divisores de 1px (`gap-px` sobre `bg-border`), avisos em `Alert` (`success`/`warning`, `role="status"` por padrão) e status de perfil em `Badge` (`warning` = medido). Token novo `--warning` (#ffb547). `PresetSelection` virou `Badge` + `Select`. As regras `.converter-*` e `.xb-converter` foram apagadas; só `.converter-workspace` (layout compartilhado) ficou.
+- O mini-conversor da Home usa `Select`/`Input`/`Button`; o bloco de resultado mantém o estilo da landing até a Home ser migrada.
 - Próximas páginas devem migrar do mesmo jeito: trocar o markup por `@/components/ui/*` e apagar as regras antigas daquela página, nunca manter os dois sistemas para o mesmo elemento.
 
 ## Shell compartilhado 16:9 + Squad Finder (2026-10-11)

@@ -1,17 +1,37 @@
 import { XensiPageHeader } from './design/Primitives'
 import { AnimatedMetric } from './design/AnimatedMetric'
-import { useMemo, useState } from 'react'
-import { Check, ChevronDown, Copy, Info, RefreshCw, ShieldCheck } from 'lucide-react'
+import { useId, useMemo, useState } from 'react'
+import { ArrowLeftRight, Check, ChevronDown, Copy, Info, ShieldCheck } from 'lucide-react'
 import { GAME_SENSITIVITY_PROFILES, GAME_SENSITIVITY_PROFILE_BY_ID, type GameSensitivityProfile, type GameSensitivityProfileId, type VerificationStatus } from './gameSensitivityProfiles'
-import { convertSensitivity, isFullyVerified, validateGameProfile } from './sensitivityConversionEngine'
+import { convertSensitivity, isFullyVerified, validateGameProfile, type ResidualErrorClassification } from './sensitivityConversionEngine'
 import { formatSensitivity } from './sensitivity'
 import { useI18n } from './i18n'
-import { GameBadge } from './GameBadge'
+import { GameSelect } from './GameSelect'
 import { PresetSelection } from './PresetSelection'
 import { useSensitivityPreset, type PresetLaunch } from './useSensitivityPreset'
+import { Alert } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 
 const STATUS_KEYS: Record<VerificationStatus, 'converter.statusVerified' | 'converter.statusCrossVerified' | 'converter.statusMeasured' | 'converter.statusExperimental'> = {
   verified: 'converter.statusVerified', cross_verified: 'converter.statusCrossVerified', measured: 'converter.statusMeasured', experimental: 'converter.statusExperimental',
+}
+
+const STATUS_BADGE: Record<VerificationStatus, 'success' | 'warning' | 'outline'> = { verified: 'success', cross_verified: 'success', measured: 'warning', experimental: 'outline' }
+const ERROR_TONE: Record<ResidualErrorClassification, string> = { negligible: 'text-success', very_low: 'text-success', low: 'text-warning', noticeable: 'text-primary' }
+const eyebrow = 'text-xs font-medium leading-none text-muted-foreground'
+const readout = 'grid gap-2 rounded-lg border border-solid border-border bg-black/25 px-4 py-3'
+
+function NumberField({ label, value, onChange, inputMode }: { label: string; value: string; onChange: (value: string) => void; inputMode: 'decimal' | 'numeric' }) {
+  const id = useId()
+  return <div className="grid min-w-0 content-start gap-2">
+    <Label htmlFor={id}>{label}</Label>
+    <Input id={id} type="text" inputMode={inputMode} value={value} onChange={event => onChange(event.target.value)} className="font-mono text-lg tabular-nums" />
+  </div>
 }
 
 function coefficientOf(profile: GameSensitivityProfile) {
@@ -61,67 +81,80 @@ export function SensitivityConverter({ initialPreset = null }: SensitivityConver
 
   const kicker = locale === 'en' ? 'Converter · same cm/360' : locale === 'es' ? 'Conversor · mismo cm/360' : 'Conversor · mesmo cm/360'
   const sideLabel = (side: 'from' | 'to') => side === 'from' ? (locale === 'en' ? 'Source' : 'Origem') : (locale === 'en' ? 'Target' : 'Destino')
-  return <section className="converter-workspace xb-page xb-converter">
-    <XensiPageHeader className="converter-heading" kicker={kicker} title={t('converter.title')} description={t('converter.subtitle')} />
-    <div className="converter-card xb-versus">
-      <div className="converter-side xb-side is-source">
-        <header className="xb-side-bar"><span className="converter-label">{t('converter.from')}</span><b>{sideLabel('from')}</b></header>
-        <div className="xb-side-body">
-          <label className="converter-select xb-game-select"><GameBadge gameId={sourceId} /><select aria-label={t('converter.sourceGame')} value={sourceId} onChange={(event) => { config.selectGame(event.target.value as GameSensitivityProfileId); setCopied(false) }}>{GAME_SENSITIVITY_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
-          <PresetSelection draft={config.draft} presets={config.presets} onSelect={config.selectPreset} />
-          <div className="converter-values xb-fields">
-            <label className="converter-field"><span>{t('converter.currentSensitivity')}</span><input type="text" inputMode="decimal" value={sourceValue} onChange={(event) => setSourceValue(event.target.value)} aria-label={t('converter.currentSensitivity')} /></label>
-            <label className="converter-field"><span>{t('converter.sourceDpi')}</span><input type="text" inputMode="numeric" value={sourceDpi} onChange={(event) => setSourceDpi(event.target.value)} aria-label={t('converter.sourceDpi')} /></label>
-          </div>
-          <div className="converter-field converter-physical xb-readout"><span>{t('converter.cmPer360')}</span><strong>{result === null ? '—' : `${result.sourceCm360.toFixed(2)} cm`}</strong></div>
+  const cm = (value: number | undefined) => value === undefined ? '—' : `${value.toFixed(2)} cm`
+  const sideHeader = (side: 'from' | 'to') => <div className="flex items-center justify-between gap-3"><span className={eyebrow}>{t(side === 'from' ? 'converter.from' : 'converter.to')}</span><Badge variant={side === 'from' ? 'outline' : 'default'}>{sideLabel(side)}</Badge></div>
+  const notice = unsupported ? t('converter.unsupportedProfile') : sourceProfileErrors.length || targetProfileErrors.length ? t('converter.invalidProfile') : invalidInput ? t('converter.invalidSensitivity') : invalidDpi ? t('converter.invalidDpi') : unverified ? t('converter.unverifiedNotice') : null
+  const auditRows = (rows: [string, string | number][]) => <dl className="m-0 grid">{rows.map(([term, detail]) => <div key={term} className="flex items-baseline justify-between gap-4 border-0 border-t border-solid border-border py-2.5 first:border-t-0">
+    <dt className="text-xs font-medium text-muted-foreground">{term}</dt><dd className="m-0 text-right font-mono text-[13px] tabular-nums text-foreground [overflow-wrap:anywhere]">{detail}</dd>
+  </div>)}</dl>
+  const auditCard = 'grid content-start gap-2 rounded-lg border border-solid border-border bg-black/20 p-4'
+  const stats: [string, string, string][] = [
+    [t('converter.method'), t('converter.hipfireMethod'), 'font-sans text-[15px] font-semibold'],
+    [t('converter.physicalEquivalence'), result ? `${result.sourceCm360.toFixed(2)} → ${result.resultingCm360.toFixed(2)} cm/360` : '—', 'text-lg'],
+    ...(!duplicateValues ? [[t('converter.mathematicalValue'), exactLabel, 'text-[clamp(24px,2.4vw,34px)]'] as [string, string, string]] : []),
+    [t('converter.valueToUse'), configurableLabel, 'text-[clamp(24px,2.4vw,34px)]'],
+    [t('converter.residualError'), errorLabel, cn('text-[clamp(24px,2.4vw,34px)]', result && ERROR_TONE[result.errorClassification])],
+  ]
+  const validated = [source.verification.auditedAt, target.verification.auditedAt, source.verification.verifiedAt, target.verification.verifiedAt].some(Boolean)
+  return <section className="converter-workspace">
+    <XensiPageHeader kicker={kicker} title={t('converter.title')} description={t('converter.subtitle')} />
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_56px_minmax(0,1fr)]">
+      <Card spotlight className="gap-5 p-5 sm:p-6">
+        {sideHeader('from')}
+        <GameSelect large games={GAME_SENSITIVITY_PROFILES} label={t('converter.sourceGame')} value={sourceId} onValueChange={id => { config.selectGame(id); setCopied(false) }} />
+        <PresetSelection draft={config.draft} presets={config.presets} onSelect={config.selectPreset} />
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField label={t('converter.currentSensitivity')} inputMode="decimal" value={sourceValue} onChange={setSourceValue} />
+          <NumberField label={t('converter.sourceDpi')} inputMode="numeric" value={sourceDpi} onChange={setSourceDpi} />
         </div>
+        <div className={cn(readout, 'mt-auto')}><span className={eyebrow}>{t('converter.cmPer360')}</span><strong className="font-mono text-xl font-medium leading-none tabular-nums text-foreground">{cm(result?.sourceCm360)}</strong></div>
+      </Card>
+      <div className="flex items-center justify-center gap-3 lg:flex-col">
+        <Button variant="outline" size="icon" className="size-12 rounded-full bg-card transition-[transform,border-color,background-color] duration-300 hover:rotate-180 max-lg:rotate-90 max-lg:hover:rotate-270 motion-reduce:transition-none" onClick={swapGames} aria-label={t('converter.swap')}><ArrowLeftRight className="size-5!" /></Button>
+        <span aria-hidden="true" className="text-xs font-semibold text-subtle">VS</span>
       </div>
-      <div className="xb-versus-axis"><button className="converter-swap xb-swap" onClick={swapGames} aria-label={t('converter.swap')}><RefreshCw size={20} /></button><span aria-hidden="true">VS</span></div>
-      <div className="converter-side xb-side is-target">
-        <header className="xb-side-bar"><span className="converter-label">{t('converter.to')}</span><b>{sideLabel('to')}</b></header>
-        <div className="xb-side-body">
-          <label className="converter-select xb-game-select"><GameBadge gameId={targetId} /><select aria-label={t('converter.targetGame')} value={targetId} onChange={(event) => { setTargetId(event.target.value as GameSensitivityProfileId); setCopied(false) }}>{GAME_SENSITIVITY_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
-          <div className="converter-field converter-result xb-result"><span>{t('converter.equivalent360')}</span><strong><AnimatedMetric value={result?.configurableSensitivity ?? null} format={() => configurableLabel} /></strong><button onClick={copyResult} disabled={result === null} aria-label={t('converter.copy')}>{copied ? <Check size={18} /> : <Copy size={18} />}</button></div>
-          <div className="converter-values xb-fields">
-            <label className="converter-field"><span>{t('converter.targetDpi')}</span><input type="text" inputMode="numeric" value={targetDpi} onChange={(event) => setTargetDpi(event.target.value)} aria-label={t('converter.targetDpi')} /></label>
-            <div className="converter-field converter-physical xb-readout"><span>{t('converter.cmPer360')}</span><strong>{result === null ? '—' : `${result.resultingCm360.toFixed(2)} cm`}</strong></div>
-          </div>
+      <Card spotlight accent className="gap-5 p-5 sm:p-6">
+        {sideHeader('to')}
+        <GameSelect large games={GAME_SENSITIVITY_PROFILES} label={t('converter.targetGame')} value={targetId} onValueChange={id => { setTargetId(id); setCopied(false) }} />
+        <div className="relative grid gap-3 rounded-lg border border-solid border-primary/30 bg-primary/[.07] py-5 pr-20 pl-5">
+          <span className={eyebrow}>{t('converter.equivalent360')}</span>
+          <strong className="font-mono text-[clamp(40px,4.4vw,60px)] font-medium leading-none tabular-nums text-foreground"><AnimatedMetric value={result?.configurableSensitivity ?? null} format={() => configurableLabel} /></strong>
+          <Button variant="outline" size="icon" className="absolute top-1/2 right-4 -translate-y-1/2 active:-translate-y-1/2" onClick={copyResult} disabled={result === null} aria-label={t('converter.copy')}>{copied ? <Check className="text-success" /> : <Copy />}</Button>
         </div>
-      </div>
+        <div className="mt-auto grid grid-cols-2 gap-3">
+          <NumberField label={t('converter.targetDpi')} inputMode="numeric" value={targetDpi} onChange={setTargetDpi} />
+          <div className={cn(readout, 'self-end')}><span className={eyebrow}>{t('converter.cmPer360')}</span><strong className="font-mono text-xl font-medium leading-none tabular-nums text-foreground">{cm(result?.resultingCm360)}</strong></div>
+        </div>
+      </Card>
     </div>
 
-    {result !== null && <div className="converter-summary xb-scoreboard" aria-live="polite">
-      <div className="converter-method"><span>{t('converter.method')}</span><strong>{t('converter.hipfireMethod')}</strong></div>
-      <div><span>{t('converter.physicalEquivalence')}</span><strong>{result.sourceCm360.toFixed(2)} → {result.resultingCm360.toFixed(2)} cm/360</strong></div>
-      {!duplicateValues && <div><span>{t('converter.mathematicalValue')}</span><strong>{exactLabel}</strong></div>}
-      <div><span>{t('converter.valueToUse')}</span><strong>{configurableLabel}</strong></div>
-      <div><span>{t('converter.residualError')}</span><strong className={`error-${result.errorClassification}`}>{errorLabel}</strong></div>
-    </div>}
+    {result !== null && <Card aria-live="polite" className="mt-4 grid gap-px overflow-hidden bg-border p-0 sm:grid-cols-2 lg:grid-cols-[1.2fr_1.5fr_repeat(3,minmax(0,1fr))]">
+      {stats.map(([label, value, tone]) => <div key={label} className="grid content-start gap-2.5 bg-card px-6 py-5">
+        <span className={eyebrow}>{label}</span><strong className={cn('font-mono font-medium leading-tight tabular-nums text-foreground', tone)}>{value}</strong>
+      </div>)}
+    </Card>}
 
-    {unsupported ? <div className="converter-notice warning"><Info size={16} /><span>{t('converter.unsupportedProfile')}</span></div>
-      : sourceProfileErrors.length || targetProfileErrors.length ? <div className="converter-notice warning"><Info size={16} /><span>{t('converter.invalidProfile')}</span></div>
-      : invalidInput ? <div className="converter-notice warning"><Info size={16} /><span>{t('converter.invalidSensitivity')}</span></div>
-      : invalidDpi ? <div className="converter-notice warning"><Info size={16} /><span>{t('converter.invalidDpi')}</span></div>
-      : unverified ? <div className="converter-notice warning"><Info size={16} /><span>{t('converter.unverifiedNotice')}</span></div>
-      : <div className="converter-notice"><ShieldCheck size={16} /><span>{t('converter.verifiedNotice')}</span></div>}
+    {notice ? <Alert variant="warning" className="mt-4"><Info /><span className="col-start-2">{notice}</span></Alert>
+      : <Alert variant="success" className="mt-4"><ShieldCheck /><span className="col-start-2">{t('converter.verifiedNotice')}</span></Alert>}
 
-    <details className="converter-audit xb-audit">
-      <summary>{t('converter.viewCalculation')}<ChevronDown size={15} /></summary>
-      <div className="converter-audit-grid">
-        <article><header><span>{t('converter.sourceGame')}</span><i className={`profile-status status-${source.verification.status}`}>{statusLabel(source.verification.status)}</i></header><dl>
-          <div><dt>{t('converter.currentSensitivity')}</dt><dd>{Number.isFinite(numericValue) ? formatSensitivity(numericValue) : '—'}</dd></div><div><dt>{t('converter.sourceDpi')}</dt><dd>{Number.isFinite(numericSourceDpi) ? numericSourceDpi : '—'}</dd></div><div><dt>{t('converter.coefficient')}</dt><dd>{coefficientOf(source) ?? '—'}</dd></div><div><dt>{t('converter.cmPer360')}</dt><dd>{result ? `${result.sourceCm360.toFixed(4)} cm` : '—'}</dd></div>
-        </dl></article>
-        <article><header><span>{t('converter.targetGame')}</span><i className={`profile-status status-${target.verification.status}`}>{statusLabel(target.verification.status)}</i></header><dl>
-          <div><dt>{t('converter.mathematicalValue')}</dt><dd>{exactLabel}</dd></div><div><dt>{t('converter.valueToUse')}</dt><dd>{configurableLabel}</dd></div><div><dt>{t('converter.targetDpi')}</dt><dd>{Number.isFinite(numericTargetDpi) ? numericTargetDpi : '—'}</dd></div><div><dt>{t('converter.coefficient')}</dt><dd>{coefficientOf(target) ?? '—'}</dd></div><div><dt>{t('converter.resultingCm')}</dt><dd>{result ? `${result.resultingCm360.toFixed(4)} cm` : '—'}</dd></div><div><dt>{t('converter.residualError')}</dt><dd>{errorLabel}</dd></div>
-        </dl></article>
-        <article className="converter-profile-meta"><header><span>{t('converter.profileDetails')}</span></header><dl>
-          <div><dt>{t('converter.method')}</dt><dd>{t('converter.hipfireMethod')}</dd></div><div><dt>{t('converter.profileVersion')}</dt><dd>{source.verification.profileVersion} / {target.verification.profileVersion}</dd></div>
-          {(source.verification.auditedAt || target.verification.auditedAt || source.verification.verifiedAt || target.verification.verifiedAt) && <div><dt>{t('converter.lastValidation')}</dt><dd>{source.verification.auditedAt ?? source.verification.verifiedAt ?? '—'} / {target.verification.auditedAt ?? target.verification.verifiedAt ?? '—'}</dd></div>}
-        </dl>{(source.verification.notes || target.verification.notes) && <p>{t('converter.unverifiedNotice')}</p>}
-          {(source.verification.sources.length > 0 || target.verification.sources.length > 0) && <div className="converter-sources"><strong>{t('converter.sources')}</strong>{[...source.verification.sources, ...target.verification.sources].map((item, index) => item.url ? <a key={`${item.label}-${index}`} href={item.url} target="_blank" rel="noreferrer">{item.label}</a> : <span key={`${item.label}-${index}`}>{item.label}</span>)}</div>}
-        </article>
-      </div>
-    </details>
-    <p className="converter-disclaimer">{t('converter.disclaimer')}</p>
+    <Card className="mt-4 p-0">
+      <details className="group/audit">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-6 py-5 font-heading text-base font-semibold text-foreground [&::-webkit-details-marker]:hidden">{t('converter.viewCalculation')}<ChevronDown size={16} className="text-muted-foreground transition-transform group-open/audit:rotate-180" /></summary>
+        <div className="grid gap-3 px-6 pb-6 md:grid-cols-2">
+          <article className={auditCard}><div className="flex items-center justify-between gap-3"><span className={eyebrow}>{t('converter.sourceGame')}</span><Badge variant={STATUS_BADGE[source.verification.status]}>{statusLabel(source.verification.status)}</Badge></div>
+            {auditRows([[t('converter.currentSensitivity'), Number.isFinite(numericValue) ? formatSensitivity(numericValue) : '—'], [t('converter.sourceDpi'), Number.isFinite(numericSourceDpi) ? numericSourceDpi : '—'], [t('converter.coefficient'), coefficientOf(source) ?? '—'], [t('converter.cmPer360'), result ? `${result.sourceCm360.toFixed(4)} cm` : '—']])}
+          </article>
+          <article className={auditCard}><div className="flex items-center justify-between gap-3"><span className={eyebrow}>{t('converter.targetGame')}</span><Badge variant={STATUS_BADGE[target.verification.status]}>{statusLabel(target.verification.status)}</Badge></div>
+            {auditRows([[t('converter.mathematicalValue'), exactLabel], [t('converter.valueToUse'), configurableLabel], [t('converter.targetDpi'), Number.isFinite(numericTargetDpi) ? numericTargetDpi : '—'], [t('converter.coefficient'), coefficientOf(target) ?? '—'], [t('converter.resultingCm'), result ? `${result.resultingCm360.toFixed(4)} cm` : '—'], [t('converter.residualError'), errorLabel]])}
+          </article>
+          <article className={cn(auditCard, 'md:col-span-2')}><span className={eyebrow}>{t('converter.profileDetails')}</span>
+            {auditRows([[t('converter.method'), t('converter.hipfireMethod')], [t('converter.profileVersion'), `${source.verification.profileVersion} / ${target.verification.profileVersion}`], ...(validated ? [[t('converter.lastValidation'), `${source.verification.auditedAt ?? source.verification.verifiedAt ?? '—'} / ${target.verification.auditedAt ?? target.verification.verifiedAt ?? '—'}`] as [string, string]] : [])])}
+            {(source.verification.notes || target.verification.notes) && <p className="m-0 text-sm leading-relaxed text-muted-foreground">{t('converter.unverifiedNotice')}</p>}
+            {(source.verification.sources.length > 0 || target.verification.sources.length > 0) && <div className="flex flex-wrap items-center gap-2 pt-1"><strong className="mr-1 text-xs font-semibold text-foreground">{t('converter.sources')}</strong>{[...source.verification.sources, ...target.verification.sources].map((item, index) => item.url ? <a key={`${item.label}-${index}`} href={item.url} target="_blank" rel="noreferrer" className="rounded-md bg-foreground/[.06] px-2 py-1 text-xs font-medium text-foreground no-underline hover:text-primary">{item.label}</a> : <Badge variant="secondary" key={`${item.label}-${index}`}>{item.label}</Badge>)}</div>}
+          </article>
+        </div>
+      </details>
+    </Card>
+    <p className="m-0 mt-4 max-w-[760px] text-xs leading-relaxed text-subtle">{t('converter.disclaimer')}</p>
   </section>
 }

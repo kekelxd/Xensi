@@ -270,13 +270,7 @@
 .xl-conv { display: grid; gap: 14px; margin-top: 22px; }
 .xl-conv-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 8px; }
 .xl-conv-row.is-inputs { grid-template-columns: 1fr 1fr; }
-.xl-conv label { display: grid; gap: 8px; min-width: 0; }
-.xl-conv label > span { color: var(--xl-dim); font: 500 var(--text-xs)/1 var(--font-ui); letter-spacing: var(--tracking-normal); text-transform: var(--case-label); }
-.xl-conv select, .xl-conv input { width: 100%; min-height: 46px; padding: 0 12px; border: 2px solid var(--xl-line-strong); border-radius: 0; background: #08090d; color: var(--xl-text); font: 600 15px/1 var(--font-ui); transition: border-color .2s; }
-.xl-conv input { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.xl-conv select:focus, .xl-conv input:focus { border-color: var(--xl-coral); outline: none; }
-.xl-conv-swap { display: grid; place-items: center; width: 44px; height: 46px; border: 2px solid var(--xl-line); background: transparent; color: var(--xl-muted); transition: color .2s, border-color .2s, transform .3s var(--xl-ease); }
-.xl-conv-swap:hover { color: var(--xl-coral); border-color: var(--xl-coral); transform: rotate(180deg); }
+/* Fields and swap are shadcn components (Select/Input/Button); only the result block keeps the landing style. */
 .xl-conv-out { display: grid; gap: 8px; padding: 18px 20px; border-left: 4px solid var(--xl-coral); background: #08090d; }
 .xl-conv-out span { color: var(--xl-muted); font: 500 var(--text-xs)/1 var(--font-ui); letter-spacing: var(--tracking-normal); text-transform: var(--case-label); }
 .xl-conv-out b { font: 500 44px/1 var(--font-mono); font-variant-numeric: tabular-nums; animation: xl-value .3s var(--xl-ease); }

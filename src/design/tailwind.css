@@ -29,6 +29,7 @@
   --accent-foreground: #f2f0ea;
   --destructive: #ff5c6c;
   --success: #75ffd5;
+  --warning: #ffb547;
   --border: rgba(242, 240, 234, .09);
   --input: rgba(242, 240, 234, .16);
   --ring: #75ffd5;
@@ -54,6 +55,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-subtle: var(--text-tertiary);
   --color-border: var(--border);
   --color-input: var(--input);

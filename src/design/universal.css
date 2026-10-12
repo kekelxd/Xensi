@@ -83,7 +83,7 @@
 
 /* A shared graphite surface with a fine upper highlight; no expensive glass blur. */
 .xensi-surface,
-.xensi-universal-shell :is(.converter-card, .converter-summary, .converter-audit, .diagnostic-hub-card, .av1-section, .personal-best-panel, .calibration-demo, .calibration-process, .routine-library-panel, .routine-context-panel, .routine-playlist-panel, .routine-add-panel, .routine-library-card, .routine-builder-item, .content-page) {
+.xensi-universal-shell :is(.diagnostic-hub-card, .av1-section, .personal-best-panel, .calibration-demo, .calibration-process, .routine-library-panel, .routine-context-panel, .routine-playlist-panel, .routine-add-panel, .routine-library-card, .routine-builder-item, .content-page) {
   border: 1px solid var(--xensi-border); border-radius: var(--xensi-radius);
   background: linear-gradient(135deg, rgba(255,255,255,.018), transparent 58%), var(--xensi-surface);
   box-shadow: var(--xensi-panel-shadow); backdrop-filter: none;
@@ -94,8 +94,8 @@
 .xensi-spotlight-card:is([data-spotlight-active='true'], :focus-within) > .xensi-surface-light { opacity: 1; }
 .xensi-universal-shell :is(.primary-button, .calibration-start-button) { background: var(--xensi-brand); border-color: var(--xensi-brand); color: #fff; border-radius: var(--xensi-control-radius); box-shadow: 0 7px 24px -14px var(--xensi-brand); }
 .xensi-universal-shell .primary-button:not(:disabled):hover { background: #ff5869; }
-.xensi-universal-shell :is(.secondary-button, .converter-field, .converter-select) { border-radius: var(--xensi-control-radius); }
-.xensi-universal-shell :is(.secondary-button, .converter-select) { color: #dfe6ee; border-color: var(--xensi-border); background-color: rgba(9,14,22,.9); }
+.xensi-universal-shell :is(.secondary-button) { border-radius: var(--xensi-control-radius); }
+.xensi-universal-shell :is(.secondary-button) { color: #dfe6ee; border-color: var(--xensi-border); background-color: rgba(9,14,22,.9); }
 .xensi-universal-shell :is(input, select, textarea) { accent-color: var(--xensi-brand); }
 .xensi-universal-shell :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--xensi-brand); outline-offset: 4px; }
 .xensi-universal-shell button:disabled { transform: none; cursor: not-allowed; }
@@ -114,13 +114,6 @@
 .xensi-universal-shell .warmup-category-filters > button[aria-pressed='true'] { border-color: var(--xensi-brand); background: rgba(255,64,85,.09); }
 
 /* Functional tools retain their information hierarchy, sharing the same surfaces. */
-.xensi-universal-shell .converter-card { padding: 36px; gap: 28px; }
-.xensi-universal-shell .converter-label { color: var(--xensi-muted); letter-spacing: var(--tracking-normal); }
-.xensi-universal-shell .converter-result { background: rgba(255,64,85,.07); border-color: rgba(255,64,85,.22); }
-.xensi-universal-shell .converter-result strong { color: var(--xensi-brand); }
-.xensi-universal-shell .converter-summary { margin-top: 24px; padding: 24px; }
-.xensi-universal-shell .converter-summary > div { border-color: var(--xensi-border); }
-.xensi-universal-shell .converter-audit { margin-top: 28px; }
 .xensi-universal-shell .diagnostic-hub-grid { gap: 24px; }
 .xensi-universal-shell .diagnostic-hub-card { min-height: 270px; padding: 30px; gap: 24px; }
 .xensi-universal-shell .diagnostic-hub-icon { color: var(--xensi-brand); background: rgba(255,64,85,.07); border: 1px solid rgba(255,64,85,.2); border-radius: 12px; }
@@ -167,8 +160,6 @@
   .xensi-universal-shell .xensi-page-header { align-items: flex-start; margin-bottom: 24px; padding-bottom: 24px; }
   .xensi-universal-shell :is(.xensi-page-header h1, .calibration-hero h1, .routine-library-hero h1, .routine-builder-hero h1) { font-size: 34px; }
 
-  .xensi-universal-shell .converter-card { padding: 22px; }
-  .xensi-universal-shell .converter-summary { flex-wrap: wrap; gap: 20px; }
   .xensi-universal-shell .diagnostic-hub-grid { grid-template-columns: minmax(0,1fr); }
   .xensi-universal-shell .calibration-hero { grid-template-columns: minmax(0,1fr); gap: 28px; }
   .xensi-universal-shell .calibration-process { grid-template-columns: minmax(0,1fr); padding: 24px; }

@@ -22,13 +22,8 @@
 .xensi-game-picker.is-compact { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .xensi-game-picker.is-compact > button { min-height: 57px; padding: 10px; gap: 9px; }
 .xensi-game-picker.is-compact .xensi-game-picker-copy strong { font-size: 11px; }
-.xensi-preset-context { display: grid; gap: 8px; margin: 12px 0 18px; padding: 12px 14px; border-left: 2px solid #708d84; background: #10171a; color: #c5d1cc; font: 500 13px/1.45 var(--font-ui); }
-.xensi-preset-context small { font-size: 12px; color: #abb7b2; }
-.xensi-preset-context label { display: grid; gap: 6px; }
-.xensi-preset-context select { width: 100%; min-width: 0; padding: 9px; border: 1px solid #424951; border-radius: 5px; background: #161b22; color: #e9e5e1; font: inherit; }
 .modal-backdrop:has(.warmup-setup-modal), .modal-backdrop:has(.finder-setup-modal) { z-index: 60; }
 .warmup-setup-modal:has(.xensi-game-picker), .modal.finder-setup-modal { width: min(820px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; }
-.modal .xensi-preset-context label, .modal .xensi-preset-context select { font: 500 13px/1.45 var(--font-ui); }
 .choice-card.game-choice:has(.xensi-game-badge) { display: flex; align-items: flex-start; justify-content: center; padding-top: 10px; }
 .choice-card.game-choice .xensi-game-badge { display: inline-flex; font-weight: 500; font-size: 19px; }
 .xensi-wizard-stepper { display: grid; grid-template-columns: repeat(var(--wizard-steps, 3), 1fr); gap: 6px; margin: 14px 0 18px; }

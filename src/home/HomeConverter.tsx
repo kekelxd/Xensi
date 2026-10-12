@@ -2,12 +2,26 @@ import { ArrowLeftRight, ArrowRight, ShieldCheck } from 'lucide-react'
 import { useId, useMemo, useState } from 'react'
 import { calculateCm360, convertSensitivity } from '../sensitivityConversionEngine'
 import { GAME_SENSITIVITY_PROFILES, GAME_SENSITIVITY_PROFILE_BY_ID, type GameSensitivityProfileId } from '../gameSensitivityProfiles'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { HomeCopy } from './homeCopy'
 
 export const CONVERTIBLE_PROFILES = GAME_SENSITIVITY_PROFILES.filter(profile => profile.supportedMethods.hipfire360 && profile.angularModel.type === 'linear')
 
 function formatSens(value: number) {
   return value >= 10 ? value.toFixed(2) : value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
+}
+
+function GameField({ id, label, value, onChange }: { id: string; label: string; value: GameSensitivityProfileId; onChange: (id: GameSensitivityProfileId) => void }) {
+  return <div className="grid min-w-0 gap-2">
+    <Label htmlFor={id}>{label}</Label>
+    <Select value={value} onValueChange={next => onChange(next as GameSensitivityProfileId)}>
+      <SelectTrigger id={id}><SelectValue /></SelectTrigger>
+      <SelectContent>{CONVERTIBLE_PROFILES.map(profile => <SelectItem key={profile.id} value={profile.id}>{profile.shortName}</SelectItem>)}</SelectContent>
+    </Select>
+  </div>
 }
 
 // Uses the audited conversion engine directly; the Home never computes its own formula.
@@ -29,21 +43,13 @@ export function HomeConverter({ copy, onOpen }: { copy: HomeCopy; onOpen: () => 
 
   return <div className="xl-conv">
     <div className="xl-conv-row">
-      <label htmlFor={`${id}-from`}><span>{copy.converterFrom}</span>
-        <select id={`${id}-from`} value={from} onChange={event => setFrom(event.target.value as GameSensitivityProfileId)}>
-          {CONVERTIBLE_PROFILES.map(profile => <option key={profile.id} value={profile.id}>{profile.shortName}</option>)}
-        </select>
-      </label>
-      <button type="button" className="xl-conv-swap" aria-label={`${copy.converterFrom} ⇄ ${copy.converterTo}`} onClick={() => { setFrom(to); setTo(from); if (result) setSens(formatSens(result.configurableSensitivity)) }}><ArrowLeftRight size={16} /></button>
-      <label htmlFor={`${id}-to`}><span>{copy.converterTo}</span>
-        <select id={`${id}-to`} value={to} onChange={event => setTo(event.target.value as GameSensitivityProfileId)}>
-          {CONVERTIBLE_PROFILES.map(profile => <option key={profile.id} value={profile.id}>{profile.shortName}</option>)}
-        </select>
-      </label>
+      <GameField id={`${id}-from`} label={copy.converterFrom} value={from} onChange={setFrom} />
+      <Button variant="outline" size="icon" className="transition-[transform,border-color,background-color] duration-300 hover:rotate-180 motion-reduce:transition-none" aria-label={`${copy.converterFrom} ⇄ ${copy.converterTo}`} onClick={() => { setFrom(to); setTo(from); if (result) setSens(formatSens(result.configurableSensitivity)) }}><ArrowLeftRight /></Button>
+      <GameField id={`${id}-to`} label={copy.converterTo} value={to} onChange={setTo} />
     </div>
     <div className="xl-conv-row is-inputs">
-      <label htmlFor={`${id}-sens`}><span>{copy.converterSens}</span><input id={`${id}-sens`} inputMode="decimal" value={sens} onChange={event => setSens(event.target.value)} /></label>
-      <label htmlFor={`${id}-dpi`}><span>{copy.converterDpi}</span><input id={`${id}-dpi`} inputMode="numeric" value={dpi} onChange={event => setDpi(event.target.value.replace(/\D/g, '').slice(0, 5))} /></label>
+      <div className="grid min-w-0 gap-2"><Label htmlFor={`${id}-sens`}>{copy.converterSens}</Label><Input id={`${id}-sens`} inputMode="decimal" value={sens} onChange={event => setSens(event.target.value)} className="font-mono tabular-nums" /></div>
+      <div className="grid min-w-0 gap-2"><Label htmlFor={`${id}-dpi`}>{copy.converterDpi}</Label><Input id={`${id}-dpi`} inputMode="numeric" value={dpi} onChange={event => setDpi(event.target.value.replace(/\D/g, '').slice(0, 5))} className="font-mono tabular-nums" /></div>
     </div>
     <output className="xl-conv-out" htmlFor={`${id}-from ${id}-to ${id}-sens ${id}-dpi`} aria-live="polite">
       <span>{copy.converterResult} · {target.shortName}</span>

@@ -8,11 +8,11 @@ test.describe('Analysis V1 recorded Sessions', () => {
     await readyHistory(page)
   })
   test('shows an honest empty state and opens training without fake charts or trends', async ({page})=>{
-    await page.getByRole('button',{name:'ANÁLISE',exact:true}).click()
+    await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Análise', exact: true }).click()
     await expect(page.getByRole('heading',{name:'Análise',exact:true})).toBeVisible()
     await expect(page.getByText('Nenhuma sessão registrada')).toBeVisible()
     await expect(page.locator('.analysis-v1-chart')).toHaveCount(0)
-    await page.locator('.av1-empty').getByRole('button',{name:'TREINAR',exact:true}).click()
+    await page.locator('.av1-empty').getByRole('button',{name:'Treinar',exact:true}).click()
     await expect(page.locator('.warmup-exercises')).toBeVisible()
   })
   test('filters comparable sessions, measures lower-is-better, shows context/change markers and details',async({page},info)=>{
@@ -33,7 +33,7 @@ test.describe('Analysis V1 recorded Sessions', () => {
       await repo.database.save({kind:'session',value:makeSession(1,21,{exerciseId:'micro_flick',status:'interrupted',invalidReason:'manual_abort',finishedAt:new Date(now-2000).toISOString()})},false)
       await repo.refresh()
     })
-    await page.getByRole('button',{name:'ANÁLISE',exact:true}).click()
+    await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Análise', exact: true }).click()
     await expect(page.getByText('Selecione um exercício para visualizar evolução.')).toBeVisible()
     await page.getByRole('combobox',{name:'Período',exact:true}).selectOption('7d')
     await page.getByRole('combobox',{name:'Exercício',exact:true}).selectOption('micro_flick')
@@ -76,7 +76,7 @@ test.describe('Analysis V1 recorded Sessions', () => {
     await page.screenshot({path:info.outputPath('analysis-recent.png'),fullPage:true})
   })
   test('updates new guest sessions without reload and recalculates after confirmed deletion',async({page})=>{
-    await page.getByRole('button',{name:'ANÁLISE',exact:true}).click()
+    await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Análise', exact: true }).click()
     await expect(page.getByText('Nenhuma sessão registrada')).toBeVisible()
     await page.evaluate(async()=>{
       const {makeSession}=await import('/src/testFixtures/sessions.ts')

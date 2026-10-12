@@ -1,0 +1,88 @@
+/* Navbar Refinement V2: existing materials, compact and stable layout. */
+.app-shell.xensi-universal-shell { --nav-height: 72px; --nav-radius: 14px; }
+.app-shell.xensi-universal-shell .app-header { width: min(var(--xensi-max-width),calc(100% - var(--xensi-gutter) * 2)); min-height: var(--nav-height); margin: 30px auto 0; border: 1px solid rgba(255,255,255,.09); border-radius: var(--nav-radius); background: linear-gradient(110deg,rgba(14,15,18,.86),rgba(26,27,32,.74)); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 #ffffff08, 0 18px 40px -28px #0a0608; overflow: visible; }
+.xensi-universal-shell .xensi-navigation { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; height: var(--nav-height); min-height: 0; max-width: none; padding: 0 20px; gap: 20px; }
+.xensi-universal-shell .xensi-primary-nav { min-width: 0; display: flex; align-items: stretch; justify-content: center; gap: clamp(12px,1.05vw,18px); overflow: visible; }
+.xensi-nav-secondary { display: contents; }
+.xensi-universal-shell .xensi-primary-nav > button,.xensi-universal-shell .xensi-nav-secondary > button,.xensi-universal-shell .xensi-nav-secondary > .xensi-nav-menu-group > button { white-space: nowrap; }
+.xensi-universal-shell .xensi-nav-dropdown button { white-space: normal; }
+.xensi-universal-shell .xensi-nav-dropdown button > span { min-width: 0; }
+.xensi-universal-shell .xensi-nav-dropdown small { white-space: normal; overflow-wrap: anywhere; }
+.xensi-universal-shell .xensi-primary-nav > button,.xensi-universal-shell .xensi-nav-secondary > button,.xensi-universal-shell .xensi-nav-secondary > .xensi-nav-menu-group > button { position: relative; display: flex; align-items: center; padding: 0 2px; border: 0; background: none; font: 600 12px/1.4 var(--font-ui); letter-spacing: -.01em; text-transform: none; color: #c4c5cb; flex-shrink: 0; }
+.xensi-universal-shell .xensi-nav-secondary > .xensi-nav-menu-group > button > svg { display: none; }
+.xensi-universal-shell .xensi-primary-nav button.active { color: #f5f5f7; font-weight: 600; }
+.xensi-universal-shell .xensi-primary-nav button:hover { color: #fff; }
+.xensi-universal-shell .xensi-primary-nav button:focus-visible { outline: 2px solid var(--xensi-brand); outline-offset: 4px; box-shadow: none; }
+.xensi-universal-shell .xensi-active-indicator { bottom: 12px; background: var(--xensi-brand); box-shadow: none; }
+.xensi-universal-shell .xensi-nav-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.xensi-nav-account-slot { width: 124px; display: flex; align-items: center; justify-content: flex-end; }
+.xensi-universal-shell .xensi-nav-utility { width: 36px; height: 36px; display: grid; place-items: center; border: 0; padding: 6px; background: none; color: #bfc1ca; border-radius: 8px; cursor: pointer; }
+.xensi-universal-shell .xensi-nav-utility:hover { color: #fff; background: #ffffff09; }
+.xensi-universal-shell .xensi-login-trigger { min-height: 38px; min-width: 0; width: 124px; justify-content: center; padding: 0 10px !important; gap: 9px; border: 1px solid var(--xensi-brand); background: #101114; border-radius: 6px; }
+.xensi-universal-shell .xensi-login-trigger > span { display: block; }
+.xensi-universal-shell .xensi-user-trigger { width: 124px; gap: 6px; }
+.xensi-universal-shell .xensi-nav-username { display: block; max-width: 62px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 12px var(--font-ui); }
+.xensi-universal-shell .xensi-nav-account-avatar { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border: 1px solid #4b4c54; border-radius: 50%; background: radial-gradient(circle at 35% 25%,#303139,#18191e); font: 600 18px var(--font-ui); color: #fff; text-transform: lowercase; }
+.xensi-universal-shell .xensi-nav-account-avatar .xensi-avatar { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; }
+.xensi-universal-shell .xensi-user-trigger.active .xensi-nav-account-avatar { border-color: #4b4c54; box-shadow: none; }
+.xensi-universal-shell .xensi-auth-skeleton { width: 124px; height: 38px; }
+.xensi-universal-shell .xensi-nav-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: auto; width: auto; max-height: min(560px,calc(100dvh - 140px)); overflow-y: auto; border: 1px solid var(--xensi-border); border-radius: 16px; background: #15161c; z-index: 60; }
+.xensi-universal-shell .xensi-training-dropdown { width: 350px; }
+.xensi-universal-shell .xensi-diagnostic-dropdown[role='menu'] { width: 330px; left: 50%; right: auto; translate: -50% 0; }
+.xensi-universal-shell .xensi-nav-dropdown-right { right: 0; left: auto; }
+.xensi-account-name { display: block; padding: 10px 12px; font: 600 14px var(--font-ui); color: var(--xensi-text); overflow-wrap: anywhere; border-bottom: 1px solid var(--xensi-border); }
+.xensi-universal-shell .xensi-nav-search { width: 300px; padding: 14px; }
+.xensi-nav-search > label { display: flex; align-items: center; gap: 8px; }
+.xensi-nav-search input { width: 100%; min-width: 0; background: #090a0e; border: 1px solid #34353d; color: #fff; border-radius: 6px; padding: 10px; }
+.xensi-nav-search [role='menu'] { display: grid; margin-top: 12px; }
+.xensi-nav-search [role='menuitem'] { text-align: left; text-transform: capitalize; padding: 10px; color: #e7e8ed; background: none; border: 0; border-radius: 6px; }
+.xensi-nav-search [role='menuitem']:hover { background: #ffffff08; }
+.xensi-universal-shell .xensi-primary-nav > .xensi-nav-more-trigger { display: none; }
+.xensi-universal-shell .xensi-nav-secondary > .xensi-nav-compact-utility,.xensi-universal-shell .xensi-nav-home > .xensi-nav-home-icon { display: none; }
+.xensi-nav-secondary > button::after { display: none; }
+@media (max-width:1200px) {
+  .xensi-universal-shell .xensi-navigation { gap: 16px; padding-inline: 18px; }
+  .xensi-universal-shell .xensi-primary-nav { gap: 12px; }
+  .xensi-universal-shell .xensi-nav-actions { gap: 10px; }
+}
+@media (max-width:880px) {
+  .xensi-universal-shell .xensi-navigation { padding-inline: 14px; gap: 14px; }
+  .xensi-universal-shell .xensi-primary-nav { justify-content: center; gap: 12px; }
+  .xensi-universal-shell .xensi-primary-nav > .xensi-nav-more-trigger { display: flex; align-items: center; gap: 4px; }
+  .xensi-nav-secondary { display: none; }
+  .xensi-nav-secondary[data-expanded='true'] { position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 60; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px; border: 1px solid var(--xensi-border); border-radius: 12px; background: #15161c; box-shadow: 0 20px 45px #0008; }
+  .xensi-universal-shell .xensi-nav-secondary > button,.xensi-universal-shell .xensi-nav-secondary > .xensi-nav-menu-group > button { min-height: 42px; width: 100%; padding: 8px 12px; border-radius: 6px; }
+  .xensi-universal-shell .xensi-nav-secondary > .xensi-nav-menu-group { display: flex; flex-direction: column; }
+  .xensi-nav-secondary > .xensi-nav-menu-group:has(.xensi-nav-dropdown:not([inert])) { grid-column: 1/-1; }
+  .xensi-universal-shell .xensi-nav-secondary .xensi-nav-dropdown { position: static; top: auto; translate: none; width: 100%; min-width: 0; margin-top: 6px; }
+  .xensi-universal-shell .xensi-nav-secondary .xensi-diagnostic-dropdown[role='menu'] { width: 100%; left: auto; translate: none; }
+  .xensi-universal-shell .xensi-nav-secondary .xensi-active-indicator { bottom: 3px; left: 12px; right: 12px; }
+  .xensi-universal-shell .xensi-nav-dropdown-right { position: absolute; top: calc(100% + 16px); right: 0; left: auto; width: min(300px,calc(100vw - 48px)); }
+}
+@media (max-width:600px) {
+  .app-shell.xensi-universal-shell .app-header { margin-top: 12px; --nav-height: 64px; }
+  .xensi-universal-shell .xensi-navigation { padding-inline: 8px; gap: 8px; }
+  .xensi-universal-shell .xensi-nav-brand { font-size: 18px; }
+  .xensi-universal-shell .xensi-primary-nav { gap: 6px; }
+  .xensi-universal-shell .xensi-nav-actions { gap: 0; }
+  .xensi-universal-shell .xensi-nav-actions > .xensi-nav-utility,.xensi-universal-shell .xensi-nav-search-group > .xensi-nav-utility { display: none; }
+  .xensi-nav-account-slot,.xensi-universal-shell .xensi-user-trigger,.xensi-universal-shell .xensi-login-trigger { width: 88px; }
+  .xensi-universal-shell .xensi-user-trigger { justify-content: flex-end; }
+  .xensi-universal-shell .xensi-user-trigger > .xensi-nav-username { display: none; }
+  .xensi-universal-shell .xensi-login-trigger { padding: 0 6px !important; gap: 4px; }
+  .xensi-universal-shell .xensi-login-trigger > :is(span,svg:last-child) { display: block; }
+  .xensi-universal-shell .xensi-auth-skeleton { width: 88px; }
+  .xensi-universal-shell .xensi-nav-secondary > .xensi-nav-compact-utility { display: flex; gap: 8px; }
+  .xensi-nav-search-group { position: static; }
+  .xensi-universal-shell .xensi-nav-search { top: calc(100% + 8px); right: 0; }
+  .xensi-universal-shell .xensi-nav-home > .xensi-nav-home-icon,.xensi-universal-shell .xensi-nav-more-trigger > svg { display: block; }
+  .xensi-nav-home-label { display: none; }
+  .xensi-universal-shell .xensi-nav-secondary > .xensi-nav-menu-group > button > svg { display: block; }
+}
+@media (max-width:380px) {
+  .app-shell.xensi-universal-shell .app-header { width: calc(100% - 16px); }
+  .xensi-universal-shell .xensi-navigation { gap: 6px; padding-inline: 6px; }
+  .xensi-universal-shell .xensi-primary-nav { gap: 4px; }
+  .xensi-universal-shell .xensi-nav-brand { font-size: 16px; }
+  .xensi-universal-shell .xensi-nav-more-trigger > span:not(.xensi-active-indicator) { display: none; }
+}

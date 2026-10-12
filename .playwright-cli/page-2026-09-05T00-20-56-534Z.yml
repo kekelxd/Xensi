@@ -1,0 +1,104 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: X
+        - text: ENSI
+      - generic "Page language" [ref=e8]:
+        - combobox "Page language" [ref=e13] [cursor=pointer]:
+          - option "Português"
+          - option "English" [selected]
+          - option "Español"
+    - navigation "XENSI" [ref=e14]:
+      - button "Home" [ref=e15] [cursor=pointer]
+      - button "Profile" [ref=e19] [cursor=pointer]
+      - button "Routine" [active] [ref=e23] [cursor=pointer]
+      - button "Warm-up" [ref=e27] [cursor=pointer]
+      - button "Sensitivity Calibration" [ref=e30] [cursor=pointer]
+      - button "Converter" [ref=e33] [cursor=pointer]
+      - button "Polling Rate" [ref=e37] [cursor=pointer]
+      - button "Input diagnostics" [ref=e41] [cursor=pointer]
+  - generic [ref=e321]:
+    - generic [ref=e322]:
+      - generic [ref=e323]: FPS Routines
+      - heading "Train five fundamentals in five minutes" [level=1] [ref=e326]
+      - paragraph [ref=e327]: Balanced presets designed to build precision, target switching, tracking, and fine control.
+    - generic "Choose a routine" [ref=e328]:
+      - button "5 phases · 1 minute each FPS Fundamentals A balanced base of tracking, target switching, precision, and reaction. 1 Tracking 1:00 2 Target Switch 1:00 3 Target Shooting 1:00 4 Strafetrack 1:00 5 Reflex 1:00 Configure routine" [ref=e329] [cursor=pointer]:
+        - generic [ref=e330]: 5 phases · 1 minute each
+        - strong [ref=e336]: FPS Fundamentals
+        - generic [ref=e337]: A balanced base of tracking, target switching, precision, and reaction.
+        - list [ref=e338]:
+          - listitem [ref=e339]:
+            - generic [ref=e340]: "1"
+            - generic [ref=e344]: Tracking
+            - generic [ref=e345]: 1:00
+          - listitem [ref=e346]:
+            - generic [ref=e347]: "2"
+            - generic [ref=e354]: Target Switch
+            - generic [ref=e355]: 1:00
+          - listitem [ref=e356]:
+            - generic [ref=e357]: "3"
+            - generic [ref=e362]: Target Shooting
+            - generic [ref=e363]: 1:00
+          - listitem [ref=e364]:
+            - generic [ref=e365]: "4"
+            - generic [ref=e369]: Strafetrack
+            - generic [ref=e370]: 1:00
+          - listitem [ref=e371]:
+            - generic [ref=e372]: "5"
+            - generic [ref=e375]: Reflex
+            - generic [ref=e376]: 1:00
+        - emphasis [ref=e377]: Configure routine
+      - button "5 phases · 1 minute each Tactical Precision Fine control and micro-corrections for tactical games such as CS2 and Valorant. 1 Reflex 1:00 2 Target Shooting 1:00 3 Gridshot 1:00 4 Target Switch 1:00 5 Strafetrack 1:00 Configure routine" [ref=e380] [cursor=pointer]:
+        - generic [ref=e381]: 5 phases · 1 minute each
+        - strong [ref=e387]: Tactical Precision
+        - generic [ref=e388]: Fine control and micro-corrections for tactical games such as CS2 and Valorant.
+        - list [ref=e389]:
+          - listitem [ref=e390]:
+            - generic [ref=e391]: "1"
+            - generic [ref=e394]: Reflex
+            - generic [ref=e395]: 1:00
+          - listitem [ref=e396]:
+            - generic [ref=e397]: "2"
+            - generic [ref=e402]: Target Shooting
+            - generic [ref=e403]: 1:00
+          - listitem [ref=e404]:
+            - generic [ref=e405]: "3"
+            - generic [ref=e408]: Gridshot
+            - generic [ref=e409]: 1:00
+          - listitem [ref=e410]:
+            - generic [ref=e411]: "4"
+            - generic [ref=e418]: Target Switch
+            - generic [ref=e419]: 1:00
+          - listitem [ref=e420]:
+            - generic [ref=e421]: "5"
+            - generic [ref=e425]: Strafetrack
+            - generic [ref=e426]: 1:00
+        - emphasis [ref=e427]: Configure routine
+      - button "5 phases · 1 minute each Reactive Control Smooth tracking, direction changes, and fast responses to new targets. 1 Tracking 1:00 2 Strafetrack 1:00 3 Target Switch 1:00 4 Reflex 1:00 5 Tracking 1:00 Configure routine" [ref=e430] [cursor=pointer]:
+        - generic [ref=e431]: 5 phases · 1 minute each
+        - strong [ref=e437]: Reactive Control
+        - generic [ref=e438]: Smooth tracking, direction changes, and fast responses to new targets.
+        - list [ref=e439]:
+          - listitem [ref=e440]:
+            - generic [ref=e441]: "1"
+            - generic [ref=e445]: Tracking
+            - generic [ref=e446]: 1:00
+          - listitem [ref=e447]:
+            - generic [ref=e448]: "2"
+            - generic [ref=e452]: Strafetrack
+            - generic [ref=e453]: 1:00
+          - listitem [ref=e454]:
+            - generic [ref=e455]: "3"
+            - generic [ref=e462]: Target Switch
+            - generic [ref=e463]: 1:00
+          - listitem [ref=e464]:
+            - generic [ref=e465]: "4"
+            - generic [ref=e468]: Reflex
+            - generic [ref=e469]: 1:00
+          - listitem [ref=e470]:
+            - generic [ref=e471]: "5"
+            - generic [ref=e475]: Tracking
+            - generic [ref=e476]: 1:00
+        - emphasis [ref=e477]: Configure routine

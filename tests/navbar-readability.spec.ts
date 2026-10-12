@@ -21,7 +21,7 @@ test.describe('Readable XENSI navigation', () => {
     const login = page.locator('.xensi-login-trigger')
     await expect(login).toBeVisible()
     await expect(login).toHaveAccessibleName('Login')
-    await expect(login).toContainText('LOGIN')
+    await expect(login).toContainText('Login')
     await expect(page.locator('.xensi-user-trigger')).toHaveCount(0)
     await expect(page.locator('.xensi-nav-actions .xensi-avatar')).toHaveCount(0)
 
@@ -31,10 +31,10 @@ test.describe('Readable XENSI navigation', () => {
   })
 
   test('opens only Minigames and Routines and preserves their destinations', async ({ page }) => {
-    const trigger = page.getByRole('button', { name: 'TREINAR', exact: true })
+    const trigger = page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Treinar', exact: true })
     await trigger.focus()
     await page.keyboard.press('Enter')
-    const menu = page.getByRole('menu', { name: 'TREINAR', exact: true })
+    const menu = page.getByRole('menu', { name: 'Treinar', exact: true })
     await expect(menu.getByRole('menuitem')).toHaveCount(2)
     await expect(menu.locator('.xensi-nav-dropdown-label')).toHaveCount(0)
     await page.keyboard.press('Tab')
@@ -58,7 +58,7 @@ test.describe('Readable XENSI navigation', () => {
   test('renders readable menus, aligned user controls and contained dropdowns', async ({ page }, info) => {
     const nav = page.locator('.xensi-navigation')
     const primary = page.locator('.xensi-primary-nav')
-    expect(await primary.getByRole('button', { name: 'TREINAR', exact: true }).evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(12)
+    expect(await primary.getByRole('button', { name: 'Treinar', exact: true }).evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(12)
     if (page.viewportSize()!.width > 1080) {
       expect(await primary.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
       const user = page.locator('.xensi-user-trigger')
@@ -69,7 +69,7 @@ test.describe('Readable XENSI navigation', () => {
       expect(Math.abs(avatar!.y + avatar!.height / 2 - nick!.y - nick!.height / 2)).toBeLessThan(3)
     }
     for (const type of ['train', 'calibrate', 'diagnostic', 'profile']) {
-      const trigger = type === 'profile' ? page.locator('.xensi-user-trigger') : primary.getByRole('button', { name: { train: 'TREINAR', calibrate: 'CALIBRAR', diagnostic: 'DIAGNÓSTICO' }[type], exact: true })
+      const trigger = type === 'profile' ? page.locator('.xensi-user-trigger') : primary.getByRole('button', { name: { train: 'Treinar', calibrate: 'Calibrar', diagnostic: 'Diagnóstico' }[type], exact: true })
       await trigger.click()
       const menu = page.locator('.xensi-nav-dropdown')
       await expect(menu).toBeVisible()
@@ -109,9 +109,9 @@ test.describe('Readable XENSI navigation', () => {
 
   test('translates the Calibrate documentation item', async ({ page }) => {
     for (const [locale, trigger, documentationName] of [
-      ['pt', 'CALIBRAR', 'Como funciona Entenda o método de calibração.'],
+      ['pt', 'Calibrar', 'Como funciona Entenda o método de calibração.'],
       ['en', 'CALIBRATE', 'How it works Understand the calibration method.'],
-      ['es', 'CALIBRAR', 'Cómo funciona Entiende el método de calibración.'],
+      ['es', 'Calibrar', 'Cómo funciona Entiende el método de calibración.'],
     ] as const) {
       await page.evaluate(value => localStorage.setItem('sensi-locale', value), locale)
       await page.reload()
@@ -121,8 +121,8 @@ test.describe('Readable XENSI navigation', () => {
   })
 
   test('keeps the Calibrate dropdown hierarchy clear', async ({ page }, info) => {
-    await page.getByRole('button', { name: 'CALIBRAR', exact: true }).click()
-    const menu = page.getByRole('menu', { name: 'CALIBRAR' })
+    await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Calibrar', exact: true }).click()
+    const menu = page.getByRole('menu', { name: 'Calibrar' })
     await expect(menu).toBeVisible()
     const items = menu.getByRole('menuitem')
     await expect(items).toHaveCount(3)
@@ -133,7 +133,7 @@ test.describe('Readable XENSI navigation', () => {
 
     await items.nth(2).click()
     await expect(page.getByRole('heading', { name: 'Como o XENSI mede' })).toBeVisible()
-    await page.getByRole('button', { name: 'CALIBRAR', exact: true }).click()
+    await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Calibrar', exact: true }).click()
     const documentationItem = page.getByRole('menuitem', { name: /Como funciona/ })
     await expect(documentationItem).toHaveAttribute('aria-current', 'page')
     await expect(documentationItem).toHaveCSS('box-shadow', 'none')

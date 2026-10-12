@@ -60,9 +60,11 @@ function AnalysisDashboard({ onStartTraining }: Props) {
     return () => { if (returnFocus.current?.isConnected) returnFocus.current.focus() }
   }, [detailsId])
   const options = [...new Map((data?.variants??[]).map(v=>[v.session.exerciseId,v.session])).values()]
-  return <section className="analysis-workspace analysis-dashboard analysis-v1">
-    <XensiPageHeader title={copy.title} description={copy.subtitle} actions={<button className="icon-button" type="button" title={copy.refresh} aria-label={copy.refresh} onClick={refresh}><RefreshCw size={18}/></button>} />
-    <div className="analysis-v1-filters">
+  const kicker = locale === 'en' ? 'Analysis · real sessions only' : locale === 'es' ? 'Análisis · solo sesiones reales' : 'Análise · só sessões reais'
+  const heroValue = data && metric ? aggregateValue(data.current, metric) : null
+  return <section className="analysis-workspace analysis-dashboard analysis-v1 xb-page xb-analysis">
+    <XensiPageHeader kicker={kicker} title={copy.title} description={copy.subtitle} actions={<button className="xb-icon-btn" type="button" title={copy.refresh} aria-label={copy.refresh} onClick={refresh}><RefreshCw size={18}/></button>} />
+    <div className="analysis-v1-filters xb-control-strip">
       <label>{copy.period}<select value={period} onChange={e=>setPeriod(e.target.value as AnalysisPeriod)}>{(['7d','30d','90d','all'] as const).map(p=><option key={p} value={p}>{copy[p]}</option>)}</select></label>
       <label>{copy.exercise}<select value={exercise} onChange={e=>{const v=e.target.value as typeof exercise;setExercise(v);setVariant(null);setMetricKey(v==='all'?null:SESSION_REGISTRY[v].primaryMetric)}}>
         <option value="all">{copy.allExercises}</option>{options.map(s=><option key={s.exerciseId} value={s.exerciseId}>{labels.exerciseName(s)}</option>)}{exercise!=='all'&&!options.some(s=>s.exerciseId===exercise)&&<option value={exercise}>{exercise}</option>}</select></label>
@@ -70,37 +72,39 @@ function AnalysisDashboard({ onStartTraining }: Props) {
         {!chosenVariant&&<option value="">—</option>}{data?.variants.filter(v=>v.session.exerciseId===exercise).map(v=><option key={variantKey(v.session)} value={variantKey(v.session)}>{labels.configuration(v.session)}</option>)}</select></label>
         <label>{copy.metric}<select value={metric?.key??''} onChange={e=>setMetricKey(e.target.value as AnalysisMetricKey)}>{metrics.map(m=><option key={m.key} value={m.key}>{t(m.label)}</option>)}</select></label></>}
     </div>
-    {state.status==='loading'?<p className="av1-state" role="status">{copy.loading}</p>:state.status==='error'?<p className="av1-state" role="alert">{copy.error}</p>:data&&<>
-      {!data.total?<div className="av1-empty"><h2>{copy.empty}</h2><p>{copy.emptyText}</p>{onStartTraining&&<button className="primary-button" onClick={onStartTraining}><Play size={15}/>{copy.train}</button>}</div>:<>
-      <div className="analysis-v1-summary" aria-label={copy.title}>
-        {metric&&<><div><span>{copy[metric.aggregation]}</span><strong><AnimatedMetric value={aggregateValue(data.current,metric)} format={value => formatAnalysisValue(value,metric,locale)} /></strong></div>
+    {state.status==='loading'?<p className="av1-state xb-state" role="status">{copy.loading}</p>:state.status==='error'?<p className="av1-state xb-state" role="alert">{copy.error}</p>:data&&<>
+      {!data.total?<div className="av1-empty xb-empty"><span className="xb-empty-mark" aria-hidden="true">00</span><h2>{copy.empty}</h2><p>{copy.emptyText}</p>{onStartTraining&&<button className="xb-btn xb-btn-primary" onClick={onStartTraining}><Play size={15}/>{copy.train}</button>}</div>:<>
+      <div className="analysis-v1-summary xb-scoreboard" aria-label={copy.title}>
+        {metric&&<><div className="is-lead"><span>{copy[metric.aggregation]}</span><strong><AnimatedMetric value={heroValue} format={value => formatAnalysisValue(value,metric,locale)} /></strong><small>{t(metric.label)}</small></div>
         <div><span>{copy.primaryPB}</span><strong><AnimatedMetric value={pb?.value ?? null} format={value => primary ? formatAnalysisValue(value,primary,locale) : '—'} /></strong><small>{!pb?copy.noPB:primary?t(primary.label):''}</small></div>
         <div><span>{copy.variation}</span><strong><AnimatedMetric value={data.current.variation} format={value => formatAnalysisValue(value,{unit:'%',precision:1},locale)} /></strong></div></>}
         <div><span>{copy.count}</span><strong><AnimatedMetric value={data.total} format={value => new Intl.NumberFormat(locale).format(value ?? 0)} /></strong></div>
         {!metric&&<div><span>{copy.overview}</span><strong>{options.length}</strong></div>}
       </div>
-      <section className="av1-section"><h2>{copy.chart}{metric&&<small>{t(metric.label)}</small>}</h2>{metric?data.points.length?<AnalysisChart key={JSON.stringify(query)} sessions={data.points} metric={metric} pb={metric.key===primary?.key&&pb?pb.value:null} onDetails={openDetails}/>:<p className="av1-state">{copy.noMetric}</p>:<p className="av1-state">{copy.select}</p>}
-        {data.pointCount>300&&<p className="av1-note">{copy.limited}</p>}
-      </section>
-      {metric&&<section className="av1-section av1-period"><h2>{copy.comparison}</h2>{period==='all'?<p>{copy.noComparison}</p>:<>
-        <div><span>{copy.current}<strong><AnimatedMetric value={aggregateValue(data.current,metric)} format={value => formatAnalysisValue(value,metric,locale)} /></strong><small>{data.current.count} {copy.count.toLowerCase()}</small></span>
-        <span>{copy.previous}<strong>{formatAnalysisValue(aggregateValue(data.previous,metric),metric,locale)}</strong><small>{data.previous.count} {copy.count.toLowerCase()}</small></span>
-        <span className={change===null||change===0?'':change>0?'positive':'negative'}>{change===null?copy.insufficient:`${change>0?'+':''}${formatAnalysisValue(change,{unit:'%',precision:1},locale)}`}</span></div></>}
-      </section>}
+      <div className="xb-analysis-grid">
+        <section className="av1-section xb-panel xb-chart-panel"><h2>{copy.chart}{metric&&<small>{t(metric.label)}</small>}</h2>{metric?data.points.length?<AnalysisChart key={JSON.stringify(query)} sessions={data.points} metric={metric} pb={metric.key===primary?.key&&pb?pb.value:null} onDetails={openDetails}/>:<p className="av1-state xb-state">{copy.noMetric}</p>:<p className="av1-state xb-state">{copy.select}</p>}
+          {data.pointCount>300&&<p className="av1-note">{copy.limited}</p>}
+        </section>
+        {metric&&<section className="av1-section av1-period xb-panel xb-versus-panel"><h2>{copy.comparison}</h2>{period==='all'?<p className="xb-state">{copy.noComparison}</p>:<>
+          <div className="xb-versus-rows"><span className="is-current">{copy.current}<strong><AnimatedMetric value={aggregateValue(data.current,metric)} format={value => formatAnalysisValue(value,metric,locale)} /></strong><small>{data.current.count} {copy.count.toLowerCase()}</small></span>
+          <span className="is-previous">{copy.previous}<strong>{formatAnalysisValue(aggregateValue(data.previous,metric),metric,locale)}</strong><small>{data.previous.count} {copy.count.toLowerCase()}</small></span>
+          <span className={`xb-delta ${change===null||change===0?'':change>0?'positive':'negative'}`}>{change===null?copy.insufficient:`${change>0?'+':''}${formatAnalysisValue(change,{unit:'%',precision:1},locale)}`}</span></div></>}
+        </section>}
+      </div>
       </>}
       <PersonalBestPanel exercise={exercise==='all'?undefined:exercise} variant={exercise==='all'?undefined:chosenVariant??undefined}/>
-      <section className="av1-section"><h2>{copy.recent}</h2><div className="analysis-v1-recents">
-        {data.recent.map(s=>{const m=getAnalysisMetrics(s.exerciseId)[0];return <button key={s.id} type="button" onClick={()=>openDetails(s)}><span><b>{labels.exerciseName(s)}</b><small>{s.config!.spatial ? `${s.config!.spatial.roundCount} ${t('spatial.rounds')} · HRTF` : `${s.config!.durationSeconds}s · ${t(`difficulty.${s.config!.difficulty}`)}`}</small></span><strong>{formatAnalysisValue(getMetricValue(s,m),m,locale)}</strong><time dateTime={s.finishedAt}>{labels.date(s)}</time></button>})}
+      <section className="av1-section xb-panel xb-history"><h2>{copy.recent}</h2><div className="analysis-v1-recents">
+        {data.recent.map((s,index)=>{const m=getAnalysisMetrics(s.exerciseId)[0];return <button key={s.id} type="button" onClick={()=>openDetails(s)}><i aria-hidden="true">{String(index+1).padStart(2,'0')}</i><span><b>{labels.exerciseName(s)}</b><small>{s.config!.spatial ? `${s.config!.spatial.roundCount} ${t('spatial.rounds')} · HRTF` : `${s.config!.durationSeconds}s · ${t(`difficulty.${s.config!.difficulty}`)}`}</small></span><strong>{formatAnalysisValue(getMetricValue(s,m),m,locale)}</strong><time dateTime={s.finishedAt}>{labels.date(s)}</time></button>})}
       </div></section>
     </>}
-    <MotionDialog open={Boolean(shownDetails)} className="modal-backdrop" onClick={closeDetails} onKeyDown={e=>{if(e.key==='Escape'){if(confirmRemoval)cancelRemoval();else closeDetails()}}}>{shownDetails && (<MotionDialogPanel className="modal av1-details" role="dialog" aria-modal="true" aria-label={copy.details} onClick={e=>e.stopPropagation()} onKeyDown={e=>{
+    <MotionDialog open={Boolean(shownDetails)} className="modal-backdrop" onClick={closeDetails} onKeyDown={e=>{if(e.key==='Escape'){if(confirmRemoval)cancelRemoval();else closeDetails()}}}>{shownDetails && (<MotionDialogPanel className="modal av1-details xb-modal" role="dialog" aria-modal="true" aria-label={copy.details} onClick={e=>e.stopPropagation()} onKeyDown={e=>{
         if (e.key !== 'Tab') return
         const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')]
         const first = buttons[0], last = buttons[buttons.length - 1]
         if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus() }
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus() }
       }}>
-        <button autoFocus className="modal-close" title={t('common.close')} aria-label={t('common.close')} onClick={closeDetails}><X size={20}/></button>
+        <button autoFocus className="modal-close xb-modal-close" title={t('common.close')} aria-label={t('common.close')} onClick={closeDetails}><X size={20}/></button>
         <h2>{labels.exerciseName(shownDetails)}</h2><p>{labels.date(shownDetails)} · {t('sessions.completed')}</p>
         <dl className="analysis-v1-context">{getAnalysisMetrics(shownDetails.exerciseId).map(m=><div key={m.key}><dt>{t(m.label)}</dt><dd>{formatAnalysisValue(getMetricValue(shownDetails,m),m,locale)}</dd></div>)}</dl>
         <AnalysisSessionContext session={shownDetails}/>

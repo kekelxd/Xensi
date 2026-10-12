@@ -4,7 +4,7 @@ const routineLibraryKey = 'xensi-routine-library:v1'
 
 const openRoutineLibrary = async (page: import('@playwright/test').Page) => {
   await page.goto('./')
-  await page.getByRole('button', { name: /TREINAR/ }).click()
+  await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: /Treinar/ }).click()
   await page.getByRole('menuitem', { name: /Rotinas/ }).click()
   await expect(page.getByRole('heading', { name: 'Rotinas', exact: true })).toBeVisible()
 }

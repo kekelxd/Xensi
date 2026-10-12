@@ -1,0 +1,50 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: X
+        - text: ENSI
+      - generic "Page language" [ref=e8]:
+        - combobox "Page language" [ref=e13] [cursor=pointer]:
+          - option "Português"
+          - option "English" [selected]
+          - option "Español"
+    - navigation "XENSI" [ref=e14]:
+      - button "Home" [ref=e15] [cursor=pointer]
+      - button "Profile" [ref=e19] [cursor=pointer]
+      - button "Routine" [ref=e23] [cursor=pointer]
+      - button "Warm-up" [active] [ref=e27] [cursor=pointer]
+      - button "Sensitivity Calibration" [ref=e30] [cursor=pointer]
+      - button "Converter" [ref=e33] [cursor=pointer]
+      - button "Polling Rate" [ref=e37] [cursor=pointer]
+      - button "Input diagnostics" [ref=e41] [cursor=pointer]
+  - generic [ref=e480]:
+    - generic [ref=e481]:
+      - generic [ref=e482]: FPS Warm-up
+      - heading "Get your aim ready before the match" [level=1] [ref=e485]
+      - paragraph [ref=e486]: Choose a 1-minute exercise, adjust the difficulty, and warm up with your in-game sensitivity.
+    - generic [ref=e487]:
+      - button "Target Switch Hold your crosshair on the target until it disappears and reappears in a new position. Configure exercise" [ref=e488] [cursor=pointer]:
+        - strong [ref=e495]: Target Switch
+        - generic [ref=e496]: Hold your crosshair on the target until it disappears and reappears in a new position.
+        - generic [ref=e497]: Configure exercise
+      - button "Tracking Follow a moving target for as long as possible without losing contact. Configure exercise" [ref=e500] [cursor=pointer]:
+        - strong [ref=e504]: Tracking
+        - generic [ref=e505]: Follow a moving target for as long as possible without losing contact.
+        - generic [ref=e506]: Configure exercise
+      - button "Target Shooting Shoot the targets that appear across the arena before time runs out. Configure exercise" [ref=e509] [cursor=pointer]:
+        - strong [ref=e514]: Target Shooting
+        - generic [ref=e515]: Shoot the targets that appear across the arena before time runs out.
+        - generic [ref=e516]: Configure exercise
+      - button "Reflex Hit the target before it disappears. Each level shortens the available reaction time. Configure exercise" [ref=e519] [cursor=pointer]:
+        - strong [ref=e522]: Reflex
+        - generic [ref=e523]: Hit the target before it disappears. Each level shortens the available reaction time.
+        - generic [ref=e524]: Configure exercise
+      - button "Gridshot Three targets stay in the arena. Each hit replaces one at a new position. Configure exercise" [ref=e527] [cursor=pointer]:
+        - strong [ref=e530]: Gridshot
+        - generic [ref=e531]: Three targets stay in the arena. Each hit replaces one at a new position.
+        - generic [ref=e532]: Configure exercise
+      - button "Strafetrack Track a laterally moving target that changes direction during its path. Configure exercise" [ref=e535] [cursor=pointer]:
+        - strong [ref=e539]: Strafetrack
+        - generic [ref=e540]: Track a laterally moving target that changes direction during its path.
+        - generic [ref=e541]: Configure exercise

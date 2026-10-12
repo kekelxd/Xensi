@@ -23,7 +23,7 @@ type SensitivityConverterProps = {
 }
 
 export function SensitivityConverter({ initialPreset = null }: SensitivityConverterProps) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const config = useSensitivityPreset('cs2', initialPreset)
   const sourceId = config.draft.gameId
   const [targetId, setTargetId] = useState<GameSensitivityProfileId>(initialPreset?.gameId === 'fortnite' ? 'cs2' : 'fortnite')
@@ -59,32 +59,38 @@ export function SensitivityConverter({ initialPreset = null }: SensitivityConver
     setCopied(true); window.setTimeout(() => setCopied(false), 1400)
   }
 
-  return <section className="converter-workspace">
-    <XensiPageHeader className="converter-heading" title={t('converter.title')} description={t('converter.subtitle')} />
-    <div className="converter-card">
-      <div className="converter-side">
-        <span className="converter-label">{t('converter.from')}</span>
-        <label className="converter-select"><GameBadge gameId={sourceId} /><select aria-label={t('converter.sourceGame')} value={sourceId} onChange={(event) => { config.selectGame(event.target.value as GameSensitivityProfileId); setCopied(false) }}>{GAME_SENSITIVITY_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
-        <PresetSelection draft={config.draft} presets={config.presets} onSelect={config.selectPreset} />
-        <div className="converter-values">
-          <label className="converter-field"><span>{t('converter.currentSensitivity')}</span><input type="text" inputMode="decimal" value={sourceValue} onChange={(event) => setSourceValue(event.target.value)} aria-label={t('converter.currentSensitivity')} /></label>
-          <label className="converter-field"><span>{t('converter.sourceDpi')}</span><input type="text" inputMode="numeric" value={sourceDpi} onChange={(event) => setSourceDpi(event.target.value)} aria-label={t('converter.sourceDpi')} /></label>
-          <div className="converter-field converter-physical"><span>{t('converter.cmPer360')}</span><strong>{result === null ? '—' : `${result.sourceCm360.toFixed(2)} cm`}</strong></div>
+  const kicker = locale === 'en' ? 'Converter · same cm/360' : locale === 'es' ? 'Conversor · mismo cm/360' : 'Conversor · mesmo cm/360'
+  const sideLabel = (side: 'from' | 'to') => side === 'from' ? (locale === 'en' ? 'Source' : 'Origem') : (locale === 'en' ? 'Target' : 'Destino')
+  return <section className="converter-workspace xb-page xb-converter">
+    <XensiPageHeader className="converter-heading" kicker={kicker} title={t('converter.title')} description={t('converter.subtitle')} />
+    <div className="converter-card xb-versus">
+      <div className="converter-side xb-side is-source">
+        <header className="xb-side-bar"><span className="converter-label">{t('converter.from')}</span><b>{sideLabel('from')}</b></header>
+        <div className="xb-side-body">
+          <label className="converter-select xb-game-select"><GameBadge gameId={sourceId} /><select aria-label={t('converter.sourceGame')} value={sourceId} onChange={(event) => { config.selectGame(event.target.value as GameSensitivityProfileId); setCopied(false) }}>{GAME_SENSITIVITY_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
+          <PresetSelection draft={config.draft} presets={config.presets} onSelect={config.selectPreset} />
+          <div className="converter-values xb-fields">
+            <label className="converter-field"><span>{t('converter.currentSensitivity')}</span><input type="text" inputMode="decimal" value={sourceValue} onChange={(event) => setSourceValue(event.target.value)} aria-label={t('converter.currentSensitivity')} /></label>
+            <label className="converter-field"><span>{t('converter.sourceDpi')}</span><input type="text" inputMode="numeric" value={sourceDpi} onChange={(event) => setSourceDpi(event.target.value)} aria-label={t('converter.sourceDpi')} /></label>
+          </div>
+          <div className="converter-field converter-physical xb-readout"><span>{t('converter.cmPer360')}</span><strong>{result === null ? '—' : `${result.sourceCm360.toFixed(2)} cm`}</strong></div>
         </div>
       </div>
-      <button className="converter-swap" onClick={swapGames} aria-label={t('converter.swap')}><RefreshCw size={18} /></button>
-      <div className="converter-side">
-        <span className="converter-label">{t('converter.to')}</span>
-        <label className="converter-select"><GameBadge gameId={targetId} /><select aria-label={t('converter.targetGame')} value={targetId} onChange={(event) => { setTargetId(event.target.value as GameSensitivityProfileId); setCopied(false) }}>{GAME_SENSITIVITY_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
-        <div className="converter-values">
-          <div className="converter-field converter-result"><span>{t('converter.equivalent360')}</span><strong><AnimatedMetric value={result?.configurableSensitivity ?? null} format={() => configurableLabel} /></strong><button onClick={copyResult} disabled={result === null} aria-label={t('converter.copy')}>{copied ? <Check size={18} /> : <Copy size={18} />}</button></div>
-          <label className="converter-field"><span>{t('converter.targetDpi')}</span><input type="text" inputMode="numeric" value={targetDpi} onChange={(event) => setTargetDpi(event.target.value)} aria-label={t('converter.targetDpi')} /></label>
-          <div className="converter-field converter-physical"><span>{t('converter.cmPer360')}</span><strong>{result === null ? '—' : `${result.resultingCm360.toFixed(2)} cm`}</strong></div>
+      <div className="xb-versus-axis"><button className="converter-swap xb-swap" onClick={swapGames} aria-label={t('converter.swap')}><RefreshCw size={20} /></button><span aria-hidden="true">VS</span></div>
+      <div className="converter-side xb-side is-target">
+        <header className="xb-side-bar"><span className="converter-label">{t('converter.to')}</span><b>{sideLabel('to')}</b></header>
+        <div className="xb-side-body">
+          <label className="converter-select xb-game-select"><GameBadge gameId={targetId} /><select aria-label={t('converter.targetGame')} value={targetId} onChange={(event) => { setTargetId(event.target.value as GameSensitivityProfileId); setCopied(false) }}>{GAME_SENSITIVITY_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
+          <div className="converter-field converter-result xb-result"><span>{t('converter.equivalent360')}</span><strong><AnimatedMetric value={result?.configurableSensitivity ?? null} format={() => configurableLabel} /></strong><button onClick={copyResult} disabled={result === null} aria-label={t('converter.copy')}>{copied ? <Check size={18} /> : <Copy size={18} />}</button></div>
+          <div className="converter-values xb-fields">
+            <label className="converter-field"><span>{t('converter.targetDpi')}</span><input type="text" inputMode="numeric" value={targetDpi} onChange={(event) => setTargetDpi(event.target.value)} aria-label={t('converter.targetDpi')} /></label>
+            <div className="converter-field converter-physical xb-readout"><span>{t('converter.cmPer360')}</span><strong>{result === null ? '—' : `${result.resultingCm360.toFixed(2)} cm`}</strong></div>
+          </div>
         </div>
       </div>
     </div>
 
-    {result !== null && <div className="converter-summary" aria-live="polite">
+    {result !== null && <div className="converter-summary xb-scoreboard" aria-live="polite">
       <div className="converter-method"><span>{t('converter.method')}</span><strong>{t('converter.hipfireMethod')}</strong></div>
       <div><span>{t('converter.physicalEquivalence')}</span><strong>{result.sourceCm360.toFixed(2)} → {result.resultingCm360.toFixed(2)} cm/360</strong></div>
       {!duplicateValues && <div><span>{t('converter.mathematicalValue')}</span><strong>{exactLabel}</strong></div>}
@@ -99,7 +105,7 @@ export function SensitivityConverter({ initialPreset = null }: SensitivityConver
       : unverified ? <div className="converter-notice warning"><Info size={16} /><span>{t('converter.unverifiedNotice')}</span></div>
       : <div className="converter-notice"><ShieldCheck size={16} /><span>{t('converter.verifiedNotice')}</span></div>}
 
-    <details className="converter-audit">
+    <details className="converter-audit xb-audit">
       <summary>{t('converter.viewCalculation')}<ChevronDown size={15} /></summary>
       <div className="converter-audit-grid">
         <article><header><span>{t('converter.sourceGame')}</span><i className={`profile-status status-${source.verification.status}`}>{statusLabel(source.verification.status)}</i></header><dl>

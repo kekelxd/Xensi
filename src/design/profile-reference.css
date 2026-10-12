@@ -1,0 +1,119 @@
+/* User-supplied profile/navbar reference, 11 October 2026. */
+.xensi-universal-shell[data-atmosphere='profile'] { background: #050506; }
+.xensi-universal-shell[data-atmosphere='profile'] .xensi-global-ambient { opacity: .12; }
+.xensi-universal-shell[data-atmosphere='profile'] .xensi-page-atmosphere { display: none; }
+.xensi-universal-shell .profile-reference { padding: 54px 0 80px; }
+.xensi-universal-shell .profile-reference .profile-v1-shell { position: relative; width: min(1640px, calc(100% - 8vw)); }
+.profile-reference-mesh { position: absolute; z-index: -1; right: 6%; top: -210px; width: 590px; height: 410px; border-radius: 50%; opacity: .6; pointer-events: none; background: repeating-radial-gradient(ellipse at 50% 50%,#626874 0 1px,#9297a2 1px 2px,#737d90 2px 3px,#474c57 3px 4px); mask-image: radial-gradient(ellipse, #000 10%,#0009 55%,transparent 72%); transform: rotate(-8deg); }
+.xensi-universal-shell .profile-reference .xensi-page-header { border: 0; margin: 0 0 50px; padding: 0; }
+.xensi-universal-shell .profile-reference .xensi-page-header h1 { font-size: clamp(38px,3.6vw,56px); font-weight: 800; letter-spacing: -.035em; }
+.xensi-universal-shell .profile-reference .xensi-page-header p { margin-top: 8px; color: #c2c2ca; font-size: clamp(16px,1.45vw,21px); font-weight: 650; }
+.xensi-universal-shell .profile-reference .profile-v1-hero-grid { grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+.xensi-universal-shell .profile-reference :is(.profile-v1-identity,.profile-v1-active-card) { display: flex; flex-direction: column; justify-content: flex-start; min-height: 390px; padding: 32px 36px; border: 1px solid #2a2b30; border-radius: 14px; background: #101115; box-shadow: inset 0 1px 0 #ffffff04; }
+.xensi-universal-shell .profile-reference .profile-v1-label { color: #9699a4; font: 650 12px/1.4 Manrope,sans-serif; letter-spacing: .22em; text-transform: uppercase; }
+.xensi-universal-shell .profile-reference .profile-v1-identity > header { display: flex; align-items: center; justify-content: space-between; padding: 0; min-height: 40px; border: 0; background: none; }
+.profile-edit-identity { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 10px 18px; border: 1px solid #33343a; border-radius: 8px; color: #e9e9ef; background: #1c1d21; font: 700 14px Manrope,sans-serif; }
+.xensi-universal-shell .profile-reference .profile-v1-person { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; margin: 24px 0 18px; }
+.xensi-universal-shell .profile-reference .profile-v1-avatar-frame { position: relative; display: grid; place-items: center; width: 134px; height: 134px; padding: 4px; border: 3px solid #ec5263; border-radius: 50%; box-shadow: 0 0 26px #ff40551a; background: #101115; }
+.xensi-universal-shell .profile-reference .profile-v1-avatar-frame .xensi-avatar-lg { width: 120px; height: 120px; border-radius: 50%; overflow: hidden; }
+.profile-monogram { display: grid; place-items: center; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle at 40% 25%,#35363f,#1a1b20 80%); color: #fff; font: 700 48px Manrope,sans-serif; }
+.profile-v1-avatar-frame > i { position: absolute; bottom: 7px; right: 4px; width: 20px; height: 20px; border: 3px solid #101115; border-radius: 50%; background: #33d177; }
+.xensi-universal-shell .profile-reference .profile-v1-person h2 { margin: 0; font: 800 34px/1.15 Manrope,sans-serif; letter-spacing: -.03em; color: #f4f4f7; overflow-wrap: anywhere; }
+.profile-discord { display: flex; align-items: center; gap: 9px; margin: 10px 0 0; color: #9da0ac; font: 500 14px Manrope,sans-serif; }
+.profile-discord span { display: flex; gap: 8px; flex-wrap: wrap; }
+.profile-discord b { color: #d5d7df; font-weight: 600; overflow-wrap: anywhere; }
+.profile-identity-meta { display: flex; flex-wrap: wrap; gap: 20px; margin-top: auto; color: #9699a6; font: 500 13px Manrope,sans-serif; }
+.profile-identity-meta > span { display: flex; align-items: center; gap: 8px; }
+.xensi-universal-shell .profile-reference .profile-v1-active-card > header { display: flex; justify-content: space-between; gap: 16px; padding: 0; min-height: 40px; }
+.xensi-universal-shell .profile-reference .profile-v1-active-card > header small { color: #37d67c; text-transform: uppercase; font: 750 12px Manrope,sans-serif; letter-spacing: .15em; }
+.xensi-universal-shell .profile-reference .profile-v1-active-card > header small i { background: #37d67c; }
+.xensi-universal-shell .profile-reference .profile-v1-active-game { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 22px; }
+.xensi-universal-shell .profile-reference .profile-v1-active-game .xensi-game-badge { width: 120px; height: 124px; min-width: 120px; border-radius: 10px; font-size: 28px; }
+.xensi-universal-shell .profile-reference .profile-v1-active-game h2 { font: 800 22px/1.2 Manrope,sans-serif; letter-spacing: -.02em; text-transform: uppercase; color: #eeeef3; }
+.profile-primary-pill { display: inline-flex; width: fit-content; border: 1px solid #f04b5e; border-radius: 99px; padding: 4px 13px; color: #f56876 !important; background: #ff405510 !important; font: 650 11px/1.2 Manrope,sans-serif; letter-spacing: .09em; text-transform: uppercase; }
+.xensi-universal-shell .profile-reference .profile-v1-active-card dl { width: calc(100% - 140px); margin: -57px 0 32px 140px; padding: 0; border: 0; gap: 16px; }
+.xensi-universal-shell .profile-reference :is(.profile-v1-active-card,.profile-preset-card) dt { color: #9699a4; font: 550 11px/1.3 Manrope,sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+.xensi-universal-shell .profile-reference :is(.profile-v1-active-card,.profile-preset-card) dd { margin: 8px 0 0; font: 800 clamp(25px,2.55vw,36px)/1 Manrope,sans-serif; letter-spacing: -.03em; color: #f5f5f7; }
+.xensi-universal-shell .profile-reference .profile-v1-active-card > footer { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; margin: 0; padding: 0; }
+.xensi-universal-shell .profile-reference .profile-v1-active-card > footer > button { min-height: 52px; font: 750 16px Manrope,sans-serif; border-radius: 8px; justify-content: center; }
+.xensi-universal-shell .profile-reference .profile-v1-active-card > footer > .primary-button { color: #fff; box-shadow: none; }
+.xensi-universal-shell .profile-reference .secondary-button { background: #1b1c20; border: 1px solid #33343a; }
+.xensi-universal-shell .profile-reference .profile-v1-presets > header { display: flex; justify-content: space-between; gap: 18px; padding: 0; border: 0; margin-bottom: 20px; }
+.profile-presets-heading { display: flex !important; align-items: center; gap: 18px !important; }
+.profile-presets-heading > div { display: block !important; }
+.profile-presets-symbol { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 10px; background: #f8f8fa; color: #24262e; }
+.profile-presets-heading h2 { margin: 0; font: 800 26px/1.2 Manrope,sans-serif; letter-spacing: -.025em; }
+.profile-presets-heading p { margin: 4px 0 0; color: #a1a3af; font: 550 14px Manrope,sans-serif; }
+.xensi-universal-shell .profile-reference .profile-v1-add { min-height: 50px; padding: 12px 22px; border-radius: 8px; font: 750 16px Manrope,sans-serif; }
+.xensi-universal-shell .profile-reference .profile-v1-tools { flex-wrap: wrap; justify-content: end; }
+.profile-search-tools { position: relative; }
+.profile-search-tools > summary { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid #33343a; border-radius: 8px; cursor: pointer; color: #a5a8b3; list-style: none; }
+.profile-search-tools > summary::-webkit-details-marker { display: none; }
+.profile-search-popover { position: absolute; right: 0; top: 52px; z-index: 10; display: grid; gap: 12px; width: min(330px, calc(100vw - 48px)); padding: 16px; border: 1px solid #34363e; border-radius: 10px; background: #181920; box-shadow: 0 16px 40px #000a; }
+.xensi-universal-shell .profile-reference .profile-search-popover label { width: 100%; }
+.xensi-universal-shell .profile-reference .profile-v1-filter > button { width: 100%; }
+.xensi-universal-shell .profile-reference .profile-v1-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; margin: 0; }
+.xensi-universal-shell .profile-reference .profile-preset-card { position: relative; padding: 22px; min-height: 244px; border: 1px solid #373941; border-radius: 12px; background: linear-gradient(120deg,#25272e,#111216 70%); box-shadow: none; }
+.xensi-universal-shell .profile-reference .profile-preset-card.primary { border: 1px solid #ff4055; background: linear-gradient(120deg,#541820,#121216 70%); box-shadow: none; }
+.xensi-universal-shell .profile-reference .profile-preset-card > header { display: block; position: relative; }
+.xensi-universal-shell .profile-reference .profile-preset-game { align-items: center; gap: 16px; padding-right: 24px; }
+.xensi-universal-shell .profile-reference .profile-preset-game .xensi-game-badge { width: 64px; height: 64px; min-width: 64px; border-radius: 8px; font-size: 17px; }
+.xensi-universal-shell .profile-reference .profile-preset-game strong { font: 800 17px/1.25 Manrope,sans-serif; letter-spacing: -.01em; text-transform: uppercase; }
+.xensi-universal-shell .profile-reference .profile-preset-game small { display: none; }
+.xensi-universal-shell .profile-reference .profile-preset-card > header > .profile-primary-pill { position: absolute; top: 34px; left: 80px; margin: 0; }
+.xensi-universal-shell .profile-reference .profile-preset-card > header > button { display: none; }
+.profile-preset-options { position: absolute; top: -4px; right: -6px; }
+.profile-preset-options > button { border: 0; background: none; padding: 8px; color: #b7b9c4; }
+.profile-options-popover { position: absolute; z-index: 5; right: 0; top: 34px; display: grid; min-width: 180px; padding: 6px; border: 1px solid #393b43; border-radius: 8px; background: #1b1c22; box-shadow: 0 12px 35px #0009; }
+.profile-options-popover button { border: 0; padding: 10px; background: none; color: #e9e9ef; text-align: left; }
+.profile-options-popover button:hover { background: #ffffff0a; }
+.xensi-universal-shell .profile-reference .profile-preset-card dl { display: grid; grid-template-columns: 1.1fr .7fr 1fr; gap: 14px; margin: 24px 0 26px; }
+.xensi-universal-shell .profile-reference .profile-preset-card > footer { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; padding: 0; margin: auto 0 0; }
+.xensi-universal-shell .profile-reference .profile-preset-action { display: flex; align-items: center; justify-content: center; min-height: 42px; padding: 8px; border: 1px solid #363840; border-radius: 7px; background: #1c1d22; color: #e5e5ec; font: 700 12px Manrope,sans-serif; gap: 7px; }
+.xensi-universal-shell .profile-reference .profile-preset-remove { display: none; }
+.xensi-universal-shell .profile-reference :is(.profile-v1-identity,.profile-v1-active-card) { align-items: stretch; text-align: left; }
+.xensi-universal-shell .profile-reference .profile-v1-identity > header { width: 100%; align-self: stretch; }
+.xensi-universal-shell .profile-reference .profile-v1-person { width: 100%; align-self: stretch; text-align: left; }
+.xensi-universal-shell .profile-reference .profile-identity-meta { justify-content: flex-start; }
+.xensi-universal-shell .profile-reference :is(.profile-preset-card,.profile-v1-active-card,.profile-v1-identity)::before,.xensi-universal-shell .profile-reference :is(.profile-preset-card,.profile-v1-active-card,.profile-v1-identity)::after { display: none; }
+.xensi-universal-shell .profile-reference .profile-preset-card { display: flex; flex-direction: column; gap: 0; }
+.xensi-universal-shell .profile-reference :is(.profile-preset-card,.profile-v1-active-card) dl > div { min-width: 0; padding: 0 0 0 14px; border-left: 1px solid #34353d; }
+.xensi-universal-shell .profile-reference :is(.profile-preset-card,.profile-v1-active-card) dl > div:first-child { border: 0; padding-left: 0; }
+.xensi-universal-shell .profile-reference :is(.profile-preset-card,.profile-v1-active-card) dd { white-space: nowrap; overflow-wrap: normal; word-break: normal; }
+.xensi-universal-shell .profile-reference .profile-preset-card dl { grid-template-columns: 1.15fr .8fr 1fr; gap: 10px; }
+.xensi-universal-shell .profile-reference .profile-preset-card dd { font-size: clamp(26px,2.3vw,34px); }
+.xensi-universal-shell .profile-reference .profile-preset-card > header > .profile-primary-pill { border: 1px solid #f04b5e; border-radius: 99px; padding: 3px 10px; font-size: 10px; }
+.xensi-universal-shell .profile-reference .profile-preset-card > header { min-height: 64px; }
+.xensi-universal-shell .profile-reference .profile-preset-card > header:has(.profile-options-popover) { z-index: 6; }
+.xensi-universal-shell .profile-reference .profile-preset-card:has(.profile-options-popover) { z-index: 6; }
+.xensi-universal-shell .profile-reference .profile-preset-card.primary .profile-preset-game > div { align-self: stretch; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 5px; }
+.xensi-universal-shell .profile-reference .profile-preset-card dl { padding: 0; border: 0; }
+.xensi-universal-shell .profile-reference .profile-preset-card > footer { min-height: 42px; }
+.xensi-universal-shell .profile-reference .profile-v1-active-game { align-items: flex-start; }
+.xensi-universal-shell .profile-reference .profile-v1-active-game h2,.xensi-universal-shell .profile-reference .profile-v1-active-game > .profile-primary-pill { margin-top: 12px; }
+.xensi-universal-shell .profile-reference [data-game='valorant'] .xensi-game-badge { color: #fff; border-color: #743038; background: linear-gradient(#58131e,#1b0e11); }
+.xensi-universal-shell .profile-reference [data-game='cs2'] .xensi-game-badge { color: #fff; border-color: #485d89; background: linear-gradient(#2b487d,#111d32); }
+.xensi-universal-shell .profile-reference [data-game='overwatch2'] .xensi-game-badge { color: #fff; border-color: #74541e; background: linear-gradient(#785418,#211a0e); }
+
+@media (min-width:1600px) { .xensi-universal-shell .profile-reference :is(.profile-v1-identity,.profile-v1-active-card) { min-height: 420px; } }
+@media (max-width:1200px) {
+  .xensi-universal-shell .profile-reference .profile-v1-active-card dl { width: 100%; margin: 20px 0 24px; }
+  .xensi-universal-shell .profile-reference .profile-v1-active-game .xensi-game-badge { width: 80px; height: 80px; min-width: 80px; }
+  .xensi-universal-shell .profile-reference .profile-v1-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:760px) {
+  .xensi-universal-shell .profile-reference { padding: 36px 0 56px; }
+  .xensi-universal-shell .profile-reference .profile-v1-shell { width: calc(100% - 32px); }
+  .profile-reference-mesh { width: 340px; height: 240px; top: -130px; right: -10px; opacity: .25; }
+  .xensi-universal-shell .profile-reference .xensi-page-header { margin-bottom: 30px; }
+  .xensi-universal-shell .profile-reference .profile-v1-hero-grid { grid-template-columns: minmax(0,1fr); gap: 18px; }
+  .xensi-universal-shell .profile-reference :is(.profile-v1-identity,.profile-v1-active-card) { min-height: 0; padding: 24px; }
+  .xensi-universal-shell .profile-reference .profile-v1-grid { grid-template-columns: minmax(0,1fr); }
+  .xensi-universal-shell .profile-reference .profile-v1-presets > header { flex-wrap: wrap; }
+  .profile-presets-heading h2 { font-size: 23px; }
+  .profile-presets-symbol { width: 42px; height: 42px; }
+  .profile-edit-identity { padding: 9px 12px; font-size: 12px; }
+  .profile-identity-meta { margin-top: 12px; }
+  .xensi-universal-shell .profile-reference .profile-v1-active-card > header small { font-size: 10px; }
+}
+@media (prefers-reduced-motion:reduce) { .profile-reference-mesh { transform: none; } }

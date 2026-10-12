@@ -25,7 +25,7 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) {
       await page.getByRole('button', { name: 'XENSI home' }).click()
       await expect(page.locator('.xensi-premium-home')).toBeVisible()
       for (let index = 0; index < 8; index++) {
-        await page.getByRole('button', { name: index % 2 ? 'CONVERTER' : 'ANÁLISE', exact: true }).evaluate(button => button.click())
+        await page.getByRole('button', { name: index % 2 ? 'Converter' : 'Análise', exact: true }).evaluate(button => button.click())
       }
       await expect(page).toHaveURL(/\/convert$/)
       await expect(page.locator('.converter-workspace')).toBeVisible()
@@ -78,7 +78,7 @@ test('fallback navigation completes when a route is selected again during its an
     Object.defineProperty(document, 'startViewTransition', { value: undefined, configurable: true })
   })
   await page.goto('./')
-  const analysis = page.getByRole('button', { name: 'ANÁLISE', exact: true })
+  const analysis = page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Análise', exact: true })
   await analysis.click()
   await expect(page.locator('.analysis-workspace')).toBeVisible()
   await analysis.evaluate(button => button.click())

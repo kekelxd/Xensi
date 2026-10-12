@@ -32,7 +32,7 @@ test.describe('Sessions V1 account transport and consent', () => {
       await expect.poll(() => page.evaluate(() => document.pointerLockElement?.tagName)).toBe('CANVAS')
       await page.clock.runFor(4500)
       await page.evaluate(async () => { document.exitPointerLock(); if (document.fullscreenElement) await document.exitFullscreen() })
-      await page.getByRole('button', { name: 'INÍCIO', exact: true }).click()
+      await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Início', exact: true }).click()
       await expect.poll(async () => (await readSessions(page, userA)).length).toBe(1)
       expect((await readSessions(page, userA))[0]).toMatchObject({ userId: userA, status: 'interrupted' })
     } finally { release() }

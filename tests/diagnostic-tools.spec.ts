@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
 async function openDiagnostic(page: Page, name: RegExp) {
-  await page.getByRole('button', { name: 'DIAGNÓSTICO', exact: true }).click()
+  await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Diagnóstico', exact: true }).click()
   await page.getByRole('menuitem', { name }).click()
 }
 

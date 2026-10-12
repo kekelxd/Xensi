@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 async function openTraining(page: Page) {
-  await page.getByRole('button', { name: 'TREINAR', exact: true }).click()
+  await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Treinar', exact: true }).click()
   await page.getByRole('menuitem', { name: /Minigames/ }).click()
   await page.getByRole('button', { name: /Target Switch/ }).click()
 }
@@ -62,7 +62,7 @@ test.describe('shared presets and game identity', () => {
       await page.clock.resume()
     } else await dialog.getByRole('button', { name: 'Fechar', exact: true }).click()
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('xensi-player-profile')!).presets[0].sensitivity)).toBe(.65)
-    await page.getByRole('button', { name: 'CALIBRAR', exact: true }).click()
+    await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Calibrar', exact: true }).click()
     await page.getByRole('menuitem', { name: /Calibrar sensibilidade/ }).click()
     await page.getByRole('button', { name: 'Configurar calibrador', exact: true }).click()
     const finder = page.getByRole('dialog')
@@ -84,7 +84,7 @@ test.describe('shared presets and game identity', () => {
     await finder.getByRole('button', { name: 'Iniciar calibração', exact: true }).click()
     await expect(page.getByText('Pronto para a calibração', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Sair', exact: true }).click()
-    await page.getByRole('button', { name: 'CONVERTER', exact: true }).click()
+    await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Converter', exact: true }).click()
     await expect(page.getByLabel('Sensibilidade atual', { exact: true })).toHaveValue('0.65')
     await expect(page.getByLabel('DPI de origem')).toHaveValue('800')
     await page.getByLabel('Sensibilidade atual', { exact: true }).fill('0.72')

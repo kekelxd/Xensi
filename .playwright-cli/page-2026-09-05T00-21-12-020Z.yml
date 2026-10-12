@@ -1,0 +1,109 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: X
+        - text: ENSI
+      - generic "Page language" [ref=e8]:
+        - combobox "Page language" [ref=e13] [cursor=pointer]:
+          - option "Português"
+          - option "English" [selected]
+          - option "Español"
+    - navigation "XENSI" [ref=e14]:
+      - button "Home" [active] [ref=e15] [cursor=pointer]
+      - button "Profile" [ref=e19] [cursor=pointer]
+      - button "Routine" [ref=e23] [cursor=pointer]
+      - button "Warm-up" [ref=e27] [cursor=pointer]
+      - button "Sensitivity Calibration" [ref=e30] [cursor=pointer]
+      - button "Converter" [ref=e33] [cursor=pointer]
+      - button "Polling Rate" [ref=e37] [cursor=pointer]
+      - button "Input diagnostics" [ref=e41] [cursor=pointer]
+  - main [ref=e785]:
+    - generic [ref=e786]:
+      - region [ref=e787]:
+        - generic [ref=e788]:
+          - generic [ref=e789]: XENSI // FPS CONTROL
+          - heading "ADJUST YOUR AIM IN YOUR BROWSER." [level=1] [ref=e790]:
+            - generic [ref=e791]: ADJUST YOUR AIM
+            - generic [ref=e792]: IN YOUR BROWSER.
+          - paragraph [ref=e793]: Train aim, calibrate sensitivity, and test peripherals directly in the browser. Short sessions, clear metrics, actionable feedback.
+          - generic "Ações principais" [ref=e794]:
+            - button "Calibrate my sensitivity" [ref=e795] [cursor=pointer]
+            - button "QUICK WARM-UP" [ref=e800] [cursor=pointer]
+        - generic [ref=e805]:
+          - generic [ref=e807]:
+            - generic [ref=e808]: Gridshot
+            - strong [ref=e809]: "+128"
+            - emphasis [ref=e810]: target chain
+          - generic [aria-hidden] [ref=e816]:
+            - generic [ref=e817]:
+              - generic [ref=e818]: precision
+              - strong [ref=e819]: 91%
+            - generic [ref=e820]:
+              - generic [ref=e821]: stability
+              - strong [ref=e822]: high
+            - generic [ref=e823]:
+              - generic [ref=e824]: round
+              - strong [ref=e825]: 04/08
+      - region [ref=e826]:
+        - generic [ref=e827]:
+          - generic [ref=e828]: CHOOSE YOUR ARENA
+          - heading "Start with the skill you want to improve" [level=2] [ref=e829]
+        - generic [ref=e830]:
+          - button "01 Calibrate Compare small adjustments and find a more stable sensitivity. Open calibrator" [ref=e831] [cursor=pointer]:
+            - generic [ref=e832]: "01"
+            - generic [ref=e836]:
+              - strong [ref=e837]: Calibrate
+              - generic [ref=e838]: Compare small adjustments and find a more stable sensitivity.
+            - emphasis [ref=e842]
+            - generic [ref=e843]: Open calibrator
+          - button "02 Warm up Warm up with tracking, flicks, reflex, and target switching before a match. Choose training" [ref=e846] [cursor=pointer]:
+            - generic [ref=e847]: "02"
+            - generic [ref=e851]:
+              - strong [ref=e852]: Warm up
+              - generic [ref=e853]: Warm up with tracking, flicks, reflex, and target switching before a match.
+            - generic [ref=e859]: Choose training
+          - button "03 Diagnose Test mouse, keyboard, and controller before you play. Open diagnostics" [ref=e862] [cursor=pointer]:
+            - generic [ref=e863]: "03"
+            - generic [ref=e867]:
+              - strong [ref=e868]: Diagnose
+              - generic [ref=e869]: Test mouse, keyboard, and controller before you play.
+            - generic [ref=e877]: Open diagnostics
+      - region [ref=e880]:
+        - generic [ref=e881]:
+          - generic [ref=e882]: HOW IT WORKS
+          - heading "Test, compare, adjust." [level=2] [ref=e883]
+          - paragraph [ref=e884]: XENSI runs controlled drills to reveal consistency, precision, and aim control.
+        - generic [ref=e885]:
+          - article [ref=e886]:
+            - heading "Choose your context" [level=3] [ref=e889]
+            - paragraph [ref=e890]: Select the game and training type. The session adapts the flow to compare your execution more consistently.
+          - article [ref=e891]:
+            - heading "Run the drills" [level=3] [ref=e894]
+            - paragraph [ref=e895]: Track targets, click with precision, and keep control through short sequences.
+          - article [ref=e896]:
+            - heading "Get a useful readout" [level=3] [ref=e900]
+            - paragraph [ref=e901]: The report highlights stability, corrections, overshoots, and recommended next adjustments.
+      - region [ref=e902]:
+        - article [ref=e903]:
+          - generic [ref=e904]: IS XENSI WORTH USING?
+          - heading "Yes. Stop changing sens in the dark." [level=2] [ref=e905]
+          - paragraph [ref=e906]: "XENSI does not play for you. It shows what your hand is doing: when it passes the target, shakes, corrects too much, or finally finds control."
+          - button "Start my test" [ref=e907] [cursor=pointer]
+        - generic [ref=e910]:
+          - article [ref=e911]:
+            - heading "Less guessing" [level=3] [ref=e915]
+            - paragraph [ref=e916]: You test small changes instead of picking a sensitivity by guesswork alone.
+          - article [ref=e917]:
+            - heading "Clear report" [level=3] [ref=e921]
+            - paragraph [ref=e922]: A concise report with key metrics, main errors, and recommended next adjustments.
+          - article [ref=e923]:
+            - heading "More ready to play" [level=3] [ref=e927]
+            - paragraph [ref=e928]: Use warm-up and diagnostics to enter a match with your hand awake.
+      - region [ref=e929]:
+        - heading "Honest measurement inside the browser" [level=2] [ref=e935]
+        - paragraph [ref=e936]: XENSI measures your performance in the site environment and gives consistent comparisons. It does not promise to replicate your FPS engine exactly.
+        - list [ref=e937]:
+          - listitem [ref=e938]: Mouse reading depends on the browser, system, and device.
+          - listitem [ref=e939]: The site does not change Windows settings or interfere with the mouse driver.
+          - listitem [ref=e940]: Use the result as a technical reference and confirm the feel inside the game.

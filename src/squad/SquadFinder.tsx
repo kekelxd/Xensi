@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { UsersRound } from 'lucide-react'
+import { Ban, DoorOpen, Inbox, Plus, RefreshCw, Search, ShieldCheck, UsersRound } from 'lucide-react'
 import { initializeAuth, readAuthSessionState, type AuthSessionState } from '../authService'
 import { useI18n } from '../i18n'
 import { AvatarArtwork } from '../AvatarArtwork'
@@ -149,7 +149,7 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
   const select = (label: string, current: string, options: readonly string[], change: (v: string) => void, all = false) => <label className="lfg-field">{label}<select value={current} onChange={e => change(e.target.value)}>{all && <option value="">{text.all}</option>}{options.map(v => <option key={v} value={v}>{v in registry ? registry[v as SquadGame].name : v in platforms ? platforms[v as SquadPlatform] : value(v)}</option>)}</select></label>
   const roomInfo = (room: Room) => <>
     <div className="lfg-room-heading"><h2>{registry[room.game_id]?.name}</h2><span className={`lfg-status lfg-status-${room.status}`}>{statuses[room.status]}</span></div>
-    <p className="lfg-summary">{platforms[room.platform]} · {value(room.region)} · {value(room.game_mode)}</p>
+    <p className="lfg-summary"><span>{platforms[room.platform]}</span><span>{value(room.region)}</span><span>{value(room.game_mode)}</span></p>
     <dl className="lfg-facts"><div><dt>{text.rank}</dt><dd>{value(room.rank_info)}</dd></div><div><dt>{text.mic}</dt><dd>{room.microphone_required ? text.mandatory : text.optional}</dd></div><div><dt>{text.expires}</dt><dd>{date(room.expires_at)}</dd></div></dl>
     <p className="lfg-identity"><AvatarArtwork avatarId={isAvatarId(room.avatar_id) ? room.avatar_id : DEFAULT_AVATAR} />{room.nickname}<span>{room.status === 'open' ? text.slot : room.status === 'reserved' ? text.reservedSlot : statuses[room.status]}</span></p>
   </>
@@ -158,20 +158,33 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
   const a = snapshot.access
   const allowed = a?.eligible || (area === 'moderation' && a?.moderator)
   const gate = auth.status === 'loading' ? text.loading : !uid ? text.anonymous : !a ? '' : a.suspended ? text.suspended : !a.email_confirmed ? text.emailGate : !a.enabled ? text.disabled : text.accessDenied
+  const tabIcons = { find: Search, mine: DoorOpen, requests: Inbox, blocks: Ban, moderation: ShieldCheck }
+  const tabs: Area[] = a?.moderator ? ['find', 'mine', 'requests', 'blocks', 'moderation'] : ['find', 'mine', 'requests', 'blocks']
+  const createButton = <button type="button" className="lfg-primary" disabled={busy || !a?.creation_enabled || a.publication_restricted || snapshot.rooms.some(r => r.status === 'open' || r.status === 'reserved') && area === 'mine'} onClick={() => open('create')}><Plus size={16} aria-hidden="true" />{text.create}</button>
+  const refreshButton = <button type="button" onClick={() => setRefresh(n => n + 1)} disabled={loading || busy}><RefreshCw size={15} aria-hidden="true" />{text.retry}</button>
   return <div className="lfg-workspace" ref={root} aria-busy={loading || busy}>
     <XensiPageHeader title={text.title} description={text.description} />
-    <p className="lfg-product">XENSI Squad Finder</p>
-    <nav className="lfg-tabs" aria-label="Squad Finder">{(['find', 'mine', 'requests', 'blocks'] as Area[]).map(tab => <button type="button" key={tab} aria-current={area === tab ? 'page' : undefined} onClick={() => navigate(tab)}>{text[tab]}</button>)}{a?.moderator && <button type="button" aria-current={area === 'moderation' ? 'page' : undefined} onClick={() => navigate('moderation')}>{text.moderation}</button>}</nav>
+    <div className="lfg-layout">
+      <aside className="lfg-sidebar">
+        <p className="lfg-product">XENSI Squad Finder</p>
+        <nav className="lfg-tabs" aria-label="Squad Finder">{tabs.map(tab => { const Icon = tabIcons[tab]; return <button type="button" key={tab} aria-current={area === tab ? 'page' : undefined} onClick={() => navigate(tab)}><Icon size={18} aria-hidden="true" /><span>{text[tab]}</span></button> })}</nav>
+      </aside>
+      <div className="lfg-main">
     <div className="lfg-feedback" aria-live="polite">{message && <p role="status">{message}</p>}{error && <p role="alert">{error}</p>}</div>
     {!allowed ? <section className="lfg-panel lfg-gate"><UsersRound size={28} /><h2>{text.accessTitle}</h2>{gate && <p>{gate}</p>}{uid ? <button type="button" onClick={() => setRefresh(n => n + 1)} disabled={loading}>{text.retry}</button> : auth.status !== 'loading' && <button type="button" className="lfg-primary" onClick={onLogin}>{text.login}</button>}</section> : <>
+      {area === 'find' && <div className="lfg-hero-row">
+        <section className="lfg-panel lfg-hero"><h2>{text.heroTitle}</h2><p>{text.heroText}</p>{!loading && <dl className="lfg-stats"><div><dt>{text.inList}</dt><dd>{snapshot.rooms.length}</dd></div><div><dt>{text.notifications}</dt><dd>{snapshot.notifications.length}</dd></div></dl>}</section>
+        <section className="lfg-panel lfg-side"><h2>{text.yourRoom}</h2><p>{text.yourRoomHint}</p><div className="lfg-actions">{createButton}<button type="button" onClick={() => navigate('mine')}>{text.manageRoom}</button></div></section>
+      </div>}
       {area !== 'moderation' && <details className="lfg-notifications"><summary>{text.notifications} ({snapshot.notifications.length})</summary>{snapshot.notifications.length ? <ul>{snapshot.notifications.map(n => <li key={n.id}>{value(n.kind)} <time dateTime={n.created_at}>{date(n.created_at)}</time></li>)}</ul> : <p>{text.noNotifications}</p>}</details>}
-      <div className="lfg-toolbar"><button type="button" onClick={() => setRefresh(n => n + 1)} disabled={loading || busy}>{text.retry}</button>{(area === 'find' || area === 'mine') && <button type="button" className="lfg-primary" disabled={busy || !a?.creation_enabled || a.publication_restricted || snapshot.rooms.some(r => r.status === 'open' || r.status === 'reserved') && area === 'mine'} onClick={() => open('create')}>{text.create}</button>}</div>
+      {area !== 'find' && <div className="lfg-toolbar">{refreshButton}{area === 'mine' && createButton}</div>}
       {(area === 'find' || area === 'mine') && (!a?.creation_enabled || a.publication_restricted) && <p>{text.creationOff}</p>}
-      {area === 'find' && <div className="lfg-filters">{select(text.game, filters.game, Object.keys(registry), game => { setFilters(f => ({ ...f, game, platform: '', mode: '' })); setPage(0) }, true)}{select(text.platform, filters.platform, filters.game in registry ? registry[filters.game as SquadGame].platforms : Object.keys(platforms), platform => { setFilters(f => ({ ...f, platform })); setPage(0) }, true)}{select(text.region, filters.region, regions, region => { setFilters(f => ({ ...f, region })); setPage(0) }, true)}{select(text.mode, filters.mode, filters.game in registry ? registry[filters.game as SquadGame].modes : [...new Set(Object.values(registry).flatMap(g => g.modes))], mode => { setFilters(f => ({ ...f, mode })); setPage(0) }, true)}</div>}
+      {area === 'find' && <section className="lfg-panel lfg-filter-panel" aria-label={text.filtersTitle}><header><h2>{text.filtersTitle}</h2>{refreshButton}</header><div className="lfg-filters">{select(text.game, filters.game, Object.keys(registry), game => { setFilters(f => ({ ...f, game, platform: '', mode: '' })); setPage(0) }, true)}{select(text.platform, filters.platform, filters.game in registry ? registry[filters.game as SquadGame].platforms : Object.keys(platforms), platform => { setFilters(f => ({ ...f, platform })); setPage(0) }, true)}{select(text.region, filters.region, regions, region => { setFilters(f => ({ ...f, region })); setPage(0) }, true)}{select(text.mode, filters.mode, filters.game in registry ? registry[filters.game as SquadGame].modes : [...new Set(Object.values(registry).flatMap(g => g.modes))], mode => { setFilters(f => ({ ...f, mode })); setPage(0) }, true)}</div></section>}
+      {area === 'find' && <h2 className="lfg-section-title">{text.roomsTitle}</h2>}
       {loading && <p role="status">{text.loading}</p>}
       {!loading && (area === 'find' || area === 'mine') && <>
         {!snapshot.rooms.length && <p className="lfg-empty">{text.empty}</p>}
-        <div className="lfg-rooms">{snapshot.rooms.slice(0, pageSize).map(room => <motion.article {...enter} key={room.id} className="lfg-panel">
+        <div className="lfg-rooms" data-area={area}>{snapshot.rooms.slice(0, pageSize).map(room => <motion.article {...enter} key={room.id} className="lfg-panel">
           {roomInfo(room)}
           {area === 'find' ? <div className="lfg-actions"><button type="button" className="lfg-primary" disabled={busy || room.status !== 'open'} onClick={() => open('request', room)}>{text.request}</button><button type="button" disabled={busy} onClick={() => open('report', room)}>{text.report}</button><button type="button" disabled={busy} onClick={() => open('block', room)}>{text.block}</button></div> : <>
             {room.status === 'reserved' && <div className="lfg-reservation"><h3>{text.waiting}</h3><p>{text.reservation}: {room.reserved_until && date(room.reserved_until)}</p><div className="lfg-actions"><button type="button" className="lfg-primary" disabled={busy} onClick={() => open('confirm', room)}>{text.confirm}</button><button type="button" disabled={busy} onClick={() => open('release', room)}>{text.release}</button></div></div>}
@@ -192,6 +205,8 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
         {pager(Math.max(snapshot.moderation.reports.length, snapshot.moderation.actions.length, snapshot.moderation.blocks.length, snapshot.moderation.restrictions.length) > pageSize)}
       </section>}
     </>}
+      </div>
+    </div>
     {dialog && <SquadDialog key={`${dialog.action}:${dialog.room?.id}:${dialog.request?.id}`} dialog={dialog} lang={lang} knownDiscord={knownDiscord} busy={busy} error={error} onClose={() => { if (!busy) setDialog(null) }} onSubmit={payload => void act(dialog.action, payload)} />}
   </div>
 }

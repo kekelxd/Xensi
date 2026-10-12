@@ -17,7 +17,7 @@ test('shows persisted guest variants and raw-metric formatting without viewport 
     for (const value of rows) await getSessionRepository().database.save({ kind: 'session', value }, false)
   })
   await page.reload()
-  await page.getByRole('button', { name: 'ANÁLISE', exact: true }).click()
+  await page.getByRole('navigation', { name: 'XENSI' }).getByRole('button', { name: 'Análise', exact: true }).click()
   const panel = page.getByRole('article', { name: 'Recordes pessoais' })
   await expect(panel.locator('section')).toHaveCount(5)
   await expect(panel.getByText('181 ms', { exact: true })).toBeVisible()

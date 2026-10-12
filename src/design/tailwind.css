@@ -1,0 +1,79 @@
+/* Tailwind v4 + shadcn/ui tokens for XENSI.
+   - No preflight on purpose: the legacy stylesheets still own element defaults, so
+     importing Tailwind's global reset would restyle every existing page.
+   - Utilities are emitted as !important inside @layer utilities: the legacy stylesheets
+     are unlayered and use descendant selectors (higher specificity), and layered
+     !important outranks unlayered declarations, so shadcn components render the same
+     wherever they are mounted. twMerge resolves conflicts between utilities.
+   - Every value maps to an existing XENSI token (typography.css, universal.css). */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) important;
+
+@source "../";
+
+:root {
+  /* shadcn semantic tokens → XENSI palette (dark only) */
+  --background: #07080c;
+  --foreground: #f2f0ea;
+  --card: #101116;
+  --card-foreground: #f2f0ea;
+  --popover: #0e0f14;
+  --popover-foreground: #f2f0ea;
+  --primary: #ff4055;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1d26;
+  --secondary-foreground: #f2f0ea;
+  --muted: #0d0f15;
+  --muted-foreground: var(--text-secondary);
+  --accent: #1c1f29;
+  --accent-foreground: #f2f0ea;
+  --destructive: #ff5c6c;
+  --success: #75ffd5;
+  --border: rgba(242, 240, 234, .09);
+  --input: rgba(242, 240, 234, .16);
+  --ring: #75ffd5;
+  --radius: 8px;  /* controls 8px, cards 12px (radius + 4) */
+  --slant: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: #ff5a6c;
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-subtle: var(--text-tertiary);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-ui);
+  --font-heading: var(--font-display);
+}
+
+/* Dialog motion (replaces tw-animate-css; respects reduced motion). */
+@keyframes xensi-overlay-in { from { opacity: 0; } }
+@keyframes xensi-dialog-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 8px)) scale(.98); } }
+[data-slot='dialog-overlay'][data-state='open'] { animation: xensi-overlay-in .2s ease-out; }
+[data-slot='dialog-content'][data-state='open'] { animation: xensi-dialog-in .24s cubic-bezier(.16, 1, .3, 1); }
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='dialog-overlay'], [data-slot='dialog-content'] { animation: none !important; }
+}
+
+/* Legacy styles.css paints every header/footer with a grid background; shadcn surfaces opt out. */
+:is([data-slot='card'], [data-slot='dialog-content']) :is(header, footer) { background: none; border: 0; }

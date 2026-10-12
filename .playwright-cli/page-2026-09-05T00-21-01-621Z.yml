@@ -1,0 +1,57 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: X
+        - text: ENSI
+      - generic "Page language" [ref=e8]:
+        - combobox "Page language" [ref=e13] [cursor=pointer]:
+          - option "Português"
+          - option "English" [selected]
+          - option "Español"
+    - navigation "XENSI" [ref=e14]:
+      - button "Home" [ref=e15] [cursor=pointer]
+      - button "Profile" [ref=e19] [cursor=pointer]
+      - button "Routine" [ref=e23] [cursor=pointer]
+      - button "Warm-up" [ref=e27] [cursor=pointer]
+      - button "Sensitivity Calibration" [active] [ref=e30] [cursor=pointer]
+      - button "Converter" [ref=e33] [cursor=pointer]
+      - button "Polling Rate" [ref=e37] [cursor=pointer]
+      - button "Input diagnostics" [ref=e41] [cursor=pointer]
+  - generic [ref=e545]:
+    - generic [ref=e546]:
+      - generic [ref=e547]:
+        - heading "Find your ideal sensitivity." [level=1] [ref=e548]
+        - paragraph [ref=e549]: Test your current sensitivity and small adjustments to find a more accurate, stable point.
+        - button "Set up calibrator" [ref=e550] [cursor=pointer]
+        - generic [ref=e555]:
+          - generic [ref=e556]:
+            - strong [ref=e557]: "8"
+            - generic [ref=e558]: rounds maximum
+          - generic [ref=e559]:
+            - strong [ref=e560]: 30s
+            - generic [ref=e561]: per round
+      - generic "Tracking demonstration" [ref=e562]:
+        - generic [ref=e564]: CALIBRATION DEMONSTRATION
+        - generic [ref=e566]:
+          - generic [ref=e567]: Accuracy
+          - strong [ref=e568]: 87.4%
+        - generic [ref=e569]:
+          - generic [ref=e570]: Average error
+          - strong [ref=e571]: 18.2px
+    - generic [ref=e587]:
+      - generic [ref=e588]:
+        - generic [ref=e589]: "1"
+        - generic [ref=e590]:
+          - strong [ref=e591]: Enter your baseline
+          - generic [ref=e592]: Choose your game, current sensitivity, and mouse DPI.
+      - generic [ref=e593]:
+        - generic [ref=e594]: "2"
+        - generic [ref=e595]:
+          - strong [ref=e596]: Compare adjustments
+          - generic [ref=e597]: Complete three short challenges while we test controlled variations.
+      - generic [ref=e598]:
+        - generic [ref=e599]: "3"
+        - generic [ref=e600]:
+          - strong [ref=e601]: Get your result
+          - generic [ref=e602]: See the refined sensitivity, improvements, and session confidence.

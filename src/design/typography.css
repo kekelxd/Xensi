@@ -1,0 +1,73 @@
+/* XENSI typography — single source of truth for type.
+   Self-hosted woff2 (from @fontsource, SIL OFL; licenses in public/fonts), latin + latin-ext,
+   font-display: swap, only the weights the system uses. Metric-matched local fallbacks keep
+   layout shift negligible while the web fonts load. Every stylesheet reads the tokens below;
+   do not write font-family literals anywhere else. */
+
+@font-face { font-family: 'Sora'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/sora-latin-ext-400-normal.woff2') format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'Sora'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/sora-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Sora'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/sora-latin-ext-500-normal.woff2') format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'Sora'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/sora-latin-500-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Sora'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/sora-latin-ext-600-normal.woff2') format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'Sora'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/sora-latin-600-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/space-grotesk-latin-ext-500-normal.woff2') format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/space-grotesk-latin-500-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/space-grotesk-latin-ext-600-normal.woff2') format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/space-grotesk-latin-600-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/jetbrains-mono-latin-ext-400-normal.woff2') format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/jetbrains-mono-latin-ext-500-normal.woff2') format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/jetbrains-mono-latin-500-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+/* Wordmark only: keeps the original XENSI logo weight. Latin subset, ~13 KB. */
+@font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/space-grotesk-latin-700-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+
+/* Metric-adjusted fallbacks (computed against Arial / Courier New metrics). */
+@font-face { font-family: 'Sora Fallback'; src: local('Arial'), local('Helvetica Neue'), local('Liberation Sans'); size-adjust: 115.4%; ascent-override: 84.05%; descent-override: 25.13%; line-gap-override: 0%; }
+@font-face { font-family: 'Space Grotesk Fallback'; src: local('Arial'), local('Helvetica Neue'), local('Liberation Sans'); size-adjust: 111.26%; ascent-override: 88.44%; descent-override: 26.24%; line-gap-override: 0%; }
+@font-face { font-family: 'JetBrains Mono Fallback'; src: local('Courier New'), local('Liberation Mono'), local('Menlo'); size-adjust: 99.98%; ascent-override: 102.02%; descent-override: 30%; line-gap-override: 0%; }
+
+:root {
+  /* families */
+  --font-display: 'Space Grotesk', 'Space Grotesk Fallback', system-ui, sans-serif;
+  --font-ui: 'Sora', 'Sora Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'JetBrains Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* size scale (rem-free px keeps parity with the existing stylesheet) */
+  --text-2xs: 11px;   /* absolute minimum: badges, axis ticks */
+  --text-xs: 12px;    /* labels, captions */
+  --text-sm: 14px;    /* secondary text, compact buttons */
+  --text-md: 16px;    /* body, buttons */
+  --text-lg: 18px;    /* lead paragraphs */
+  --text-xl: 22px;    /* card titles */
+  --text-2xl: 28px;   /* metric values, small headings */
+  --text-3xl: 36px;   /* section titles */
+  --text-4xl: clamp(36px, 4.4vw, 56px);  /* page titles */
+  --text-hero: clamp(44px, 6.2vw, 84px); /* home hero */
+
+  /* weights (only these are loaded) */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-display: 600;
+  --weight-mono: 500;
+
+  /* tracking and case */
+  --tracking-tight: -0.02em;   /* display titles */
+  --tracking-snug: -0.01em;    /* card titles */
+  --tracking-normal: 0;        /* ui text, buttons, labels */
+  --tracking-eyebrow: 0.04em;  /* the only uppercase spots */
+  --case-label: none;          /* labels, buttons, nav: sentence case */
+  --case-eyebrow: uppercase;   /* section eyebrow, "Principal" badge */
+
+  /* readable secondary text on graphite */
+  --text-secondary: #b3b9c2;
+  --text-tertiary: #8e96a1;
+
+  --leading-tight: 1.05;
+  --leading-snug: 1.25;
+  --leading-body: 1.6;
+}
+
+html { font-family: var(--font-ui); font-synthesis-weight: none; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+:where(input, select, textarea, button) { font-family: inherit; }
+.tabular, :where(time) { font-variant-numeric: tabular-nums; }

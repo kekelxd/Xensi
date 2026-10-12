@@ -2,10 +2,10 @@ import { motion, useReducedMotion, type HTMLMotionProps } from 'motion/react'
 import type { ReactNode } from 'react'
 import { xensiMotion } from './motion'
 
-export function XensiPageHeader({ title, description, actions, className = '' }: { title: string; description?: string; actions?: ReactNode; className?: string }) {
+export function XensiPageHeader({ title, description, actions, className = '', kicker }: { title: string; description?: string; actions?: ReactNode; className?: string; kicker?: string }) {
   const reduced = useReducedMotion()
   return <header className={`xensi-page-header ${className}`}>
-    <div><motion.h1 initial={reduced ? false : { opacity: .4, y: 14, clipPath: 'inset(0 0 100% 0)' }} animate={{ opacity: 1, y: 0, clipPath: 'inset(0 0 -12% 0)' }} transition={{ duration: reduced ? 0 : xensiMotion.durations.reveal, ease: xensiMotion.easings.easeOut }}>{title}</motion.h1>{description && <p>{description}</p>}</div>{actions}
+    <div>{kicker && <span className="xensi-page-kicker">{kicker}</span>}<motion.h1 initial={reduced ? false : { opacity: .4, y: 14, clipPath: 'inset(0 0 100% 0)' }} animate={{ opacity: 1, y: 0, clipPath: 'inset(0 0 -12% 0)' }} transition={{ duration: reduced ? 0 : xensiMotion.durations.reveal, ease: xensiMotion.easings.easeOut }}>{title}</motion.h1>{description && <p>{description}</p>}</div>{actions}
   </header>
 }
 

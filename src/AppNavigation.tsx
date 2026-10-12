@@ -1,8 +1,7 @@
 import { LayoutGroup } from 'motion/react'
 import { ActiveIndicator, MotionDropdown } from './design/MotionSurfaces'
-import { useXensiMotion } from './design/motion'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, BarChart3, ChevronDown, Crosshair, Gamepad2, Gauge, Info, Languages, MonitorUp, Mouse, Settings2, SlidersHorizontal, UserRound } from 'lucide-react'
+import { ArrowRight, Home as HomeIcon, Bell, Search, BarChart3, ChevronDown, Crosshair, Gamepad2, Gauge, Info, Languages, MonitorUp, Mouse, Settings2, SlidersHorizontal, UserRound } from 'lucide-react'
 import { initializeAuth, readAuthSessionState, signOut, type AuthSessionState } from './authService'
 import type { Locale } from './i18n'
 import type { WarmupExercise } from './warmupConfig'
@@ -26,13 +25,15 @@ type Props = {
   onAnalysisSection: (section: AnalysisSection) => void
 }
 
+const navLabel = (label: string) => label[0] + label.slice(1).toLocaleLowerCase()
+
 const labels = {
   pt: { home: 'INÍCIO', train: 'TREINAR', calibrate: 'CALIBRAR', convert: 'CONVERTER', diagnostic: 'DIAGNÓSTICO', analysis: 'ANÁLISE', minigames: 'Minigames', minigamesDescription: 'Exercícios individuais', routinesDescription: 'Sequências de treino', routines: 'Rotinas', calibration: 'Calibrar sensibilidade', calibrationDescription: 'Encontre uma região de sensibilidade para testar.', history: 'Histórico', historyDescription: 'Consulte calibrações anteriores.', method: 'Como funciona', methodDescription: 'Entenda o método de calibração.', polling: 'Teste de Polling Rate', pollingDescription: 'Meça a frequência observada do mouse.', input: 'Diagnóstico de Entrada', inputDescription: 'Analise estabilidade e comportamento do input.', refresh: 'Refresh Rate', refreshDescription: 'Meça a frequência de atualização observada no navegador.', drift: 'Drift do Controle', driftDescription: 'Analise o desvio dos analógicos em repouso.', profile: 'Meu perfil', settings: 'Configurações', logout: 'Sair', unavailable: 'Disponível quando o login for ativado' },
   en: { home: 'HOME', train: 'TRAIN', calibrate: 'CALIBRATE', convert: 'CONVERT', diagnostic: 'DIAGNOSTICS', analysis: 'ANALYSIS', minigames: 'Minigames', minigamesDescription: 'Individual exercises', routinesDescription: 'Training sequences', routines: 'Routines', calibration: 'Calibrate sensitivity', calibrationDescription: 'Find a sensitivity range to test.', history: 'History', historyDescription: 'Review previous calibrations.', method: 'How it works', methodDescription: 'Understand the calibration method.', polling: 'Polling Rate Test', pollingDescription: 'Measure the mouse rate observed by the browser.', input: 'Input Diagnostics', inputDescription: 'Analyze input stability and behavior.', refresh: 'Refresh Rate', refreshDescription: 'Estimate the refresh rate observed by the browser.', drift: 'Controller Drift', driftDescription: 'Measure resting analog stick offset.', profile: 'My profile', settings: 'Settings', logout: 'Sign out', unavailable: 'Available when sign-in is enabled' },
   es: { home: 'INICIO', train: 'ENTRENAR', calibrate: 'CALIBRAR', convert: 'CONVERTIR', diagnostic: 'DIAGNÓSTICO', analysis: 'ANÁLISIS', minigames: 'Minijuegos', minigamesDescription: 'Ejercicios individuales', routinesDescription: 'Secuencias de entrenamiento', routines: 'Rutinas', calibration: 'Calibrar sensibilidad', calibrationDescription: 'Encuentra una región de sensibilidad para probar.', history: 'Historial', historyDescription: 'Consulta calibraciones anteriores.', method: 'Cómo funciona', methodDescription: 'Entiende el método de calibración.', polling: 'Prueba de Polling Rate', pollingDescription: 'Mide la frecuencia del ratón observada por el navegador.', input: 'Diagnóstico de Entrada', inputDescription: 'Analiza la estabilidad y el comportamiento de la entrada.', refresh: 'Refresh Rate', refreshDescription: 'Estima la actualización observada por el navegador.', drift: 'Drift del Control', driftDescription: 'Mide el desvío de los sticks en reposo.', profile: 'Mi perfil', settings: 'Configuración', logout: 'Salir', unavailable: 'Disponible cuando se active el acceso' },
 } as const
 
-type OpenMenu = 'train' | 'calibrate' | 'diagnostic' | 'profile' | null
+type OpenMenu = 'train' | 'calibrate' | 'diagnostic' | 'profile' | 'search' | null
 type MenuName = Exclude<OpenMenu, null>
 
 type XensiLogoProps = {
@@ -61,33 +62,44 @@ function readNavProfile() {
 
 export function AppNavigation({ view, analysisSection, locale, disabled, onLocaleChange, onNavigate, onLogin, onAnalysisSection }: Props) {
   const text = labels[locale]
-  const { reduced } = useXensiMotion()
   const shellRef = useRef<HTMLDivElement>(null)
   const menuTriggerRefs = useRef<Partial<Record<MenuName, HTMLButtonElement | null>>>({})
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreTrigger = useRef<HTMLButtonElement>(null)
+  const [compactNav, setCompactNav] = useState(() => window.matchMedia('(max-width:880px)').matches)
+  useEffect(() => {
+    const query = window.matchMedia('(max-width:880px)')
+    const update = () => { setCompactNav(query.matches); setMoreOpen(false); setOpenMenu(null) }
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+  const [navSearch, setNavSearch] = useState('')
   const [navProfile, setNavProfile] = useState(readNavProfile)
   const [authState, setAuthState] = useState<AuthSessionState>({ status: 'loading', userId: null, profile: null })
 
   useEffect(() => {
     const close = (event: PointerEvent) => {
-      if (!shellRef.current?.contains(event.target as Node)) setOpenMenu(null)
+      if (!shellRef.current?.contains(event.target as Node)) { setOpenMenu(null); setMoreOpen(false) }
     }
     document.addEventListener('pointerdown', close)
     return () => document.removeEventListener('pointerdown', close)
   }, [])
 
   useEffect(() => {
-    if (!openMenu) return
+    if (!openMenu && !moreOpen) return
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       event.preventDefault()
-      const trigger = menuTriggerRefs.current[openMenu]
-      setOpenMenu(null)
-      window.requestAnimationFrame(() => trigger?.focus())
+      const originalTrigger = openMenu ? menuTriggerRefs.current[openMenu] : moreTrigger.current
+      const trigger = originalTrigger?.getClientRects().length ? originalTrigger : moreTrigger.current
+      if (openMenu) setOpenMenu(null)
+      else setMoreOpen(false)
+      trigger?.focus()
     }
     document.addEventListener('keydown', closeOnEscape)
     return () => document.removeEventListener('keydown', closeOnEscape)
-  }, [openMenu])
+  }, [openMenu, moreOpen])
 
   useEffect(() => {
     const update = () => setNavProfile(readNavProfile())
@@ -124,37 +136,28 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
 
   const logout = async () => {
     setOpenMenu(null)
+    setMoreOpen(false)
     await signOut()
     onNavigate('home')
   }
 
   const navigate = (next: NavigationView) => {
     setOpenMenu(null)
+    setMoreOpen(false)
     onNavigate(next)
   }
   const selectAnalysis = (section: AnalysisSection) => {
     setOpenMenu(null)
+    setMoreOpen(false)
     onAnalysisSection(section)
-  }
-  const revealMenuTrigger = (menu: MenuName) => {
-    if (menu !== 'diagnostic') return
-    window.requestAnimationFrame(() => {
-      const trigger = menuTriggerRefs.current[menu]
-      const navigation = trigger?.closest<HTMLElement>('.xensi-primary-nav')
-      if (!trigger || !navigation || navigation.scrollWidth <= navigation.clientWidth) return
-      const left = trigger.offsetLeft - (navigation.clientWidth - trigger.offsetWidth) / 2
-      navigation.scrollTo({ left: Math.max(0, left), behavior: reduced ? 'instant' : 'smooth' })
-    })
   }
   const toggle = (menu: MenuName) => {
     setOpenMenu((current) => current === menu ? null : menu)
-    revealMenuTrigger(menu)
   }
   const openFromKeyboard = (menu: MenuName, event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key !== 'ArrowDown') return
     event.preventDefault()
     setOpenMenu(menu)
-    revealMenuTrigger(menu)
     window.requestAnimationFrame(() => shellRef.current?.querySelector<HTMLElement>(`[data-menu="${menu}"] [role="menuitem"]`)?.focus())
   }
   const navigateMenuWithKeyboard = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -163,7 +166,7 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
     if (!items.length) return
     event.preventDefault()
     const current = items.indexOf(document.activeElement as HTMLButtonElement)
-    const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : event.key === 'ArrowDown' ? (current + 1) % items.length : (current - 1 + items.length) % items.length
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : event.key === 'ArrowDown' ? (current + 1) % items.length : (current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length)
     items[next]?.focus()
   }
   const diagnosticActive = isDiagnosticView(view)
@@ -173,17 +176,20 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
     <XensiLogo as="button" onClick={() => navigate('home')} disabled={disabled} />
 
     <LayoutGroup id="navbar"><nav className="xensi-primary-nav" aria-label="XENSI">
-      <button type="button" className={view === 'home' ? 'active' : ''} onClick={() => navigate('home')} disabled={disabled}>{text.home}{(view === 'home') && <ActiveIndicator />}</button>
+      <button type="button" className={`xensi-nav-home${view === 'home' ? ' active' : ''}`} onClick={() => navigate('home')} disabled={disabled} aria-label={navLabel(text.home)}><HomeIcon size={16} className="xensi-nav-home-icon" /><span className="xensi-nav-home-label">{navLabel(text.home)}</span>{(view === 'home') && <ActiveIndicator />}</button>
+      <button type="button" className={view === 'squad' ? 'active' : ''} aria-current={view === 'squad' ? 'page' : undefined} onClick={() => navigate('squad')} disabled={disabled}>Squad Finder{view === 'squad' && <ActiveIndicator />}</button>
+      <button ref={moreTrigger} type="button" className={`xensi-nav-more-trigger${!['home','squad','profile'].includes(view) ? ' active' : ''}`} aria-label={locale === 'pt' ? 'Mais' : locale === 'es' ? 'Más' : 'More'} title={locale === 'pt' ? 'Mais' : locale === 'es' ? 'Más' : 'More'} aria-expanded={moreOpen} aria-controls="xensi-nav-secondary" onClick={() => { setOpenMenu(null); setMoreOpen(value => !value) }} onKeyDown={e => { if (e.key === 'ArrowDown') { e.preventDefault(); setMoreOpen(true); window.requestAnimationFrame(() => shellRef.current?.querySelector<HTMLButtonElement>('.xensi-nav-secondary > button, .xensi-nav-secondary > div > button')?.focus()) } }} disabled={disabled}><span>{locale === 'pt' ? 'Mais' : locale === 'es' ? 'Más' : 'More'}</span><ChevronDown size={12} />{compactNav && !moreOpen && !['home','squad','profile'].includes(view) && <ActiveIndicator />}</button>
+      <div id="xensi-nav-secondary" className="xensi-nav-secondary" data-expanded={moreOpen}>
       <div className="xensi-nav-menu-group">
-        <button ref={(node) => { menuTriggerRefs.current.train = node }} type="button" className={view === 'warmup' || view === 'routine' ? 'active' : ''} onClick={() => toggle('train')} onKeyDown={(event) => openFromKeyboard('train', event)} disabled={disabled} aria-haspopup="menu" aria-expanded={openMenu === 'train'}>{text.train}{(view === 'warmup' || view === 'routine') && <ActiveIndicator />}<ChevronDown size={13} /></button>
-        <MotionDropdown open={openMenu === 'train'} className="xensi-nav-dropdown xensi-training-dropdown" data-menu="train" role="menu" aria-label={text.train} onKeyDown={navigateMenuWithKeyboard}>
+        <button ref={(node) => { menuTriggerRefs.current.train = node }} type="button" className={view === 'warmup' || view === 'routine' ? 'active' : ''} onClick={() => toggle('train')} onKeyDown={(event) => openFromKeyboard('train', event)} disabled={disabled} aria-haspopup="menu" aria-label={navLabel(text.train)} aria-expanded={openMenu === 'train'}>{navLabel(text.train)}{(!compactNav || moreOpen) && (view === 'warmup' || view === 'routine') && <ActiveIndicator />}<ChevronDown size={13} /></button>
+        <MotionDropdown open={openMenu === 'train'} className="xensi-nav-dropdown xensi-training-dropdown" data-menu="train" role="menu" aria-label={navLabel(text.train)} onKeyDown={navigateMenuWithKeyboard}>
           <button type="button" role="menuitem" onClick={() => navigate('warmup')}><Crosshair size={18} /><span><b>{text.minigames}</b><small>{text.minigamesDescription}</small></span></button>
           <button type="button" role="menuitem" onClick={() => navigate('routine')}><SlidersHorizontal size={18} /><span><b>{text.routines}</b><small>{text.routinesDescription}</small></span></button>
         </MotionDropdown>
       </div>
       <div className="xensi-nav-menu-group">
-        <button ref={(node) => { menuTriggerRefs.current.calibrate = node }} type="button" className={view === 'calibration' ? 'active' : ''} onClick={() => toggle('calibrate')} onKeyDown={(event) => openFromKeyboard('calibrate', event)} disabled={disabled} aria-haspopup="menu" aria-expanded={openMenu === 'calibrate'}>{text.calibrate}{(view === 'calibration') && <ActiveIndicator />}<ChevronDown size={13} /></button>
-        <MotionDropdown open={openMenu === 'calibrate'} className="xensi-nav-dropdown xensi-calibrate-dropdown" data-menu="calibrate" role="menu" aria-label={text.calibrate} onKeyDown={navigateMenuWithKeyboard}>
+        <button ref={(node) => { menuTriggerRefs.current.calibrate = node }} type="button" className={view === 'calibration' ? 'active' : ''} onClick={() => toggle('calibrate')} onKeyDown={(event) => openFromKeyboard('calibrate', event)} disabled={disabled} aria-haspopup="menu" aria-label={navLabel(text.calibrate)} aria-expanded={openMenu === 'calibrate'}>{navLabel(text.calibrate)}{(!compactNav || moreOpen) && (view === 'calibration') && <ActiveIndicator />}<ChevronDown size={13} /></button>
+        <MotionDropdown open={openMenu === 'calibrate'} className="xensi-nav-dropdown xensi-calibrate-dropdown" data-menu="calibrate" role="menu" aria-label={navLabel(text.calibrate)} onKeyDown={navigateMenuWithKeyboard}>
           <span className="xensi-nav-dropdown-label">{text.calibrate}</span>
           <button type="button" role="menuitem" className="is-primary" onClick={() => navigate('calibration')}><Crosshair size={15} /><span><b>{text.calibration}</b><small>{text.calibrationDescription}</small></span></button>
           <button type="button" role="menuitem" className={view === 'analysis' && analysisSection === 'calibration-history' ? 'active is-secondary' : 'is-secondary'} aria-current={view === 'analysis' && analysisSection === 'calibration-history' ? 'page' : undefined} onClick={() => selectAnalysis('calibration-history')}><BarChart3 size={15} /><span><b>{text.history}</b><small>{text.historyDescription}</small></span></button>
@@ -191,10 +197,10 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
           <button type="button" role="menuitem" className={view === 'analysis' && analysisSection === 'methodology' ? 'active is-documentation' : 'is-documentation'} aria-current={view === 'analysis' && analysisSection === 'methodology' ? 'page' : undefined} onClick={() => selectAnalysis('methodology')}><Info size={15} /><span><b>{text.method}</b><small>{text.methodDescription}</small></span></button>
         </MotionDropdown>
       </div>
-      <button type="button" className={view === 'converter' ? 'active' : ''} onClick={() => navigate('converter')} disabled={disabled}>{text.convert}{(view === 'converter') && <ActiveIndicator />}</button>
+      <button type="button" className={view === 'converter' ? 'active' : ''} onClick={() => navigate('converter')} disabled={disabled} aria-label={navLabel(text.convert)}>{navLabel(text.convert)}{(!compactNav || moreOpen) && (view === 'converter') && <ActiveIndicator />}</button>
       <div className="xensi-nav-menu-group">
-        <button ref={(node) => { menuTriggerRefs.current.diagnostic = node }} type="button" className={diagnosticActive ? 'active' : ''} onClick={() => toggle('diagnostic')} onKeyDown={(event) => openFromKeyboard('diagnostic', event)} disabled={disabled} aria-haspopup="menu" aria-expanded={openMenu === 'diagnostic'} aria-current={diagnosticActive ? 'page' : undefined}>{text.diagnostic}{(diagnosticActive) && <ActiveIndicator />}<ChevronDown size={13} /></button>
-        <MotionDropdown open={openMenu === 'diagnostic'} className="xensi-nav-dropdown xensi-diagnostic-dropdown" data-menu="diagnostic" role="menu" aria-label={text.diagnostic} onKeyDown={navigateMenuWithKeyboard}>
+        <button ref={(node) => { menuTriggerRefs.current.diagnostic = node }} type="button" className={diagnosticActive ? 'active' : ''} onClick={() => toggle('diagnostic')} onKeyDown={(event) => openFromKeyboard('diagnostic', event)} disabled={disabled} aria-haspopup="menu" aria-label={navLabel(text.diagnostic)} aria-expanded={openMenu === 'diagnostic'} aria-current={diagnosticActive ? 'page' : undefined}>{navLabel(text.diagnostic)}{(!compactNav || moreOpen) && (diagnosticActive) && <ActiveIndicator />}<ChevronDown size={13} /></button>
+        <MotionDropdown open={openMenu === 'diagnostic'} className="xensi-nav-dropdown xensi-diagnostic-dropdown" data-menu="diagnostic" role="menu" aria-label={navLabel(text.diagnostic)} onKeyDown={navigateMenuWithKeyboard}>
           <span className="xensi-nav-dropdown-label">{text.diagnostic}</span>
           <button type="button" role="menuitem" className={view === 'polling' ? 'active' : ''} aria-current={view === 'polling' ? 'page' : undefined} onClick={() => navigate('polling')}><Gauge size={16} /><span><b>{text.polling}</b><small>{text.pollingDescription}</small></span></button>
           <button type="button" role="menuitem" className={view === 'buttons' ? 'active' : ''} aria-current={view === 'buttons' ? 'page' : undefined} onClick={() => navigate('buttons')}><Mouse size={16} /><span><b>{text.input}</b><small>{text.inputDescription}</small></span></button>
@@ -202,21 +208,32 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
           <button type="button" role="menuitem" className={view === 'controller-drift' ? 'active' : ''} aria-current={view === 'controller-drift' ? 'page' : undefined} onClick={() => navigate('controller-drift')}><Gamepad2 size={16} /><span><b>{text.drift}</b><small>{text.driftDescription}</small></span></button>
         </MotionDropdown>
       </div>
-      <button type="button" className={view === 'analysis' ? 'active' : ''} onClick={() => selectAnalysis('overview')} disabled={disabled}>{text.analysis}{(view === 'analysis') && <ActiveIndicator />}</button>
-      <button type="button" className={view === 'squad' ? 'active' : ''} onClick={() => navigate('squad')} disabled={disabled}>{locale === 'pt' ? 'ENCONTRAR SQUAD' : locale === 'es' ? 'ENCONTRAR SQUAD' : 'FIND A SQUAD'}{view === 'squad' && <ActiveIndicator />}</button>
+      <button type="button" className={view === 'analysis' ? 'active' : ''} onClick={() => selectAnalysis('overview')} disabled={disabled} aria-label={navLabel(text.analysis)}>{navLabel(text.analysis)}{(!compactNav || moreOpen) && (view === 'analysis') && <ActiveIndicator />}</button>
+      <button type="button" className="xensi-nav-compact-utility" onClick={() => { setMoreOpen(false); setNavSearch(''); setOpenMenu('search') }} disabled={disabled}><Search size={16} />{locale === 'pt' ? 'Buscar ferramentas' : locale === 'es' ? 'Buscar herramientas' : 'Search tools'}</button>
+      <button type="button" className="xensi-nav-compact-utility" onClick={() => navigate('squad')} disabled={disabled}><Bell size={16} />{locale === 'pt' ? 'Notificações do Squad' : locale === 'es' ? 'Notificaciones del Squad' : 'Squad notifications'}</button>
+      </div>
     </nav></LayoutGroup>
 
     <div className="xensi-nav-actions">
-      {authState.status === 'loading' ? <div className="xensi-auth-skeleton" aria-label="Carregando sessão" /> : authState.status === 'authenticated' ? <div className="xensi-nav-menu-group">
-        <button ref={(node) => { menuTriggerRefs.current.profile = node }} type="button" className={`xensi-user-trigger ${view === 'profile' ? 'active' : ''}`} onClick={() => toggle('profile')} disabled={disabled} aria-haspopup="menu" aria-expanded={openMenu === 'profile'}><AvatarArtwork avatarId={navProfile.avatarId} size="sm" /><b>{navProfile.nickname}</b><ChevronDown size={13} /></button>
-        <MotionDropdown open={profileMenuOpen} className="xensi-nav-dropdown xensi-nav-dropdown-right xensi-profile-dropdown">
-          <button type="button" onClick={() => navigate('profile')}><UserRound size={15} /><span><b>{text.profile}</b></span></button>
-          <button type="button" onClick={() => navigate('profile')}><Settings2 size={15} /><span><b>{text.settings}</b></span></button>
+      <div className="xensi-nav-menu-group xensi-nav-search-group">
+        <button ref={node => { menuTriggerRefs.current.search = node }} type="button" className="xensi-nav-utility" aria-label={locale === 'pt' ? 'Buscar ferramentas' : locale === 'es' ? 'Buscar herramientas' : 'Search tools'} title={locale === 'pt' ? 'Buscar ferramentas' : locale === 'es' ? 'Buscar herramientas' : 'Search tools'} aria-expanded={openMenu === 'search'} onClick={() => { setNavSearch(''); toggle('search') }} disabled={disabled}><Search size={22} /></button>
+        <MotionDropdown open={openMenu === 'search'} className="xensi-nav-dropdown xensi-nav-dropdown-right xensi-nav-search" data-menu="search" onKeyDown={navigateMenuWithKeyboard}>
+          <label><Search size={17} /><input autoFocus aria-label={locale === 'pt' ? 'Buscar ferramentas' : locale === 'es' ? 'Buscar herramientas' : 'Search tools'} value={navSearch} onChange={e => setNavSearch(e.target.value)} />{navSearch && <button type="button" aria-label={locale === 'pt' ? 'Limpar busca' : locale === 'es' ? 'Limpiar búsqueda' : 'Clear search'} onClick={e => { setNavSearch(''); e.currentTarget.parentElement?.querySelector('input')?.focus() }}>×</button>}</label>
+          <div role="menu">{([{view:'home', label:navLabel(text.home)}, {view:'squad',label:'Squad Finder'}, {view:'warmup',label:navLabel(text.train)}, {view:'calibration',label:navLabel(text.calibrate)}, {view:'converter',label:navLabel(text.convert)}, {view:'diagnostics',label:navLabel(text.diagnostic)}, {view:'analysis',label:navLabel(text.analysis)}, {view:'profile',label:locale === 'en' ? 'Profile' : 'Perfil'}] as {view:AppView;label:string}[]).filter(item => item.label.toLocaleLowerCase().includes(navSearch.toLocaleLowerCase())).map(item => <button type="button" role="menuitem" key={item.view} onClick={() => navigate(item.view)}>{item.label}</button>)}</div>
+        </MotionDropdown>
+      </div>
+      <button type="button" className="xensi-nav-utility" aria-label={locale === 'pt' ? 'Notificações do Squad' : locale === 'es' ? 'Notificaciones del Squad' : 'Squad notifications'} title={locale === 'pt' ? 'Notificações do Squad' : locale === 'es' ? 'Notificaciones del Squad' : 'Squad notifications'} onClick={() => navigate('squad')} disabled={disabled}><Bell size={22} /></button>
+      <div className="xensi-nav-account-slot">{authState.status === 'loading' ? <div className="xensi-auth-skeleton" aria-label="Carregando sessão" /> : authState.status === 'authenticated' ? <div className="xensi-nav-menu-group">
+        <button ref={(node) => { menuTriggerRefs.current.profile = node }} type="button" aria-label={navProfile.nickname} className={`xensi-user-trigger ${view === 'profile' ? 'active' : ''}`} onClick={() => toggle('profile')} disabled={disabled} onKeyDown={event => openFromKeyboard('profile', event)} aria-haspopup="menu" aria-expanded={openMenu === 'profile'}><span className="xensi-nav-account-avatar">{navProfile.avatarId === DEFAULT_AVATAR ? navProfile.nickname.charAt(0) : <AvatarArtwork avatarId={navProfile.avatarId} size="sm" />}</span><b className="xensi-nav-username">{navProfile.nickname}</b><ChevronDown size={13} /></button>
+        <MotionDropdown open={profileMenuOpen} className="xensi-nav-dropdown xensi-nav-dropdown-right xensi-profile-dropdown" data-menu="profile" onKeyDown={navigateMenuWithKeyboard}>
+          <span className="xensi-account-name">{navProfile.nickname}</span>
+          <button type="button" role="menuitem" onClick={() => navigate('profile')}><UserRound size={15} /><span><b>{text.profile}</b></span></button>
+          <button type="button" role="menuitem" onClick={() => navigate('profile')}><Settings2 size={15} /><span><b>{text.settings}</b></span></button>
           <label><Languages size={15} /><select value={locale} onChange={(event) => onLocaleChange(event.target.value as Locale)} aria-label={text.settings}><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select></label>
           <i />
-          <button type="button" onClick={logout}><span><b>{text.logout}</b></span></button>
+          <button type="button" role="menuitem" onClick={logout}><span><b>{text.logout}</b></span></button>
         </MotionDropdown>
-      </div> : <button type="button" className="xensi-login-trigger" onClick={onLogin} disabled={disabled} aria-label="Login"><UserRound size={16} /><span>LOGIN</span><ArrowRight size={15} /></button>}
+      </div> : <button type="button" className="xensi-login-trigger" onClick={onLogin} disabled={disabled} aria-label="Login"><UserRound size={16} /><span>Login</span><ArrowRight size={15} /></button>}</div>
     </div>
   </div>
 }

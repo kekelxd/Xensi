@@ -1,0 +1,101 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: X
+        - text: ENSI
+      - generic "Page language" [ref=e8]:
+        - combobox "Page language" [ref=e13] [cursor=pointer]:
+          - option "Português"
+          - option "English" [selected]
+          - option "Español"
+    - navigation "XENSI" [ref=e14]:
+      - button "Home" [ref=e15] [cursor=pointer]
+      - button "Profile" [active] [ref=e19] [cursor=pointer]
+      - button "Routine" [ref=e23] [cursor=pointer]
+      - button "Warm-up" [ref=e27] [cursor=pointer]
+      - button "Sensitivity Calibration" [ref=e30] [cursor=pointer]
+      - button "Converter" [ref=e33] [cursor=pointer]
+      - button "Polling Rate" [ref=e37] [cursor=pointer]
+      - button "Input diagnostics" [ref=e41] [cursor=pointer]
+  - generic [ref=e203]:
+    - generic [ref=e204]:
+      - generic [ref=e205]:
+        - generic [ref=e206]: Tactical identity pass
+        - heading "Player profile" [level=1] [ref=e209]
+        - paragraph [ref=e210]: Keep your setup, games, and preferences in one place before training or calibrating.
+      - generic [ref=e211]:
+        - button "Edit profile" [ref=e212] [cursor=pointer]
+        - button "Add game" [ref=e215] [cursor=pointer]
+        - button "Export card" [ref=e217] [cursor=pointer]
+    - generic [ref=e221]:
+      - article [ref=e222]:
+        - generic [ref=e223]: Identity
+        - generic [ref=e224]:
+          - strong [ref=e226]: PL
+          - generic [ref=e227]:
+            - heading "PLAYER_X" [level=2] [ref=e228]
+            - text: "#XENSI-01"
+        - generic [ref=e229]:
+          - generic [ref=e230]:
+            - generic [ref=e231]: Training rank
+            - strong [ref=e232]: Diamond Control
+          - generic [ref=e233]:
+            - generic [ref=e234]: Precision level
+            - strong [ref=e235]: 82%
+      - article [ref=e238]:
+        - generic [ref=e239]: Peripheral setup
+        - generic [ref=e242]:
+          - generic [ref=e243]:
+            - term [ref=e244]: Mouse
+            - definition [ref=e245]: Logitech G Pro X Superlight
+          - generic [ref=e246]:
+            - term [ref=e247]: Weight
+            - definition [ref=e248]: 63g
+          - generic [ref=e249]:
+            - term [ref=e250]: Mousepad
+            - definition [ref=e251]: Pano control / e-sports
+          - generic [ref=e252]:
+            - term [ref=e253]: Polling rate
+            - definition [ref=e254]: 1000Hz
+          - generic [ref=e255]:
+            - term [ref=e256]: PTFE / glides
+            - definition [ref=e257]: PTFE stock
+      - article [ref=e258]:
+        - generic [ref=e259]: Game presets
+        - generic [ref=e262]:
+          - button [ref=e263] [cursor=pointer]:
+            - strong [ref=e265]: Valorant
+          - button [ref=e266] [cursor=pointer]:
+            - strong [ref=e268]: CS2
+          - button [ref=e269] [cursor=pointer]:
+            - strong [ref=e271]: Warzone
+        - generic [ref=e272]:
+          - generic [ref=e275]:
+            - generic [ref=e276]: Valorant
+            - strong [ref=e277]: "0.36"
+          - generic [ref=e278]:
+            - generic [ref=e279]:
+              - generic [ref=e283]: DPI
+              - strong [ref=e284]: "800"
+            - generic [ref=e285]:
+              - generic [ref=e290]: Sens
+              - strong [ref=e291]: "0.36"
+            - generic [ref=e292]:
+              - generic [ref=e295]: eDPI
+              - strong [ref=e296]: "288"
+            - generic [ref=e297]:
+              - generic [ref=e300]: FOV
+              - strong [ref=e301]: 103°
+            - generic [ref=e302]:
+              - generic [ref=e305]: Screen
+              - strong [ref=e306]: 16:9
+      - article [ref=e307]:
+        - generic [ref=e308]: Tactical preferences
+        - generic [ref=e314]:
+          - generic [ref=e315]:
+            - generic [ref=e316]: Preferred training
+            - strong [ref=e317]: Tracking + Gridshot
+          - generic [ref=e318]:
+            - generic [ref=e319]: Favorite crosshair
+            - strong [ref=e320]: Dot / centro limpo

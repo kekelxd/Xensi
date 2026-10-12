@@ -1,0 +1,60 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: X
+        - text: ENSI
+      - generic "Page language" [ref=e8]:
+        - combobox "Page language" [ref=e13] [cursor=pointer]:
+          - option "Português"
+          - option "English" [selected]
+          - option "Español"
+    - navigation "XENSI" [ref=e14]:
+      - button "Home" [ref=e15] [cursor=pointer]
+      - button "Profile" [ref=e19] [cursor=pointer]
+      - button "Routine" [ref=e23] [cursor=pointer]
+      - button "Warm-up" [ref=e27] [cursor=pointer]
+      - button "Sensitivity Calibration" [ref=e30] [cursor=pointer]
+      - button "Converter" [ref=e33] [cursor=pointer]
+      - button "Polling Rate" [active] [ref=e37] [cursor=pointer]
+      - button "Input diagnostics" [ref=e41] [cursor=pointer]
+  - generic [ref=e654]:
+    - complementary [ref=e655]:
+      - generic [ref=e656]: Diagnostics
+      - heading "Polling rate test" [level=2] [ref=e660]
+      - paragraph [ref=e661]: Measure how often the browser receives updates from your mouse.
+      - generic [ref=e662]: Move the mouse quickly in circles during the 8-second test.
+      - generic [ref=e666]: Close demanding programs to reduce interference in the result.
+      - generic [ref=e671]: Raw input is supported in this browser.
+    - generic [ref=e674]:
+      - generic [ref=e675]: READY TO MEASURE
+      - strong [ref=e678]: "--"
+      - generic [ref=e679]: Observed Hz
+      - generic [ref=e681]: 8-second test
+      - button "Start test" [ref=e683] [cursor=pointer]
+    - complementary [ref=e686]:
+      - generic [ref=e687]: Result
+      - generic [ref=e688]:
+        - generic [ref=e689]: Observed Hz
+        - strong [ref=e690]: "--Hz"
+      - generic [ref=e691]:
+        - generic [ref=e692]: Likely polling rate
+        - generic [ref=e693]: "-- Hz"
+      - generic [ref=e694]:
+        - generic [ref=e695]: Observed peak
+        - generic [ref=e696]: "-- Hz"
+      - generic [ref=e697]:
+        - generic [ref=e698]: Stability
+        - generic [ref=e699]: "--"
+      - generic [ref=e700]:
+        - generic [ref=e701]: Samples
+        - generic [ref=e702]: "0"
+      - generic [ref=e703]:
+        - generic [ref=e704]: "125"
+        - generic [ref=e706]: "250"
+        - generic [ref=e708]: "500"
+        - generic [ref=e710]: 1K
+        - generic [ref=e712]: 2K
+        - generic [ref=e714]: 4K
+        - generic [ref=e716]: 8K
+      - paragraph [ref=e718]: Estimated from events delivered to the browser. The operating system, CPU load, and event coalescing can affect the reading, especially at 4K and 8K.

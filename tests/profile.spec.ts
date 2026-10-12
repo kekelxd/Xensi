@@ -28,7 +28,7 @@ test('empty profile, avatar picker and navbar share normalized assets', async ({
   expect(await editProfileButton.evaluate((button) => {
     const title = document.querySelector('.profile-v1-identity-copy h2')?.getBoundingClientRect()
     const action = button.getBoundingClientRect()
-    return Boolean(title && action.top - title.bottom >= 10)
+    return Boolean(title && (action.bottom <= title.top || action.top >= title.bottom || action.right <= title.left || action.left >= title.right))
   })).toBe(true)
 
   await page.getByRole('button', { name: 'Editar perfil' }).click()

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-const diagnostics = () => ({ name: 'DIAGNÓSTICO', exact: true })
+const diagnostics = () => ({ name: 'Diagnóstico', exact: true })
 
 test.describe('Diagnostics navigation', () => {
   test.beforeEach(async ({ page }) => {
@@ -13,7 +13,7 @@ test.describe('Diagnostics navigation', () => {
     await expect(trigger).toBeVisible()
     await trigger.click()
 
-    const menu = page.getByRole('menu', { name: 'DIAGNÓSTICO' })
+    const menu = page.getByRole('menu', { name: 'Diagnóstico' })
     await expect(menu).toBeVisible()
     await expect(menu.getByRole('menuitem')).toHaveCount(4)
     await expect(menu.getByRole('menuitem', { name: /Teste de Polling Rate/ })).toContainText('Meça a frequência observada do mouse.')
@@ -45,16 +45,16 @@ test.describe('Diagnostics navigation', () => {
   test('closes with Escape and restores focus to the trigger', async ({ page }) => {
     const trigger = page.getByRole('button', diagnostics())
     await trigger.click()
-    await expect(page.getByRole('menu', { name: 'DIAGNÓSTICO' })).toBeVisible()
+    await expect(page.getByRole('menu', { name: 'Diagnóstico' })).toBeVisible()
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('menu', { name: 'DIAGNÓSTICO' })).toBeHidden()
+    await expect(page.getByRole('menu', { name: 'Diagnóstico' })).toBeHidden()
     await expect(trigger).toBeFocused()
   })
 
   test('closes when the user clicks outside', async ({ page }) => {
     await page.getByRole('button', diagnostics()).click()
     await page.locator('.xensi-home-v3-section-head').first().click()
-    await expect(page.getByRole('menu', { name: 'DIAGNÓSTICO' })).toBeHidden()
+    await expect(page.getByRole('menu', { name: 'Diagnóstico' })).toBeHidden()
   })
 
   test('supports keyboard opening and arrow navigation', async ({ page }) => {

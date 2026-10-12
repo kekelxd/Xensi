@@ -32,7 +32,7 @@ export function XensiAppShell({ view, className, children, onNavigate }: { view:
   }, [view])
   const paused = hidden || immersive || measurementRoutes.has(view)
   const atmosphere = atmosphereFor(view)
-  return <div ref={ref} className={`${className} xensi-universal-shell`} data-atmosphere={atmosphere} data-immersive={immersive} data-ui-paused={paused || reduced ? 'true' : 'false'}>
+  return <div ref={ref} className={`${className} xensi-universal-shell`} data-atmosphere={atmosphere} data-view={view} data-immersive={immersive} data-ui-paused={paused || reduced ? 'true' : 'false'}>
     <GlobalAmbientBackground atmosphere={atmosphere} paused={paused} />
     <PageAtmosphere atmosphere={atmosphere} paused={paused} />
     {children}

@@ -105,3 +105,9 @@
   .xensi-universal-shell .xensi-nav-brand { font-size: 16px; }
   .xensi-universal-shell .xensi-nav-more-trigger > span:not(.xensi-active-indicator) { display: none; }
 }
+
+/* Squad notification bell */
+.xensi-universal-shell .xensi-nav-bell { position: relative; }
+.xensi-universal-shell .xensi-nav-bell-dot { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #ff4055; color: #fff; font: 700 10px/16px monospace; font-style: normal; text-align: center; pointer-events: none; }
+.xensi-universal-shell .xensi-nav-bell-menu { width: min(340px, calc(100vw - 24px)); }
+.xensi-universal-shell .xensi-nav-bell-empty { margin: 0; padding: 10px 14px; font-size: 13px; color: #bfc1ca; }

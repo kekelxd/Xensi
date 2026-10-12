@@ -2,6 +2,7 @@ import { LayoutGroup } from 'motion/react'
 import { ActiveIndicator, MotionDropdown } from './design/MotionSurfaces'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Home as HomeIcon, Bell, Search, BarChart3, ChevronDown, Crosshair, Gamepad2, Gauge, Info, Languages, MonitorUp, Mouse, Settings2, SlidersHorizontal, UserRound } from 'lucide-react'
+import { SquadBell } from './squad/SquadBell'
 import { initializeAuth, readAuthSessionState, signOut, type AuthSessionState } from './authService'
 import type { Locale } from './i18n'
 import type { WarmupExercise } from './warmupConfig'
@@ -33,7 +34,7 @@ const labels = {
   es: { home: 'INICIO', train: 'ENTRENAR', calibrate: 'CALIBRAR', convert: 'CONVERTIR', diagnostic: 'DIAGNÓSTICO', analysis: 'ANÁLISIS', minigames: 'Minijuegos', minigamesDescription: 'Ejercicios individuales', routinesDescription: 'Secuencias de entrenamiento', routines: 'Rutinas', calibration: 'Calibrar sensibilidad', calibrationDescription: 'Encuentra una región de sensibilidad para probar.', history: 'Historial', historyDescription: 'Consulta calibraciones anteriores.', method: 'Cómo funciona', methodDescription: 'Entiende el método de calibración.', polling: 'Prueba de Polling Rate', pollingDescription: 'Mide la frecuencia del ratón observada por el navegador.', input: 'Diagnóstico de Entrada', inputDescription: 'Analiza la estabilidad y el comportamiento de la entrada.', refresh: 'Refresh Rate', refreshDescription: 'Estima la actualización observada por el navegador.', drift: 'Drift del Control', driftDescription: 'Mide el desvío de los sticks en reposo.', profile: 'Mi perfil', settings: 'Configuración', logout: 'Salir', unavailable: 'Disponible cuando se active el acceso' },
 } as const
 
-type OpenMenu = 'train' | 'calibrate' | 'diagnostic' | 'profile' | 'search' | null
+type OpenMenu = 'train' | 'calibrate' | 'diagnostic' | 'profile' | 'search' | 'bell' | null
 type MenuName = Exclude<OpenMenu, null>
 
 type XensiLogoProps = {
@@ -141,6 +142,7 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
     onNavigate('home')
   }
 
+  const bellTriggerRef = useRef<HTMLButtonElement | null>(null)
   const navigate = (next: NavigationView) => {
     setOpenMenu(null)
     setMoreOpen(false)
@@ -222,7 +224,7 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
           <div role="menu">{([{view:'home', label:navLabel(text.home)}, {view:'squad',label:'Squad Finder'}, {view:'warmup',label:navLabel(text.train)}, {view:'calibration',label:navLabel(text.calibrate)}, {view:'converter',label:navLabel(text.convert)}, {view:'diagnostics',label:navLabel(text.diagnostic)}, {view:'analysis',label:navLabel(text.analysis)}, {view:'profile',label:locale === 'en' ? 'Profile' : 'Perfil'}] as {view:AppView;label:string}[]).filter(item => item.label.toLocaleLowerCase().includes(navSearch.toLocaleLowerCase())).map(item => <button type="button" role="menuitem" key={item.view} onClick={() => navigate(item.view)}>{item.label}</button>)}</div>
         </MotionDropdown>
       </div>
-      <button type="button" className="xensi-nav-utility" aria-label={locale === 'pt' ? 'Notificações do Squad' : locale === 'es' ? 'Notificaciones del Squad' : 'Squad notifications'} title={locale === 'pt' ? 'Notificações do Squad' : locale === 'es' ? 'Notificaciones del Squad' : 'Squad notifications'} onClick={() => navigate('squad')} disabled={disabled}><Bell size={22} /></button>
+      <SquadBell userId={authState.status === 'authenticated' ? authState.userId : null} locale={locale} open={openMenu === 'bell'} disabled={disabled} triggerRef={bellTriggerRef} onToggle={() => toggle('bell')} onOpenSquad={() => navigate('squad')} />
       <div className="xensi-nav-account-slot">{authState.status === 'loading' ? <div className="xensi-auth-skeleton" aria-label="Carregando sessão" /> : authState.status === 'authenticated' ? <div className="xensi-nav-menu-group">
         <button ref={(node) => { menuTriggerRefs.current.profile = node }} type="button" aria-label={navProfile.nickname} className={`xensi-user-trigger ${view === 'profile' ? 'active' : ''}`} onClick={() => toggle('profile')} disabled={disabled} onKeyDown={event => openFromKeyboard('profile', event)} aria-haspopup="menu" aria-expanded={openMenu === 'profile'}><span className="xensi-nav-account-avatar">{navProfile.avatarId === DEFAULT_AVATAR ? navProfile.nickname.charAt(0) : <AvatarArtwork avatarId={navProfile.avatarId} size="sm" />}</span><b className="xensi-nav-username">{navProfile.nickname}</b><ChevronDown size={13} /></button>
         <MotionDropdown open={profileMenuOpen} className="xensi-nav-dropdown xensi-nav-dropdown-right xensi-profile-dropdown" data-menu="profile" onKeyDown={navigateMenuWithKeyboard}>

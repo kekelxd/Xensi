@@ -208,16 +208,17 @@ export class SniperViewport {
       this.slab(leg, 'pants', 0, -.25, 0, .16, .5, .17)
       this.slab(leg, 'olive', 0, -.27, front * .12, .19, .15, .17)           // knee pad
       this.slab(leg, 'boot', 0, -.6, .04, .17, .22, .27)                      // boot, toe forward
-      const arm = swing(this.arms, side * .17, hip + .62)
+      const arm = swing(this.arms, side * .17, hip + .68)
       this.slab(arm, 'cloth', 0, -.18, 0, .11, .38, .14)
       this.slab(arm, 'glove', 0, -.42, 0, .12, .12, .15)
     }
-    this.slab(group, 'cloth', 0, hip + .26, 0, .27, .5, depth * .9)           // torso
-    this.slab(group, 'olive', 0, hip + .32, 0, .3, .4, depth)                 // plate carrier
+    this.slab(group, 'cloth', 0, hip + .37, 0, .27, .7, depth * .9)           // torso, up to the shoulders
+    this.slab(group, 'olive', 0, hip + .38, 0, .3, .58, depth)                // plate carrier
     for (const z of [-.1, 0, .1]) this.slab(group, 'oliveDark', .17, hip + .22, z, .05, .14, .09) // pouches, near side
     for (const z of [-.1, 0, .1]) this.slab(group, 'oliveDark', -.17, hip + .22, z, .05, .14, .09)
-    this.slab(group, 'oliveDark', 0, hip + .38, -front - .04, .22, .3, .08)    // back panel
+    this.slab(group, 'oliveDark', 0, hip + .42, -front - .04, .22, .32, .08)    // back panel
     this.slab(group, 'cloth', 0, hip + .02, 0, .29, .06, depth * .92)         // belt
+    this.slab(group, 'balaclava', 0, reference.bodyTop - .02, 0, .13, .12, .13)             // neck
     const head = new Mesh(this.sphere, this.materials.balaclava)
     head.scale.setScalar(reference.headRadius); head.position.set(0, reference.headCenter, 0); group.add(head)
     const hr = reference.headRadius, hy = reference.headCenter

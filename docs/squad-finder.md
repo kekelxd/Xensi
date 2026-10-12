@@ -262,3 +262,11 @@ own 10-minute `reserved_until` and receives the host Discord immediately. The ho
 unconfirmed reservation returns the slot. Room `open` = free slot, `reserved` = all slots taken but some
 unconfirmed, `closed` = all joined (automatic) or closed by the host after at least one join. Accepting the last
 free slot declines remaining pending requests. Verified by `npm run test:squad:slots` (PGlite, 21 checks).
+
+## Saved Discord (2026-10-12)
+
+Migration `20261012210000_squad_finder_saved_discord.sql` adds `lfg_private.discord_handles` (RLS on, no client
+grants) with owner-only RPCs `xensi_discord_get` / `xensi_discord_set` (eligible accounts, same username rules as
+contacts). Room/request dialogs prefill it and, with the default-on "remember" checkbox, save changes; the
+sidebar "Meu Discord" entry edits it. The handle is still only shared as before (host, or the approved player)
+and is removed with the account. This replaces the earlier in-memory-only reuse.

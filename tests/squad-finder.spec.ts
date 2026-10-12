@@ -13,8 +13,10 @@ async function fixture(context: BrowserContext) {
   await mockCloud(context)
   const state = {
     access: { eligible: true, enabled: true, email_confirmed: true, moderator: false, creation_enabled: true, publication_restricted: false, suspended: false } as Access,
-    room: room(), rooms: [] as Room[], requests: [] as Request[], host: false, fail: false, notifications: [] as { id: string; kind: string; room_id: string; created_at: string }[], requested: false, calls: [] as { action: string; payload: Record<string, unknown> }[],
+    room: room(), rooms: [] as Room[], requests: [] as Request[], host: false, fail: false, discord: '', notifications: [] as { id: string; kind: string; room_id: string; created_at: string }[], requested: false, calls: [] as { action: string; payload: Record<string, unknown> }[],
   }
+  await context.route('**/rest/v1/rpc/xensi_discord_get', route => route.fulfill({ json: state.discord || null }))
+  await context.route('**/rest/v1/rpc/xensi_discord_set', route => { state.discord = route.request().postDataJSON().p_username; return route.fulfill({ status: 204, body: '' }) })
   await context.route('**/rest/v1/rpc/xensi_lfg', async route => {
     const { action, payload } = route.request().postDataJSON()
     state.calls.push({action,payload})
@@ -71,6 +73,27 @@ test.describe('Squad Finder', () => {
     await expect.poll(()=>state.calls.some(c=>c.action==='accept'&&c.payload.request_id===requestId)).toBe(true)
     await expect(page).toHaveURL(/\/squad\/my-room$/)
     await expect(card).toBeHidden()
+  })
+  test('saved Discord prefills rooms and can be edited from the sidebar', async ({page,context}) => {
+    const state=await fixture(context);await login(page);await page.goto('/squad')
+    await page.getByRole('button',{name:'Criar sala',exact:true}).click()
+    const dialog=page.getByRole('dialog')
+    await expect(dialog.getByRole('textbox',{name:'Usuário Discord'})).toHaveValue('')
+    await dialog.getByRole('textbox',{name:'Usuário Discord'}).fill('first.time')
+    await expect(dialog.getByRole('checkbox',{name:/Lembrar este Discord/})).toBeChecked()
+    await dialog.getByRole('button',{name:'Publicar sala'}).click();await expect(dialog).not.toBeVisible()
+    await expect.poll(()=>state.discord).toBe('first.time')
+    await expect(page.getByText('first.time',{exact:true})).toBeVisible()
+    await page.screenshot({path:'test-results/squad-discord.png',animations:'disabled'})
+    await page.getByRole('button',{name:'Editar',exact:true}).click()
+    const edit=page.getByRole('dialog')
+    await expect(edit.getByRole('textbox',{name:'Usuário Discord'})).toHaveValue('first.time')
+    await edit.getByRole('textbox',{name:'Usuário Discord'}).fill('Bad Name')
+    await edit.getByRole('button',{name:'Salvar'}).click();await expect(edit.getByText('Corrija o usuário Discord')).toBeVisible()
+    await edit.getByRole('textbox',{name:'Usuário Discord'}).fill('second.name')
+    await edit.getByRole('button',{name:'Salvar'}).click();await expect(edit).not.toBeVisible()
+    expect(state.discord).toBe('second.name')
+    await expect(page.getByText('second.name',{exact:true})).toBeVisible()
   })
   test('create validates Discord, game platforms, focus and server failure recovery', async ({page,context},info) => {
     const state=await fixture(context);await login(page);await page.goto('/squad')

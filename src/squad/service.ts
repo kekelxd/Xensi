@@ -35,3 +35,16 @@ export async function clearNotifications() {
   const { error } = await client.rpc('xensi_notifications_clear')
   if (error) throw new Error('lfg_network')
 }
+// Saved Discord username (private table, owner-only RPCs). Never cached outside memory.
+export async function getSavedDiscord(): Promise<string> {
+  const client = getSupabaseClient()
+  if (!client) return ''
+  const { data, error } = await client.rpc('xensi_discord_get')
+  return error || typeof data !== 'string' ? '' : data
+}
+export async function saveDiscord(username: string) {
+  const client = getSupabaseClient()
+  if (!client) throw new Error('lfg_unconfigured')
+  const { error } = await client.rpc('xensi_discord_set', { p_username: username })
+  if (error) throw new Error(error.message.match(/lfg_[a-z_]+/)?.[0] ?? 'lfg_network')
+}

@@ -18,7 +18,7 @@ await db.exec(`
  create policy profiles_own on public.profiles to authenticated using(id=auth.uid());
  grant select on public.profiles to authenticated;
 `)
-for (const f of ['20261011163626_squad_finder_v1','20261011173736_squad_finder_security_hardening','20261011180903_squad_finder_controlled_testing','20261011182551_squad_finder_remove_age_gate','20261011184403_squad_finder_registered_access','20261012190000_squad_finder_games_and_slots'])
+for (const f of ['20261011163626_squad_finder_v1','20261011173736_squad_finder_security_hardening','20261011180903_squad_finder_controlled_testing','20261011182551_squad_finder_remove_age_gate','20261011184403_squad_finder_registered_access','20261012190000_squad_finder_games_and_slots','20261012210000_squad_finder_saved_discord'])
  await db.exec(readFileSync(`supabase/migrations/${f}.sql`,'utf8'))
 console.log('PASS migrations apply in order on PostgreSQL')
 
@@ -153,6 +153,23 @@ await check('blocking releases the blocked accepted player only',async()=>{
 await check('ordinary users cannot call the new helpers directly',async()=>{
  for (const fn of ['lfg_private.release(gen_random_uuid(),$$x$$)','lfg_private.expire_reservations(gen_random_uuid())','lfg_private.free_text_ok($$x$$)'])
   await as(players[0],()=>fails(()=>db.query(`select ${fn}`),/permission denied/))
+})
+
+const call = (user,sql,args=[]) => as(user,async()=>(await db.query(sql,args)).rows[0])
+await check('saved Discord: empty by default, validated, owner-only',async()=>{
+ assert.equal((await call(players[0],'select public.xensi_discord_get() v')).v,null)
+ for (const bad of ['A_User','a..b','x','https://x.io','with space','x'.repeat(33)]) await fails(()=>call(players[0],'select public.xensi_discord_set($1)',[bad]),/lfg_invalid/)
+ await call(players[0],'select public.xensi_discord_set($1)',['player.one'])
+ assert.equal((await call(players[0],'select public.xensi_discord_get() v')).v,'player.one')
+ await call(players[0],'select public.xensi_discord_set($1)',['player_one'])
+ assert.equal((await call(players[0],'select public.xensi_discord_get() v')).v,'player_one')
+ assert.equal((await call(players[1],'select public.xensi_discord_get() v')).v,null)
+ await as(players[1],()=>fails(()=>db.query('select * from lfg_private.discord_handles'),/permission denied/))
+})
+await check('saved Discord: signed-out and ineligible accounts cannot save',async()=>{
+ await db.exec("set role anon"); await fails(()=>db.query('select public.xensi_discord_set($1)',['anon.user']),/permission denied/); await db.exec('reset role')
+ await db.query(`insert into auth.users values($1,null,false)`,[id(9)]); await db.query(`insert into public.profiles values($1,'Unconfirmed','dog-happy')`,[id(9)])
+ await fails(()=>call(id(9),'select public.xensi_discord_set($1)',['unconfirmed.user']),/lfg_ineligible/)
 })
 console.log(`${passed} slot/game checks passed on PostgreSQL.`)
 await db.close()

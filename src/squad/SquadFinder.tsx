@@ -23,7 +23,7 @@ import { platformIds, platforms, regions, registry, validDiscord, validFreeText,
 import { errorCopy, squadCopy, statusCopy, valueCopy } from './copy'
 import { armAlertSound, playAlert } from './sound'
 import { disablePush, enablePush, pushState, type PushState } from './push'
-import { clearNotifications, squadRpc, type Access, type Block, type Contact, type Moderation, type Notification, type Request, type Room } from './service'
+import { clearNotifications, getSavedDiscord, saveDiscord, squadRpc, type Access, type Block, type Contact, type Moderation, type Notification, type Request, type Room } from './service'
 import './squad.css'
 
 type Area = 'find' | 'mine' | 'requests' | 'blocks' | 'moderation'
@@ -123,6 +123,13 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
   const operation = useRef<AbortController | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const uid = auth.userId
+  useEffect(() => {
+    setKnownDiscord('')
+    if (!uid) return
+    let active = true
+    void getSavedDiscord().then(v => { if (active) setKnownDiscord(v) }).catch(() => undefined)
+    return () => { active = false }
+  }, [uid])
   const errorMessage = (e: unknown) => errorCopy[e instanceof Error ? e.message : '']?.[lang === 'pt' ? 0 : 1] ?? text.network
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; operation.current?.abort() } }, [])
   useEffect(() => {
@@ -223,10 +230,18 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
     writeLock.current = true; setBusy(true); setError(''); setMessage('')
     const abort = new AbortController(); operation.current = abort
     try {
-      const data = await squadRpc<Contact>(uid, action, payload, abort.signal)
+      if (action === 'discord') {
+        const name = String(payload.discord_username)
+        await saveDiscord(name)
+        if (!mounted.current || readAuthSessionState().userId !== uid) return
+        setKnownDiscord(name); setDialog(null); setMessage(text.discordSaved)
+        return
+      }
+      const { remember, ...rpcPayload } = payload
+      const data = await squadRpc<Contact>(uid, action, rpcPayload, abort.signal)
       if (!mounted.current || readAuthSessionState().userId !== uid) return
       if (action === 'host_contact') setContact({ roomId: String(payload.room_id), data })
-      else { if (action === 'create' || action === 'request') setKnownDiscord(String(payload.discord_username)); setDialog(null); setContact(null); setMessage(action === 'report' ? text.reportSent : text.success); setRefresh(n => n + 1) }
+      else { if (action === 'create' || action === 'request') { const name = String(payload.discord_username); if (remember !== false && name !== knownDiscord) void saveDiscord(name).catch(() => undefined); setKnownDiscord(name) } setDialog(null); setContact(null); setMessage(action === 'report' ? text.reportSent : text.success); setRefresh(n => n + 1) }
     } catch (e) { if (mounted.current && !abort.signal.aborted) setError(errorMessage(e)) }
     finally { writeLock.current = false; if (mounted.current) setBusy(false) }
   }
@@ -286,6 +301,7 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
       <Card className="sticky top-28 p-3.5 max-[1100px]:static max-[1100px]:p-2">
         <p className="m-0 mx-2 mt-0.5 mb-3 text-xs font-medium text-muted-foreground max-[1100px]:hidden">XENSI Squad Finder</p>
         <nav className="flex flex-col gap-1 max-[1100px]:flex-row max-[1100px]:overflow-x-auto max-[1100px]:[scrollbar-width:none]" aria-label="Squad Finder">{tabs.map(tab => { const Icon = tabIcons[tab]; return <Button variant="ghost" key={tab} aria-current={area === tab ? 'page' : undefined} onClick={() => navigate(tab)} className="w-full justify-start font-medium max-[1100px]:w-auto max-[1100px]:flex-none aria-[current=page]:bg-primary/12 aria-[current=page]:text-foreground aria-[current=page]:shadow-[inset_0_0_0_1px_rgba(255,64,85,.45)] aria-[current=page]:[&_svg]:text-primary"><Icon className="size-[18px]!" aria-hidden="true" /><span>{text[tab]}</span></Button> })}</nav>
+        {uid && a?.eligible && <div className="mx-2 mt-3 grid gap-1.5 border-0 border-t border-solid border-border pt-3 max-[1100px]:hidden"><span className="text-xs font-medium text-muted-foreground">{text.myDiscord}</span>{knownDiscord ? <code className="select-text font-mono text-sm text-foreground [overflow-wrap:anywhere]">{knownDiscord}</code> : null}<Button variant="outline" size="sm" className="justify-self-start" disabled={busy} onClick={() => open('discord')}>{knownDiscord ? text.editDiscord : text.addDiscord}</Button></div>}
       </Card>
       <div className="grid min-w-0 gap-5">
         <div className="grid gap-2 empty:hidden" aria-live="polite">{message && <p role="status" className={muted}>{message}</p>}{error && <p role="alert" className="m-0 text-sm text-destructive">{error}</p>}</div>
@@ -374,19 +390,22 @@ function SquadDialog({ dialog, lang, knownDiscord, busy, error, onClose, onSubmi
   const [game, setGame] = useState<SquadGame>(dialog.room?.game_id ?? 'valorant')
   const [platform, setPlatform] = useState<SquadPlatform>(dialog.room?.platform ?? 'pc')
   const [region, setRegion] = useState('sa'), [mode, setMode] = useState(''), [rank, setRank] = useState(''), [slots, setSlots] = useState('1')
+  const [remember, setRemember] = useState(true)
   const [discord, setDiscord] = useState(knownDiscord), [mic, setMic] = useState(true), [consent, setConsent] = useState(false), [category, setCategory] = useState('harassment')
   const [invalid, setInvalid] = useState(false), [invalidText, setInvalidText] = useState(false)
-  const creating = dialog.action === 'create', requesting = dialog.action === 'request'
-  const titles: Record<string, string> = { create: text.create, request: text.request, accept: text.accept, confirm: text.confirm, release: text.release, cancel: text.end, report: text.report, block: text.block, mod_decide: text.moderation, mod_capacity: text.capacity }
-  const hints: Record<string, string> = { create: text.hostDisclosure, request: text.disclosure, accept: text.hostDisclosure, confirm: text.confirmHint, release: text.releaseHint, cancel: text.endHint, report: text.reportHint, block: text.blockHint, mod_decide: text.modHint, mod_capacity: text.modHint }
+  const creating = dialog.action === 'create', requesting = dialog.action === 'request', editingDiscord = dialog.action === 'discord'
+  const titles: Record<string, string> = { discord: text.discordTitle, create: text.create, request: text.request, accept: text.accept, confirm: text.confirm, release: text.release, cancel: text.end, report: text.report, block: text.block, mod_decide: text.moderation, mod_capacity: text.capacity }
+  const hints: Record<string, string> = { discord: text.discordSaveHint, create: text.hostDisclosure, request: text.disclosure, accept: text.hostDisclosure, confirm: text.confirmHint, release: text.releaseHint, cancel: text.endHint, report: text.reportHint, block: text.blockHint, mod_decide: text.modHint, mod_capacity: text.modHint }
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (busy) return
-    if ((creating || requesting) && !validDiscord(discord)) { setInvalid(true); discordInput.current?.focus(); return }
+    if ((creating || requesting || editingDiscord) && !validDiscord(discord)) { setInvalid(true); discordInput.current?.focus(); return }
     if (creating && !(validFreeText(mode.trim()) && validFreeText(rank.trim()))) { setInvalidText(true); return }
     const payload: Record<string, unknown> = { room_id: dialog.room?.id, request_id: dialog.request?.id }
     if (creating) Object.assign(payload, { game_id: game, platform, region, game_mode: mode.trim(), rank_info: rank.trim(), slots: Number(slots), microphone_required: mic, crossplay: true, discord_username: discord })
     if (requesting) Object.assign(payload, { platform, discord_username: discord, consent })
+    if (creating || requesting) payload.remember = remember
+    if (editingDiscord) { onSubmit({ discord_username: discord }); return }
     if (dialog.action === 'report') payload.category = category
     if (dialog.action === 'mod_decide') Object.assign(payload, { report_id: dialog.id, decision: dialog.decision, reason: category })
     if (dialog.action === 'mod_capacity') payload.enabled = dialog.enabled
@@ -416,18 +435,19 @@ function SquadDialog({ dialog, lang, knownDiscord, busy, error, onClose, onSubmi
           </div>
         </>}
         {requesting && dialog.room && <SelectField label={text.platform} value={platform} format={format} options={platformIds} onValueChange={v => setPlatform(v as SquadPlatform)} />}
-        {(creating || requesting) && <div className="grid gap-2">
+        {(creating || requesting || editingDiscord) && <div className="grid gap-2">
           <Label htmlFor={discordId}>{text.discord}</Label>
           <Input ref={discordInput} id={discordId} name="discord" autoComplete="off" maxLength={32} value={discord} aria-invalid={invalid} aria-describedby={`${discordId}-hint ${discordId}-error`} onChange={e => { setDiscord(e.target.value); setInvalid(false) }} />
           <small id={`${discordId}-hint`} className="text-xs leading-relaxed text-muted-foreground">{text.discordHint}</small>
           <span id={`${discordId}-error`} className="text-xs text-destructive empty:hidden">{invalid ? text.invalidDiscord : ''}</span>
         </div>}
+        {(creating || requesting) && <CheckField checked={remember} onCheckedChange={setRemember}>{text.rememberDiscord}</CheckField>}
         {requesting && <CheckField checked={consent} onCheckedChange={setConsent}>{text.consent}</CheckField>}
         {(dialog.action === 'report' || dialog.action === 'mod_decide') && <SelectField label={text.category} value={category} format={format} options={['harassment', 'abuse', 'spam', 'suspicious', 'privacy', 'other']} onValueChange={setCategory} />}
         {error && <p role="alert" className="m-0 text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={busy}>{text.cancel}</Button>
-          <Button type="submit" disabled={busy || (requesting && !consent)} aria-busy={busy}>{creating ? text.publish : dialog.action === 'mod_capacity' ? dialog.enabled ? text.enable : text.disable : title}</Button>
+          <Button type="submit" disabled={busy || (requesting && !consent)} aria-busy={busy}>{creating ? text.publish : editingDiscord ? text.save : dialog.action === 'mod_capacity' ? dialog.enabled ? text.enable : text.disable : title}</Button>
         </DialogFooter>
       </form>
     </DialogContent>

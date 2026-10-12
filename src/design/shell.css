@@ -15,8 +15,8 @@
   mask-image: linear-gradient(to bottom, #000 40%, transparent 96%), linear-gradient(to left, #000 55%, transparent 100%);
   -webkit-mask-composite: source-in; mask-composite: intersect;
 }
-.xensi-universal-shell[data-view='profile'] { --xensi-art-opacity: .5; }
-.xensi-universal-shell[data-view='squad'] { --xensi-art-opacity: .9; }
+.xensi-universal-shell[data-view='profile'] { --xensi-hero-art: url('../assets/xensi-profile-art.webp'); --xensi-art-opacity: .9; }
+.xensi-universal-shell[data-view='squad'] { --xensi-hero-art: url('../assets/xensi-squad-art.webp'); --xensi-art-opacity: .9; }
 .xensi-universal-shell[data-view='home'], .xensi-universal-shell[data-atmosphere='diagnostics'] { --xensi-art-opacity: 0; }
 @media (max-width: 760px) {
   .xensi-universal-shell:not([data-immersive='true'])::before { height: 120vw; background-size: auto 100%; background-position: 70% top; }

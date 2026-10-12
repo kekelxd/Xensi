@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react'
 import { ArrowRight, CheckCircle2, CircleAlert, Eye, EyeOff, MailCheck, RotateCcw } from 'lucide-react'
-import authArt from './assets/xensi-hero-art.webp'
+import authArt from './assets/xensi-auth-art.webp'
 import { XensiLogo } from './AppNavigation'
 import {
   AuthMode,
@@ -115,9 +115,10 @@ function AuthLayout({ children }: { children: ReactNode }) {
         <div className="w-full max-w-[380px]">{children}</div>
       </div>
     </div>
-    <div aria-hidden="true" className="relative hidden overflow-hidden border-0 border-l border-solid border-border lg:block">
-      <img src={authArt} alt="" className="absolute inset-0 size-full object-cover object-[70%_center]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--background)_0%,rgba(7,8,12,.55)_28%,rgba(7,8,12,.1)_70%)]" />
+    {/* No divider: the art fades into the form column so the seam disappears. */}
+    <div aria-hidden="true" className="relative hidden overflow-hidden lg:block">
+      <img src={authArt} alt="" className="absolute inset-0 size-full object-cover object-[65%_center] [mask-image:linear-gradient(90deg,transparent_0%,#000_45%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--background)_0%,transparent_30%),linear-gradient(0deg,var(--background)_0%,transparent_22%)]" />
     </div>
   </main>
 }

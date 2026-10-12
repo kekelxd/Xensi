@@ -29,7 +29,9 @@ export async function enablePush(lang: 'pt' | 'en'): Promise<PushState> {
   if (await Notification.requestPermission() !== 'granted') return Notification.permission === 'denied' ? 'denied' : 'off'
   await register()
   const reg = await navigator.serviceWorker.ready
-  const sub = (await reg.pushManager.getSubscription()) ?? await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(vapidKey()!) })
+  let sub = await reg.pushManager.getSubscription()
+  try { sub ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(vapidKey()!) }) }
+  catch (e) { throw new Error(e instanceof DOMException && e.name === 'AbortError' ? 'push_service' : 'push_failed') }
   const { error } = await client.rpc('xensi_push_subscribe', { p_endpoint: sub.endpoint, p_p256dh: b64(sub.getKey('p256dh')), p_auth: b64(sub.getKey('auth')), p_lang: lang })
   if (error) { await sub.unsubscribe(); throw new Error(error.message.match(/lfg_[a-z_]+/)?.[0] ?? 'lfg_network') }
   return 'on'

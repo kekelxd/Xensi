@@ -17,8 +17,8 @@ const hints: Record<string, [string, string]> = {
   request_accepted: ['Abra Minhas Solicitações para ver o Discord do anfitrião.', 'Open My Requests to see the host’s Discord.'],
 }
 const ui = {
-  pt: { label: 'Notificações do Squad', empty: 'Sem notificações do Squad.', push: 'Ativar avisos no navegador', pushOn: 'Avisos no navegador: ligados', unsupported: 'Este navegador não permite avisos push. No iPhone, adicione o site à tela inicial.', denied: 'Avisos bloqueados no navegador. Libere nas configurações do site.', failed: 'Não foi possível ativar os avisos neste navegador.', dismissed: 'Permissão não concedida. Tente novamente e clique em Permitir.', open: 'Abrir Squad Finder' },
-  en: { label: 'Squad notifications', empty: 'No Squad notifications.', push: 'Enable browser alerts', pushOn: 'Browser alerts: on', unsupported: 'This browser does not allow push alerts. On iPhone, add the site to the Home Screen.', denied: 'Alerts are blocked in your browser. Allow them in the site settings.', failed: 'Could not enable alerts in this browser.', dismissed: 'Permission not granted. Try again and click Allow.', open: 'Open Squad Finder' },
+  pt: { label: 'Notificações do Squad', empty: 'Sem notificações do Squad.', push: 'Ativar avisos no navegador', pushOn: 'Avisos no navegador: ligados', unsupported: 'Este navegador não permite avisos push. No iPhone, adicione o site à tela inicial.', denied: 'Avisos bloqueados no navegador. Libere nas configurações do site.', failed: 'Não foi possível ativar os avisos neste navegador.', service: 'O navegador não conseguiu registrar o push. No Brave, abra brave://settings/privacy e ative “Usar serviços do Google para mensagens push”; depois tente de novo.', dismissed: 'Permissão não concedida. Tente novamente e clique em Permitir.', open: 'Abrir Squad Finder' },
+  en: { label: 'Squad notifications', empty: 'No Squad notifications.', push: 'Enable browser alerts', pushOn: 'Browser alerts: on', unsupported: 'This browser does not allow push alerts. On iPhone, add the site to the Home Screen.', denied: 'Alerts are blocked in your browser. Allow them in the site settings.', failed: 'Could not enable alerts in this browser.', service: 'The browser could not register for push. In Brave, open brave://settings/privacy and turn on “Use Google services for push messaging”, then try again.', dismissed: 'Permission not granted. Try again and click Allow.', open: 'Open Squad Finder' },
 }
 
 export function SquadBell({ userId, locale, open, disabled, triggerRef, onToggle, onOpenSquad }: Props) {
@@ -57,7 +57,7 @@ export function SquadBell({ userId, locale, open, disabled, triggerRef, onToggle
       const next = push === 'on' ? await disablePush() : await enablePush(locale === 'pt' ? 'pt' : 'en')
       setPush(next)
       if (next === 'off' && push !== 'on') setNote(text.dismissed)
-    } catch { setNote(text.failed) }
+    } catch (e) { setNote(e instanceof Error && e.message === 'push_service' ? text.service : text.failed) }
   }
   // Deep-link to the right Squad area; App and SquadFinder both follow popstate.
   const go = (n: Notification) => {

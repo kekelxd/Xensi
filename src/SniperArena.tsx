@@ -173,7 +173,7 @@ export const SniperArena = forwardRef<ArenaHandle, ArenaProps>(function SniperAr
       if (sniper.phase === 'feedback' || sniper.phase === 'complete') state.scope = 0
       if (state.appliedScope !== state.scope) { viewport.setScope(state.scope); state.appliedScope = state.scope }
       viewport.setAim(state.yaw, state.pitch)
-      viewport.setRunner(sniper.renderState(state.elapsed), sniper.direction, time)
+      viewport.setRunner(sniper.renderState(state.elapsed), time)
       viewport.render(time)
 
       ctx.clearRect(0, 0, cssWidth, cssHeight)

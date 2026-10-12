@@ -1,4 +1,5 @@
 import { BoxGeometry, CanvasTexture, Color, DirectionalLight, ExtrudeGeometry, Group, HemisphereLight, Mesh, MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, PlaneGeometry, RepeatWrapping, Scene, Shape, SphereGeometry, SRGBColorSpace, WebGLRenderer, type BufferGeometry, type Material, type Object3D } from 'three'
+import { ragdollPose, type HitRegion } from './sniperRagdoll'
 import { scopeVerticalFov, SNIPER_WORLD, sniperGeometry, type ScopeLevel } from './sniperReaction'
 
 const ROOM = { halfWidth: 6, front: 3, height: 3.4 }
@@ -73,6 +74,8 @@ export class SniperViewport {
   private runner: Group
   private legs: Object3D[] = []
   private arms: Object3D[] = []
+  private upper = new Group()
+  private neck = new Group()
   private door = new Group()
   private radius = 0
   private lastFrameKey = ''
@@ -194,39 +197,46 @@ export class SniperViewport {
 
   // Low-poly tactical operator: black helmet and balaclava, goggles, olive vest, tan boots.
   // Seen in profile: local +Z is the running direction, so the silhouette width is the hitbox width.
+  // Joints for the ragdoll: whole body (feet), upper body (hip), head (neck), shoulders and hips.
   private buildRunner() {
     const group = new Group()
     group.rotation.order = 'YXZ'
     const reference = sniperGeometry(SNIPER_WORLD.referenceRadius)
     const depth = reference.bodyHalfWidth * 2, hip = .72, front = depth / 2
-    const swing = (store: Object3D[], x: number, y: number) => {
-      const pivot = new Group(); pivot.position.set(x, y, 0); group.add(pivot); store.push(pivot)
+    const upper = this.upper = new Group()
+    upper.position.set(0, hip, 0); group.add(upper)
+    const neck = this.neck = new Group()
+    const neckBase = reference.bodyTop - hip
+    neck.position.set(0, neckBase, 0); upper.add(neck)
+    const swing = (store: Object3D[], parent: Object3D, x: number, y: number) => {
+      const pivot = new Group(); pivot.position.set(x, y, 0); parent.add(pivot); store.push(pivot)
       return pivot
     }
     for (const side of [-1, 1]) {
-      const leg = swing(this.legs, side * .09, hip)
+      const leg = swing(this.legs, group, side * .09, hip)
       this.slab(leg, 'pants', 0, -.25, 0, .16, .5, .17)
       this.slab(leg, 'olive', 0, -.27, front * .12, .19, .15, .17)           // knee pad
       this.slab(leg, 'boot', 0, -.6, .04, .17, .22, .27)                      // boot, toe forward
-      const arm = swing(this.arms, side * .17, hip + .68)
+      const arm = swing(this.arms, upper, side * .17, .68)
       this.slab(arm, 'cloth', 0, -.18, 0, .11, .38, .14)
       this.slab(arm, 'glove', 0, -.42, 0, .12, .12, .15)
     }
-    this.slab(group, 'cloth', 0, hip + .37, 0, .27, .7, depth * .9)           // torso, up to the shoulders
-    this.slab(group, 'olive', 0, hip + .38, 0, .3, .58, depth)                // plate carrier
-    for (const z of [-.1, 0, .1]) this.slab(group, 'oliveDark', .17, hip + .22, z, .05, .14, .09) // pouches, near side
-    for (const z of [-.1, 0, .1]) this.slab(group, 'oliveDark', -.17, hip + .22, z, .05, .14, .09)
-    this.slab(group, 'oliveDark', 0, hip + .42, -front - .04, .22, .32, .08)    // back panel
-    this.slab(group, 'cloth', 0, hip + .02, 0, .29, .06, depth * .92)         // belt
-    this.slab(group, 'balaclava', 0, reference.bodyTop - .02, 0, .13, .12, .13)             // neck
+    this.slab(upper, 'cloth', 0, .37, 0, .27, .7, depth * .9)                // torso, up to the shoulders
+    this.slab(upper, 'olive', 0, .38, 0, .3, .58, depth)                     // plate carrier
+    for (const z of [-.1, 0, .1]) this.slab(upper, 'oliveDark', .17, .22, z, .05, .14, .09)  // pouches
+    for (const z of [-.1, 0, .1]) this.slab(upper, 'oliveDark', -.17, .22, z, .05, .14, .09)
+    this.slab(upper, 'oliveDark', 0, .42, -front - .04, .22, .32, .08)        // back panel
+    this.slab(upper, 'cloth', 0, .02, 0, .29, .06, depth * .92)               // belt
+    this.slab(upper, 'balaclava', 0, neckBase - .02, 0, .13, .12, .13)        // neck
+    // The head hangs from the neck joint: positions below are relative to the top of the body.
+    const hr = reference.headRadius, hy = reference.headCenter - reference.bodyTop
     const head = new Mesh(this.sphere, this.materials.balaclava)
-    head.scale.setScalar(reference.headRadius); head.position.set(0, reference.headCenter, 0); group.add(head)
-    const hr = reference.headRadius, hy = reference.headCenter
+    head.scale.setScalar(hr); head.position.set(0, hy, 0); neck.add(head)
     const helmet = new Mesh(this.sphere, this.materials.helmet)
-    helmet.scale.set(hr * 1.18, hr * .95, hr * 1.2); helmet.position.set(0, hy + hr * .32, -hr * .05); group.add(helmet)
-    this.slab(group, 'goggle', 0, hy + hr * .22, hr * .98, hr * 1.5, hr * .5, hr * .22)      // goggles on the brow
-    this.slab(group, 'skin', 0, hy - hr * .05, hr * .93, hr * 1.05, hr * .2, hr * .12)       // eye strip
-    for (const side of [-1, 1]) this.slab(group, 'olive', side * hr * 1.05, hy, -hr * .1, hr * .35, hr * .8, hr * .7) // ear defenders
+    helmet.scale.set(hr * 1.18, hr * .95, hr * 1.2); helmet.position.set(0, hy + hr * .32, -hr * .05); neck.add(helmet)
+    this.slab(neck, 'goggle', 0, hy + hr * .22, hr * .98, hr * 1.5, hr * .5, hr * .22)   // goggles on the brow
+    this.slab(neck, 'skin', 0, hy - hr * .05, hr * .93, hr * 1.05, hr * .2, hr * .12)    // eye strip
+    for (const side of [-1, 1]) this.slab(neck, 'olive', side * hr * 1.05, hy, -hr * .1, hr * .35, hr * .8, hr * .7) // ear defenders
     return group
   }
 
@@ -248,15 +258,21 @@ export class SniperViewport {
   // Visual recoil only: the logical aim never moves.
   kick(now: number) { this.kickedAt = now }
 
-  setRunner(state: { visible: boolean; x: number; z: number; fall: number }, direction: number, now: number) {
+  setRunner(state: { visible: boolean; x: number; z: number; direction: number; hit: { region: HitRegion; seconds: number } | null }, now: number) {
     this.runner.visible = state.visible
     if (!state.visible) return
-    this.runner.position.set(state.x, 0, -state.z)
-    this.runner.rotation.y = direction > 0 ? Math.PI / 2 : -Math.PI / 2
-    this.runner.rotation.x = -state.fall * Math.PI / 2
-    const stride = state.fall > 0 ? 0 : Math.sin(now / 95) * .5
-    this.legs[0].rotation.x = stride; this.legs[1].rotation.x = -stride
-    this.arms[0].rotation.x = -stride * .8; this.arms[1].rotation.x = stride * .8
+    // Running pose until a shot lands; then the ragdoll takes over every joint.
+    const pose = state.hit ? ragdollPose(state.hit.region, state.hit.seconds) : null
+    const stride = pose ? 0 : Math.sin(now / 95) * .5
+    this.runner.position.set(state.x + state.direction * (pose?.slide ?? 0), 0, -state.z)
+    this.runner.rotation.y = state.direction > 0 ? Math.PI / 2 : -Math.PI / 2
+    this.runner.rotation.x = pose?.fall ?? 0
+    this.upper.rotation.x = pose?.bend ?? 0
+    this.neck.rotation.x = pose?.head ?? 0
+    this.legs[0].rotation.x = pose ? pose.leg : stride
+    this.legs[1].rotation.x = pose ? pose.leg * .6 : -stride
+    this.arms[0].rotation.x = pose ? pose.arm : -stride * .8
+    this.arms[1].rotation.x = pose ? pose.arm * .85 : stride * .8
   }
 
   render(now: number) {
@@ -264,7 +280,7 @@ export class SniperViewport {
     this.kickPitch = age >= 0 && age < .45 ? .035 * Math.exp(-age * 9) * Math.cos(age * 6) : 0
     // A still scene (waiting for the runner, aim not moving) needs no new frame.
     const runner = this.runner
-    const key = [this.yaw, this.pitch + this.kickPitch, this.camera.fov, this.camera.aspect, runner.visible, runner.position.x, runner.position.z, runner.rotation.x, runner.visible ? this.legs[0].rotation.x : 0].join('|')
+    const key = [this.yaw, this.pitch + this.kickPitch, this.camera.fov, this.camera.aspect, runner.visible, runner.position.x, runner.position.z, runner.rotation.x, this.upper.rotation.x, this.neck.rotation.x, this.arms[0].rotation.x, this.legs[0].rotation.x].join('|')
     if (key === this.lastFrameKey) return
     this.lastFrameKey = key
     this.camera.rotation.set(this.pitch + this.kickPitch, -this.yaw, 0, 'YXZ')

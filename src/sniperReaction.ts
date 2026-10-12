@@ -1,4 +1,5 @@
 import type { FixedWarmupDifficulty } from './warmupConfig'
+import { RAGDOLL_SETTLE_SECONDS, regionForHit, type HitRegion } from './sniperRagdoll'
 
 // opening: doorway width (m). radius: head radius (m); the whole silhouette scales with it. speed: run speed (m/s).
 export const SNIPER_CONFIG = {
@@ -44,7 +45,7 @@ export function sniperGeometry(radius: number) {
 }
 
 // Ray from the eye (yaw to the right, pitch up, radians) through the doorway onto the runner's plane.
-export function traceSniperShot(config: { opening: number; radius: number }, target: { x: number; z: number }, aim: SniperAim): SniperZone | null {
+export function sniperShotDetail(config: { opening: number; radius: number }, target: { x: number; z: number }, aim: SniperAim): { zone: SniperZone; region: HitRegion } | null {
   const { eyeHeight, doorDistance, doorHeight } = SNIPER_WORLD
   const dx = Math.sin(aim.yaw) * Math.cos(aim.pitch), dy = Math.sin(aim.pitch), dz = -Math.cos(aim.yaw) * Math.cos(aim.pitch)
   if (dz >= -1e-6) return null
@@ -54,10 +55,11 @@ export function traceSniperShot(config: { opening: number; radius: number }, tar
   const t = target.z / -dz
   const x = dx * t, y = eyeHeight + dy * t
   const body = sniperGeometry(config.radius)
-  if (Math.hypot(x - target.x, y - body.headCenter) <= body.headRadius) return 'head'
-  if (Math.abs(x - target.x) <= body.bodyHalfWidth && y >= 0 && y <= body.bodyTop) return 'body'
+  if (Math.hypot(x - target.x, y - body.headCenter) <= body.headRadius) return { zone: 'head', region: 'head' }
+  if (Math.abs(x - target.x) <= body.bodyHalfWidth && y >= 0 && y <= body.bodyTop) return { zone: 'body', region: regionForHit('body', y / body.bodyTop) }
   return null
 }
+export const traceSniperShot = (config: { opening: number; radius: number }, target: { x: number; z: number }, aim: SniperAim): SniperZone | null => sniperShotDetail(config, target, aim)?.zone ?? null
 
 // Time is monotonic active-session ms. The player never moves: only aim, scope and the trigger exist.
 export class SniperReaction {
@@ -72,6 +74,9 @@ export class SniperReaction {
   speed = 0
   halfVisible = 0
   fallenAt: number | null = null
+  hitRegion: HitRegion | null = null
+  // The felled runner stays on the lane for a moment after the next attempt starts waiting.
+  private corpse: { x: number; z: number; direction: number; region: HitRegion; since: number } | null = null
   readonly config
   constructor(difficulty: FixedWarmupDifficulty, private rng: () => number = Math.random) {
     this.config = SNIPER_CONFIG[difficulty]
@@ -86,7 +91,9 @@ export class SniperReaction {
     if (this.phase === 'ready' || (this.phase === 'feedback' && now >= this.deadline)) {
       this.phase = 'waiting'
       this.visibleAt = null
+      this.corpse = this.fallenAt !== null && this.hitRegion ? { x: this.x, z: this.z, direction: this.direction, region: this.hitRegion, since: this.fallenAt } : null
       this.fallenAt = null
+      this.hitRegion = null
       this.peekAt = 0
       this.direction = this.rng() < .5 ? 1 : -1
       this.z = SNIPER_WORLD.targetDistance + (this.rng() - .5) * 2 * SNIPER_WORLD.distanceJitter
@@ -112,9 +119,14 @@ export class SniperReaction {
   renderState(now: number) {
     if ((this.phase === 'peek' || this.phase === 'feedback') && this.peekAt) {
       const felled = this.fallenAt !== null
-      return { visible: true, x: felled ? this.x : this.laneX(now), z: this.z, fall: felled ? clamp01((now - this.fallenAt!) / 260) : 0 }
+      return { visible: true, x: felled ? this.x : this.laneX(now), z: this.z, direction: this.direction, fall: felled ? clamp01((now - this.fallenAt!) / 260) : 0,
+        hit: felled && this.hitRegion ? { region: this.hitRegion, seconds: (now - this.fallenAt!) / 1000 } : null }
     }
-    return { visible: false, x: this.x, z: this.z, fall: 0 }
+    const corpse = this.phase === 'waiting' ? this.corpse : null
+    if (corpse && (now - corpse.since) / 1000 < RAGDOLL_SETTLE_SECONDS + .4) {
+      return { visible: true, x: corpse.x, z: corpse.z, direction: corpse.direction, fall: 1, hit: { region: corpse.region, seconds: (now - corpse.since) / 1000 } }
+    }
+    return { visible: false, x: this.x, z: this.z, direction: this.direction, fall: 0, hit: null as { region: HitRegion; seconds: number } | null }
   }
   shoot(now: number, aim: SniperAim, scoped: boolean) {
     if (this.phase !== 'waiting' && this.phase !== 'peek') return
@@ -129,9 +141,9 @@ export class SniperReaction {
       const spread = SNIPER_WORLD.unscopedSpreadDeg * Math.PI / 180 * Math.sqrt(this.rng()), angle = this.rng() * Math.PI * 2
       shot = { yaw: aim.yaw + Math.cos(angle) * spread, pitch: aim.pitch + Math.sin(angle) * spread }
     }
-    const zone = traceSniperShot(this.config, { x: this.laneX(now), z: this.z }, shot)
-    if (zone) { this.x = this.laneX(now); this.fallenAt = now }
-    this.finish(zone ? 'hit' : 'miss', now, zone)
+    const detail = sniperShotDetail(this.config, { x: this.laneX(now), z: this.z }, shot)
+    if (detail) { this.x = this.laneX(now); this.fallenAt = now; this.hitRegion = detail.region }
+    this.finish(detail ? 'hit' : 'miss', now, detail?.zone ?? null)
   }
   private finish(outcome: SniperOutcome, now: number, zone: SniperZone | null = null) {
     this.attempts.push({ outcome, stimulusVisibleAt: this.visibleAt, shotAt: outcome === 'noShot' ? null : now,

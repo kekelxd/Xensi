@@ -130,6 +130,28 @@ describe('Sniper Reaction (first-person double door)', () => {
     expect(engine.renderState(time + 130).fall).toBeCloseTo(.5, 1)
     expect(engine.renderState(time + 400).x).toBe(engine.renderState(time + 100).x)
   })
+  it('picks the ragdoll region from where the body was hit', () => {
+    for (const [height, region] of [[1.0, 'chest'], [.2, 'legs']] as const) {
+      const engine = peek()
+      const time = expose(engine)
+      engine.shoot(time, aimAt(engine, time, height), true)
+      expect(engine.hitRegion).toBe(region)
+      expect(engine.renderState(time + 100).hit).toMatchObject({ region })
+    }
+    const head = peek()
+    const time = expose(head)
+    head.shoot(time, aimAt(head, time, sniperGeometry(head.config.radius).headCenter), true)
+    expect(head.hitRegion).toBe('head')
+  })
+  it('keeps the felled runner on the lane after the bolt cycles, then removes it', () => {
+    const engine = peek()
+    const time = expose(engine)
+    engine.shoot(time, aimAt(engine, time, 1), true)
+    engine.update(time + SNIPER_WORLD.boltMs)
+    expect(engine.phase).toBe('waiting')
+    expect(engine.renderState(time + 600)).toMatchObject({ visible: true, fall: 1 })
+    expect(engine.renderState(time + 5000).visible).toBe(false)
+  })
   it('calculates accuracy, median, best, headshots and population-CV consistency', () => {
     const attempts: SniperAttempt[] = [
       { outcome: 'hit', reactionMs: 100, stimulusVisibleAt: 0, shotAt: 100, zone: 'head' },

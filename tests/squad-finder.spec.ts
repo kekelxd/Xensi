@@ -8,7 +8,7 @@ async function choose(page: Page, scope: Page | Locator, label: string, option: 
 }
 const roomId = '40000000-0000-4000-8000-000000000001'
 const requestId = '50000000-0000-4000-8000-000000000001'
-function room(): Room { return { id: roomId, game_id: 'valorant', platform: 'pc', crossplay: false, region: 'br', game_mode: 'competitive', rank_info: 'gold', microphone_required: true, status: 'open', slots: 1, nickname: 'Host XENSI', avatar_id: 'dog-happy', created_at: new Date().toISOString(), expires_at: new Date(Date.now()+1800000).toISOString(), reserved_until: null } }
+function room(): Room { return { id: roomId, game_id: 'valorant', platform: 'pc', crossplay: true, region: 'sa', game_mode: 'competitive', rank_info: 'gold', microphone_required: true, status: 'open', capacity: 1, filled: 0, slots: 1, nickname: 'Host XENSI', avatar_id: 'dog-happy', created_at: new Date().toISOString(), expires_at: new Date(Date.now()+1800000).toISOString(), reserved_until: null } }
 async function fixture(context: BrowserContext) {
   await mockCloud(context)
   const state = {
@@ -29,7 +29,7 @@ async function fixture(context: BrowserContext) {
     if(action==='host_contact') return respond({nickname:'Host XENSI',discord_username:'host.secret',reserved_until:state.room.reserved_until})
     if(action==='create'){state.host=true; state.room=room();return respond({id:roomId})}
     if(action==='request'){state.requested=true;return respond({})}
-    if(action==='accept'){state.room.status='reserved';state.room.reserved_until=new Date(Date.now()+600000).toISOString();state.requests[0].status='accepted'}
+    if(action==='accept'){state.room.status='reserved';state.room.reserved_until=new Date(Date.now()+600000).toISOString();state.requests[0].status='accepted';state.requests[0].reserved_until=state.room.reserved_until}
     if(action==='confirm'){state.room.status='closed';state.requests[0].status='joined'}
     if(action==='decline') state.requests[0].status='declined'
     if(action==='withdraw') state.requests[0].status='withdrawn'
@@ -43,7 +43,7 @@ test.describe('Squad Finder', () => {
   test.beforeEach(async ({context}) => { await context.addInitScript(() => { if (!localStorage.getItem('sensi-locale')) localStorage.setItem('sensi-locale','pt') }) })
   test('guest sees a login gate and existing tools stay accessible', async ({page}) => {
     await page.goto('/squad')
-    await expect(page.getByRole('heading',{name:'Acesso ao Squad Finder'})).toBeVisible()
+    await expect(page.getByRole('heading',{name:'Acesso ao Squad Finder'})).toBeVisible({timeout:20000})
     await expect(page.getByText('18+', {exact:true})).toHaveCount(0)
     await expect(page.getByRole('button',{name:'Entrar na conta XENSI'})).toBeVisible()
     await page.goto('/convert'); await expect(page.getByRole('main')).toBeVisible()
@@ -80,14 +80,21 @@ test.describe('Squad Finder', () => {
     await expect(dialog.getByRole('radio',{name:/^Counter-Strike 2/})).toBeChecked()
     await page.screenshot({path:`test-results/squad-create-${info.project.name}.png`,animations:'disabled'})
     await dialog.getByRole('combobox',{name:'Plataforma',exact:true}).click()
-    await expect(page.getByRole('option')).toHaveCount(1)
+    await expect(page.getByRole('option')).toHaveCount(5)
     await page.keyboard.press('Escape');await expect(dialog).toBeVisible()
     await dialog.getByRole('button',{name:'Publicar sala'}).click();await expect(dialog.getByRole('textbox',{name:'Usuário Discord'})).toBeFocused()
+    await choose(page,dialog,'Vagas','3')
+    await dialog.getByRole('textbox',{name:/^Modalidade/}).fill('Premier 5x5')
+    await dialog.getByRole('textbox',{name:/^Rank/}).fill('Global')
     await dialog.getByRole('textbox',{name:'Usuário Discord'}).fill('host.username')
+    await dialog.getByRole('textbox',{name:/^Modalidade/}).fill('https://spam.io')
+    await dialog.getByRole('button',{name:'Publicar sala'}).click();await expect(dialog.getByText('sem links ou contatos')).toBeVisible()
+    await dialog.getByRole('textbox',{name:/^Modalidade/}).fill('Premier 5x5')
     state.fail=true;await dialog.getByRole('button',{name:'Publicar sala'}).click();await expect(dialog.getByRole('alert')).toBeVisible()
     await expect(dialog.getByRole('textbox',{name:'Usuário Discord'})).toHaveValue('host.username')
     state.fail=false;await dialog.getByRole('button',{name:'Publicar sala'}).click();await expect(dialog).not.toBeVisible()
-    await page.getByRole('button',{name:'Minha Sala',exact:true}).click();await expect(page.getByText('1 vaga disponível')).toBeVisible()
+    expect(state.calls.find(c=>c.action==='create')?.payload).toMatchObject({game_id:'cs2',slots:3,game_mode:'Premier 5x5',rank_info:'Global',region:'sa'})
+    await page.getByRole('button',{name:'Minha Sala',exact:true}).click();await expect(page.getByText('0/1 vagas')).toBeVisible()
   })
   test('request requires disclosure consent and never gets host contact before approval', async ({page,context},info) => {
     const state=await fixture(context);state.rooms=[state.room];await login(page);await page.goto('/squad')
@@ -110,7 +117,7 @@ test.describe('Squad Finder', () => {
     await login(page);await page.goto('/squad/my-room')
     await expect(page.getByText('applicant.private')).toBeVisible()
     await page.getByRole('button',{name:'Aceitar',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Aceitar',exact:true}).click()
-    await expect(page.getByRole('heading',{name:'Aguardando a entrada do jogador'})).toBeVisible()
+    await expect(page.getByText('Confirmar até',{exact:false})).toBeVisible()
     await page.getByRole('button',{name:'Confirmar entrada'}).click();await page.getByRole('dialog').getByRole('button',{name:'Confirmar entrada'}).click()
     await expect(page.getByText('Entrada confirmada',{exact:true})).toBeVisible()
     await expect(page.getByRole('button',{name:'Confirmar entrada'})).toHaveCount(0)

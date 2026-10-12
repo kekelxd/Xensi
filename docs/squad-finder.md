@@ -246,3 +246,19 @@ Setup (not applied anywhere yet):
 2. `supabase secrets set VAPID_PUBLIC_KEY=… VAPID_PRIVATE_KEY=… VAPID_SUBJECT=mailto:… PUSH_SHARED_SECRET=…`
 3. `supabase functions deploy squad-push --no-verify-jwt`
 4. Apply the migration, then insert `function_url` and `shared_secret` rows into `lfg_private.push_config`.
+
+## Games and multi-slot rooms (2026-10-12)
+
+Migration `20261012190000_squad_finder_games_and_slots.sql` (apply together with the matching frontend):
+17 games (Valorant, CS2, Fortnite, Rainbow Six Siege X, Call of Duty, Apex Legends, PUBG, Overwatch 2,
+Marvel Rivals, Delta Force, The Finals, Battlefield 6, League of Legends, Dota 2, Deadlock, Rocket League,
+EA Sports FC). Every game accepts every platform; the host picks it and requesters choose theirs. Crossplay
+gating and the per-game mode/rank lists are gone: mode and rank are optional free text (<= 24 chars, no
+links/contact hints, enforced by `lfg_private.free_text_ok` and mirrored in `registry.ts`). Regions are
+SA/NA/EU/AS/OC (br/latam -> sa, asia -> as, oce -> oc).
+
+Rooms hold 1-4 slots (`max_open_slots`, chosen by the host). Each accepted request occupies a slot, carries its
+own 10-minute `reserved_until` and receives the host Discord immediately. The host confirms every join; an
+unconfirmed reservation returns the slot. Room `open` = free slot, `reserved` = all slots taken but some
+unconfirmed, `closed` = all joined (automatic) or closed by the host after at least one join. Accepting the last
+free slot declines remaining pending requests. Verified by `npm run test:squad:slots` (PGlite, 21 checks).

@@ -1,27 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { compatible, ranksFor, validDiscord } from './registry'
+import { platformIds, regions, registry, validDiscord, validFreeText } from './registry'
 import { routeStateFromPath, readRouteStateFromLocation } from '../routes'
 describe('Squad Finder domain boundaries', () => {
-  it('separates Valorant PC and console even with crossplay', () => {
-    expect(compatible('valorant', 'pc', 'ps5', true)).toBe(false)
-    expect(compatible('valorant', 'xbox_series', 'ps5', false)).toBe(false)
-    expect(compatible('valorant', 'xbox_series', 'ps5', true)).toBe(true)
-    expect(compatible('valorant', 'ps4', 'ps5', true)).toBe(false)
+  it('lists the 17 supported games and lets the host pick any platform', () => {
+    expect(Object.keys(registry)).toHaveLength(17)
+    expect(platformIds).toEqual(['pc', 'xbox_series', 'ps5', 'xbox_one', 'ps4'])
+    expect(new Set(Object.values(registry).map(game => game.code)).size).toBe(17)
   })
-  it('CS2 has only PC, Fortnite honors console crossplay settings', () => {
-    expect(compatible('cs2', 'pc', 'xbox_series', true)).toBe(false)
-    expect(compatible('fortnite', 'pc', 'xbox_one', false)).toBe(false)
-    expect(compatible('fortnite', 'pc', 'ps4', true)).toBe(true)
+  it('uses short region codes', () => {
+    expect([...regions]).toEqual(['sa', 'na', 'eu', 'as', 'oc'])
   })
   it('validates Discord usernames rather than arbitrary descriptions or URLs', () => {
     for (const name of ['a', 'Display Name', 'User#1234', 'a..b', 'https://example.com', 'A_User', 'x'.repeat(33)]) expect(validDiscord(name)).toBe(false)
     for (const name of ['ab', '.a.b.', 'player_01', 'x'.repeat(32)]) expect(validDiscord(name)).toBe(true)
   })
-  it('ranks belong to the selected game mode', () => {
-    expect(ranksFor('valorant','unrated')).toEqual(['unranked'])
-    expect(ranksFor('cs2','premier')).not.toContain('gold_nova')
-    expect(ranksFor('cs2','wingman')).not.toContain('rating_0_4999')
-    expect(ranksFor('fortnite','battle_royale')).toEqual(['unranked'])
+  it('keeps free-text mode and rank short and free of links or contact hints', () => {
+    for (const text of ['', 'Ouro II', 'Ranked Flex', 'Diamante 3 - Imortal', 'x'.repeat(24)]) expect(validFreeText(text)).toBe(true)
+    for (const text of ['https://x.io', 'discord.gg', 'me@mail', 'tag#1234', 'www.site', 'a:b', 'x'.repeat(25), '<b>']) expect(validFreeText(text)).toBe(false)
   })
   it('resolves direct area links without changing tools', () => {
     for(const pathname of ['/squad','/squad/my-room','/squad/requests','/squad/moderation','/squad/blocks']) {

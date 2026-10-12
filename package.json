@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run src",
     "test:squad:db": "node scripts/test-squad-db.mjs",
+    "test:squad:slots": "node scripts/test-squad-slots.mjs",
     "test:squad:security": "node scripts/test-squad-security.mjs",
     "test:squad:homologation": "node scripts/test-squad-homologation.mjs",
     "test:e2e": "playwright test"

@@ -1,13 +1,20 @@
 import { XensiAppShell } from './design/XensiAppShell'
 import { navigateWithPageMotion } from './design/pageMotion'
 import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { Activity, Circle, Crosshair, Dot, MousePointer2, Plus, Settings2, Target, X, type LucideIcon } from 'lucide-react'
+import { Activity, ArrowLeft, ArrowRight, Circle, Crosshair, Dot, Info, MousePointer2, Plus, Settings2, Target, X, type LucideIcon } from 'lucide-react'
 import { buildCalibrationReport, calculateRoundResult, createCalibrationSessionSummary, getTargetSpeed, isCalibrationComplete, readCalibrationHistory, ROUND_DURATION, ROUND_WARMUP, selectValidationCandidateIds, writeCalibrationSession, type CalibrationSessionSummary, type RoundCapture, type RoundIssue, type RoundResult, type TargetSpeedMode } from './calibration'
 import { appendValidationRounds, BASE_CANDIDATE_MULTIPLIERS, buildCalibrationCandidates, CALIBRATION_REPETITIONS, createCalibrationPlan, createRefinementPlan, MIN_CALIBRATION_CANDIDATES, VALIDATION_FINALIST_COUNT, VALIDATION_REPETITIONS, type CalibrationPlan } from './calibrationPlan'
 import { GAME_BY_ID, GAMES, GameId } from './games'
-import { GameBadge } from './GameBadge'
+import { GamePicker } from './GamePicker'
+import { WizardStepper } from './SetupWizard'
+import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupCard } from '@/components/ui/radio-group'
 import { MouseButtonTest } from './MouseButtonTest'
 import { PollingRateTest } from './PollingRateTest'
 import { RefreshRateTest } from './RefreshRateTest'
@@ -53,6 +60,16 @@ const CROSSHAIRS: Array<{ id: CrosshairStyle, label: TranslationKey, description
   { id: 'circle', label: 'crosshair.circle', description: 'crosshair.circleDescription', icon: Circle },
   { id: 'plus', label: 'crosshair.plus', description: 'crosshair.plusDescription', icon: Plus },
 ]
+
+const stepTitle = 'm-0 font-heading text-base font-semibold text-foreground'
+
+function SetupField({ label, value, onChange, inputMode, invalid }: { label: string; value: string; onChange: (value: string) => void; inputMode: 'decimal' | 'numeric'; invalid: boolean }) {
+  const id = useId()
+  return <div className="grid min-w-0 content-start gap-2">
+    <Label htmlFor={id}>{label}</Label>
+    <Input id={id} type="text" inputMode={inputMode} value={value} onChange={event => onChange(event.target.value)} aria-invalid={invalid} className="font-mono tabular-nums" />
+  </div>
+}
 
 const format = (value: number, digits = 0) => Number.isFinite(value) ? value.toFixed(digits) : '0'
 
@@ -587,73 +604,64 @@ function App() {
       </footer></> : <CalibrationLanding rounds={`${BASE_CANDIDATE_MULTIPLIERS.length * CALIBRATION_REPETITIONS}+${VALIDATION_FINALIST_COUNT * VALIDATION_REPETITIONS}`} seconds={ROUND_DURATION} onStart={start} /> : view === 'converter' ? <SensitivityConverter initialPreset={converterPreset} /> : view === 'polling' ? <PollingRateTest /> : view === 'buttons' ? <MouseButtonTest /> : view === 'refresh-rate' ? <RefreshRateTest /> : <ControllerDriftTest />}
 
       </main>
-      <MotionDialog open={Boolean(view === 'calibration' && setupOpen)} className="modal-backdrop">{view === 'calibration' && setupOpen && (<MotionDialogPanel className="modal setup-modal calibration-setup-modal">
-            <button className="modal-close" onClick={closeSetup} aria-label={t('common.close')}><X size={18} /></button>
-            <Settings2 size={22} className="modal-icon" />
-            <h2>{t('calibration.setupTitle')}</h2>
-            <p>{t('calibration.setupDescriptionPhysical', { rounds: landingRounds, seconds: ROUND_DURATION })}</p>
+      <Dialog open={view === 'calibration' && setupOpen} onOpenChange={open => { if (!open) closeSetup() }}>
+        <DialogContent closeLabel={t('common.close')} className="calibration-setup-modal max-w-[820px] gap-6">
+          <DialogHeader>
+            <Settings2 size={22} className="text-primary" aria-hidden="true" />
+            <DialogTitle>{t('calibration.setupTitle')}</DialogTitle>
+            <DialogDescription>{t('calibration.setupDescriptionPhysical', { rounds: landingRounds, seconds: ROUND_DURATION })}</DialogDescription>
+          </DialogHeader>
 
-            <div className="warmup-stepper" aria-label={t('calibration.setupTitle')}>
-              {([['warmup.stepGame', 1], ['warmup.stepSettings', 2], ['warmup.stepCrosshair', 3]] as Array<[TranslationKey, CalibrationSetupStep]>).map(([label, step]) => (
-                <div key={step} className={setupStep === step ? 'active' : setupStep > step ? 'complete' : ''}><i>{step}</i><span>{t(label)}</span></div>
-              ))}
-            </div>
+          <WizardStepper current={setupStep} steps={[t('warmup.stepGame'), t('warmup.stepSettings'), t('warmup.stepCrosshair')]} />
 
-            <div className="warmup-step-content">
-              {setupStep === 1 && <>
-                <h3>{t('warmup.chooseGame')}</h3>
-                <div className="option-group game-grid calibration-game-grid" role="radiogroup" aria-label={t('common.gameReference')}>
-                  {GAMES.map((game) => (
-                    <button key={game.id} className={selectedGame === game.id ? 'choice-card game-choice selected' : 'choice-card game-choice'} onClick={() => setSelectedGame(game.id)} type="button">
-                      <GameBadge gameId={game.id} size="lg" selected={selectedGame === game.id} />
-                      <span className="game-card-name">{game.shortLabel}</span>
-                    </button>
-                  ))}
-                </div>
-              </>}
+          <div className="min-h-[220px]">
+            {setupStep === 1 && <div className="grid gap-4">
+              <h3 className={stepTitle}>{t('warmup.chooseGame')}</h3>
+              <GamePicker gameIds={GAMES.map(item => item.id)} value={selectedGame} onChange={id => setSelectedGame(id as GameId)} />
+            </div>}
 
-              {setupStep === 2 && <>
-                <h3>{t('warmup.settingsTitle')}</h3>
-                <div className="setup-fields">
-                  <label>{t('calibration.currentSensitivity', { game: selectedGameConfig.label })}<input type="text" inputMode="decimal" value={sensitivityInput} onChange={(event) => setSensitivityInput(event.target.value)} aria-invalid={parsedSensitivityInput === null} /></label>
-                  <label>{t('common.mouseDpi')}<input type="text" inputMode="numeric" value={dpiInput} onChange={(event) => setDpiInput(event.target.value)} aria-invalid={parsedDpiInput === null} /></label>
-                  <label>{t('calibration.horizontalFov')}<input type="text" inputMode="decimal" value={fovInput} onChange={(event) => setFovInput(event.target.value)} aria-invalid={fovPreview === null} /></label>
-                </div>
-                <div className="option-group mode-group" role="radiogroup" aria-label={t('calibration.targetSpeed')}>
-                  {(['normal', 'fast'] as TargetSpeedMode[]).map((mode) => (
-                    <button key={mode} className={selectedSpeedMode === mode ? 'choice-card selected' : 'choice-card'} onClick={() => setSelectedSpeedMode(mode)} type="button">
-                      <span>{mode === 'normal' ? t('calibration.normal') : t('calibration.fast')}</span>
-                      <small>{mode === 'normal' ? t('calibration.normalDescription') : t('calibration.fastDescription')}</small>
-                    </button>
-                  ))}
-                </div>
-                <div className="conversion single-conversion">
-                  <span>{t('calibration.baseSensitivity', { game: selectedGameConfig.shortLabel })} <strong>{sensitivityPreview === null ? '--' : format(sensitivityPreview, 3)}</strong></span>
-                  <span>{t('calibration.cmPer360')} <strong>{cmPer360Preview === null ? t('calibration.cmPer360Unavailable') : `${format(cmPer360Preview, 2)} cm`}</strong></span>
-                </div>
-                {!selectedGameConfig.yaw && <small className="setup-validation-error">{t('calibration.relativeProfileNotice')}</small>}
-                {sensitivityPreview !== null && !setupCanCalibrate ? <small className="setup-validation-error">{t('calibration.insufficientCandidates')}</small> : null}
-              </>}
+            {setupStep === 2 && <div className="grid gap-4">
+              <h3 className={stepTitle}>{t('warmup.settingsTitle')}</h3>
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,.6fr)_minmax(0,.6fr)]">
+                <SetupField label={t('calibration.currentSensitivity', { game: selectedGameConfig.label })} inputMode="decimal" value={sensitivityInput} onChange={setSensitivityInput} invalid={parsedSensitivityInput === null} />
+                <SetupField label={t('common.mouseDpi')} inputMode="numeric" value={dpiInput} onChange={setDpiInput} invalid={parsedDpiInput === null} />
+                <SetupField label={t('calibration.horizontalFov')} inputMode="decimal" value={fovInput} onChange={setFovInput} invalid={fovPreview === null} />
+              </div>
+              <RadioGroup className="grid-cols-2 gap-2.5" aria-label={t('calibration.targetSpeed')} value={selectedSpeedMode} onValueChange={value => setSelectedSpeedMode(value as TargetSpeedMode)}>
+                {(['normal', 'fast'] as TargetSpeedMode[]).map((mode) => (
+                  <RadioGroupCard key={mode} value={mode} className="items-start p-3">
+                    <span className="grid min-w-0 gap-1"><strong className="font-semibold">{mode === 'normal' ? t('calibration.normal') : t('calibration.fast')}</strong><small className="text-xs font-normal leading-snug text-muted-foreground">{mode === 'normal' ? t('calibration.normalDescription') : t('calibration.fastDescription')}</small></span>
+                  </RadioGroupCard>
+                ))}
+              </RadioGroup>
+              <div className="grid gap-2 rounded-lg border border-solid border-border bg-black/25 px-4 py-3 text-sm text-muted-foreground sm:grid-cols-2">
+                <span className="flex items-baseline justify-between gap-3">{t('calibration.baseSensitivity', { game: selectedGameConfig.shortLabel })} <strong className="font-mono font-medium tabular-nums text-foreground">{sensitivityPreview === null ? '--' : format(sensitivityPreview, 3)}</strong></span>
+                <span className="flex items-baseline justify-between gap-3">{t('calibration.cmPer360')} <strong className="font-mono font-medium tabular-nums text-success">{cmPer360Preview === null ? t('calibration.cmPer360Unavailable') : `${format(cmPer360Preview, 2)} cm`}</strong></span>
+              </div>
+              {!selectedGameConfig.yaw && <Alert variant="warning"><Info /><span className="col-start-2">{t('calibration.relativeProfileNotice')}</span></Alert>}
+              {sensitivityPreview !== null && !setupCanCalibrate ? <Alert variant="warning"><Info /><span className="col-start-2">{t('calibration.insufficientCandidates')}</span></Alert> : null}
+            </div>}
 
-              {setupStep === 3 && <>
-                <h3>{t('warmup.crosshairTitle')}</h3>
-                <div className="crosshair-picker" role="radiogroup" aria-label={t('calibration.crosshairType')}>
-                  {CROSSHAIRS.map((item) => { const Icon = item.icon; return (
-                    <button key={item.id} className={selectedCrosshair === item.id ? 'crosshair-option selected' : 'crosshair-option'} onClick={() => setSelectedCrosshair(item.id)} type="button">
-                      <Icon size={18} /><span>{t(item.label)}</span><small>{t(item.description)}</small>
-                    </button>
-                  ) })}
-                </div>
-              </>}
-            </div>
+            {setupStep === 3 && <div className="grid gap-4">
+              <h3 className={stepTitle}>{t('warmup.crosshairTitle')}</h3>
+              <RadioGroup className="grid-cols-2 gap-2.5 sm:grid-cols-4" aria-label={t('calibration.crosshairType')} value={selectedCrosshair} onValueChange={value => setSelectedCrosshair(value as CrosshairStyle)}>
+                {CROSSHAIRS.map((item) => { const Icon = item.icon; return (
+                  <RadioGroupCard key={item.id} value={item.id} indicator="corner" className="flex-col items-start gap-1.5 p-3">
+                    <Icon className="size-[18px] text-primary" aria-hidden="true" /><strong className="font-semibold">{t(item.label)}</strong><small className="text-xs font-normal leading-snug text-muted-foreground">{t(item.description)}</small>
+                  </RadioGroupCard>
+                ) })}
+              </RadioGroup>
+            </div>}
+          </div>
 
-            <div className="warmup-wizard-actions">
-              {setupStep > 1 && <button className="secondary-button" onClick={() => setSetupStep((setupStep - 1) as CalibrationSetupStep)}>{t('warmup.back')}</button>}
-              {setupStep < 3
-                ? <button className="primary-button" onClick={() => setSetupStep((setupStep + 1) as CalibrationSetupStep)} disabled={setupStep === 2 && (parsedSensitivityInput === null || parsedDpiInput === null || fovPreview === null || !setupCanCalibrate)}>{t('warmup.next')}</button>
-                : <button className="primary-button" onClick={saveSetup} disabled={parsedSensitivityInput === null || parsedDpiInput === null || fovPreview === null || !setupCanCalibrate}>{startAfterSetup ? t('calibration.saveStart') : t('calibration.save')}</button>}
-            </div>
-          </MotionDialogPanel>)}</MotionDialog>
+          <DialogFooter className="border-0 border-t border-solid border-border pt-5">
+            {setupStep > 1 && <Button variant="outline" onClick={() => setSetupStep((setupStep - 1) as CalibrationSetupStep)}><ArrowLeft /> {t('warmup.back')}</Button>}
+            {setupStep < 3
+              ? <Button onClick={() => setSetupStep((setupStep + 1) as CalibrationSetupStep)} disabled={setupStep === 2 && (parsedSensitivityInput === null || parsedDpiInput === null || fovPreview === null || !setupCanCalibrate)}>{t('warmup.next')} <ArrowRight /></Button>
+              : <Button onClick={saveSetup} disabled={parsedSensitivityInput === null || parsedDpiInput === null || fovPreview === null || !setupCanCalibrate}>{startAfterSetup ? t('calibration.saveStart') : t('calibration.save')}</Button>}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <MotionDialog open={Boolean(view === 'calibration' && resultOpen)} className="modal-backdrop calibration-result-backdrop">{view === 'calibration' && resultOpen && (<MotionDialogPanel className="modal result-modal calibration-result-modal" role="dialog" aria-modal="true" aria-labelledby="calibration-result-title">
             <button className="modal-close" onClick={() => setResultOpen(false)} aria-label={t('common.close')}><X size={18} /></button>

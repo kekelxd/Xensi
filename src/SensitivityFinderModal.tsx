@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, Clipboard, Play, Save, Settings2, Target } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Clipboard, Info, Play, RotateCcw, Save, Settings2, Target } from 'lucide-react'
 import { FinderCanvas } from './FinderCanvas'
 import { CalibrationLanding } from './CalibrationLanding'
 import { GAME_BY_ID, type GameId } from './games'
@@ -12,7 +12,11 @@ import { WizardStepPanel, WizardStepper } from './SetupWizard'
 import { presetCopy } from './presetCopy'
 import { useSensitivityPreset, type PresetLaunch } from './useSensitivityPreset'
 import { getPresetRepository } from './presetRepository'
+import { Alert } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 const FINDER_GAMES: GameId[] = ['cs2', 'valorant', 'overwatch2', 'warzone']
@@ -87,20 +91,35 @@ export function SensitivityFinderModal({ initialPreset = null }: SensitivityFind
     const difference = (sensitivity / search.baseSensitivity - 1) * 100
     const baseline = search.results[0]
     const best = [...search.results].sort((left, right) => right.score - left.score)[0]
+    const stat = (label: string, value: string, hint?: string, big = false) => <Card className="content-start gap-2 p-5 text-left">
+      <span className="text-xs font-medium leading-none text-muted-foreground">{label}</span>
+      <strong className={cn('font-mono font-medium leading-none tabular-nums text-foreground', big ? 'text-[clamp(32px,4vw,44px)] text-success' : 'text-xl')}>{value}</strong>
+      {hint && <small className="text-xs text-muted-foreground">{hint}</small>}
+    </Card>
     return <section className="finder-report-workspace">
-      <div className="panel-label"><Check size={15} /> {t('finder.complete')}</div>
+      <Badge variant="success" className="mx-auto"><Check /> {t('finder.complete')}</Badge>
       <h1>{t('finder.resultTitle')}</h1>
       <p>{t('finder.resultDescription')}</p>
-      <div className="finder-result-hero"><div><span>{t('finder.useSensitivity')}</span><strong>{sensitivity.toFixed(3)}</strong><small>{game.label}</small></div><div><span>{t('finder.comparedBase')}</span><strong>{difference >= 0 ? '+' : ''}{difference.toFixed(1)}%</strong><small>{t('finder.original', { value: search.baseSensitivity.toFixed(3) })}</small></div></div>
-      <div className="finder-telemetry-grid">
-        <div><span>{t('finder.confidence')}</span><strong>{search.confidence?.toFixed(0) ?? '--'}%</strong></div>
-        <div><span>{t('finder.brakingGain')}</span><strong>{baseline && best ? `${Math.max(0, baseline.settlingTimeMs - best.settlingTimeMs).toFixed(0)} ms` : '--'}</strong></div>
-        <div><span>{t('finder.overshootReduction')}</span><strong>{baseline && best ? `${Math.max(0, baseline.overshootPixels - best.overshootPixels).toFixed(0)} px` : '--'}</strong></div>
-        <div><span>{t('finder.physicalDistance')}</span><strong>{cmPer360 ? `${cmPer360.toFixed(1)} cm/360°` : '--'}</strong></div>
+      <div className="mx-auto mt-8 grid w-full max-w-[760px] gap-3 text-left">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {stat(t('finder.useSensitivity'), sensitivity.toFixed(3), game.label, true)}
+          {stat(t('finder.comparedBase'), `${difference >= 0 ? '+' : ''}${difference.toFixed(1)}%`, t('finder.original', { value: search.baseSensitivity.toFixed(3) }), true)}
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {stat(t('finder.confidence'), `${search.confidence?.toFixed(0) ?? '--'}%`)}
+          {stat(t('finder.brakingGain'), baseline && best ? `${Math.max(0, baseline.settlingTimeMs - best.settlingTimeMs).toFixed(0)} ms` : '--')}
+          {stat(t('finder.overshootReduction'), baseline && best ? `${Math.max(0, baseline.overshootPixels - best.overshootPixels).toFixed(0)} px` : '--')}
+          {stat(t('finder.physicalDistance'), cmPer360 ? `${cmPer360.toFixed(1)} cm/360°` : '--')}
+        </div>
+        <Alert><Target /><p className="col-start-2 m-0 text-sm leading-relaxed text-muted-foreground"><strong className="font-semibold text-foreground">{t('finder.why')}</strong> {t('finder.whyDescription')} {baseCmPer360 && cmPer360 ? t('finder.distanceChanged', { from: baseCmPer360.toFixed(1), to: cmPer360.toFixed(1) }) : ''}</p></Alert>
+        <div className="flex flex-wrap justify-center gap-2.5">
+          <Button variant="outline" onClick={() => void copy()}><Clipboard /> {copied ? t('finder.copied') : t('finder.copy')}</Button>
+          <Button disabled={saved} onClick={() => save()}><Save /> {saved ? text.done : text.save}</Button>
+          {config.presets.some(preset => preset.gameId === gameId && preset.isPrimary) && <Button variant="outline" disabled={saved} onClick={() => save(config.presets.find(preset => preset.gameId === gameId && preset.isPrimary)?.id)}>{text.update}</Button>}
+          <Button variant="outline" onClick={search.reset}><RotateCcw /> {t('finder.new')}</Button>
+        </div>
+        {saveError && <Alert variant="warning" role="alert"><Info /><span className="col-start-2">{saveError}</span></Alert>}
       </div>
-      <section className="finder-explanation"><Target size={17} /><p><strong>{t('finder.why')}</strong> {t('finder.whyDescription')} {baseCmPer360 && cmPer360 ? t('finder.distanceChanged', { from: baseCmPer360.toFixed(1), to: cmPer360.toFixed(1) }) : ''}</p></section>
-      <div className="finder-report-actions"><button className="secondary-button" onClick={() => void copy()}><Clipboard size={16} /> {copied ? t('finder.copied') : t('finder.copy')}</button><button className="primary-button" disabled={saved} onClick={() => save()}><Save size={16} /> {saved ? text.done : text.save}</button>{config.presets.some(preset => preset.gameId === gameId && preset.isPrimary) && <button className="secondary-button" disabled={saved} onClick={() => save(config.presets.find(preset => preset.gameId === gameId && preset.isPrimary)?.id)}>{text.update}</button>}<button className="secondary-button" onClick={search.reset}><RotateIcon /> {t('finder.new')}</button></div>
-      {saveError && <p role="alert">{saveError}</p>}
     </section>
   }
 
@@ -126,4 +145,3 @@ export function SensitivityFinderModal({ initialPreset = null }: SensitivityFind
   </>
 }
 
-function RotateIcon() { return <span aria-hidden="true">↻</span> }

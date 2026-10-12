@@ -1,27 +1,82 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { Ban, DoorOpen, Inbox, Plus, RefreshCw, Search, ShieldCheck, UsersRound } from 'lucide-react'
+import { Ban, ChevronLeft, ChevronRight, Copy, DoorOpen, Gamepad2, Inbox, Plus, RefreshCw, Search, ShieldCheck, UsersRound } from 'lucide-react'
 import { initializeAuth, readAuthSessionState, type AuthSessionState } from '../authService'
 import { useI18n } from '../i18n'
 import { AvatarArtwork } from '../AvatarArtwork'
 import { isAvatarId, DEFAULT_AVATAR } from '../avatars'
+import { GameBadge } from '../GameBadge'
 import { XensiPageHeader } from '../design/Primitives'
-import { MotionDialog, MotionDialogPanel } from '../design/MotionSurfaces'
 import { xensiMotion } from '../design/motion'
-import { useDialogFocus } from '../useDialogFocus'
 import { withBasePath } from '../routes'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupCard } from '@/components/ui/radio-group'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 import { compatible, platforms, ranksFor, regions, registry, validDiscord, type SquadGame, type SquadPlatform } from './registry'
 import { errorCopy, squadCopy, statusCopy, valueCopy } from './copy'
 import { squadRpc, type Access, type Block, type Contact, type Moderation, type Notification, type Request, type Room } from './service'
 import './squad.css'
 
 type Area = 'find' | 'mine' | 'requests' | 'blocks' | 'moderation'
-type Dialog = { action: string; room?: Room; request?: Request; id?: string; decision?: string; enabled?: boolean }
+type DialogState = { action: string; room?: Room; request?: Request; id?: string; decision?: string; enabled?: boolean }
 type Snapshot = { access: Access | null; rooms: Room[]; requests: Request[]; notifications: Notification[]; blocks: Block[]; moderation: Moderation | null }
 const emptySnapshot = (): Snapshot => ({ access: null, rooms: [], requests: [], notifications: [], blocks: [], moderation: null })
 const pageSize = 20
 const initialArea = (): Area => window.location.pathname.endsWith('/my-room') ? 'mine' : window.location.pathname.endsWith('/requests') ? 'requests' : window.location.pathname.endsWith('/moderation') ? 'moderation' : window.location.pathname.endsWith('/blocks') ? 'blocks' : 'find'
 const areaPath: Record<Area, string> = { find: withBasePath('squad'), mine: withBasePath('squad/my-room'), requests: withBasePath('squad/requests'), moderation: withBasePath('squad/moderation'), blocks: withBasePath('squad/blocks') }
+// Radix Select/RadioGroup reserve the empty string, so "all" filters use a sentinel and map back to ''.
+const ALL = '__all'
+const games = Object.keys(registry) as SquadGame[]
+const MotionCard = motion.create(Card)
+const optionLabel = (v: string, value: (key: string) => string) => v in registry ? registry[v as SquadGame].name : v in platforms ? platforms[v as SquadPlatform] : value(v)
+const platformFamilies = (game: SquadGame) => [...new Set(registry[game].platforms.map(p => p === 'pc' ? 'PC' : p.startsWith('xbox') ? 'Xbox' : 'PS'))].join(' · ')
+const heading = 'm-0 font-heading font-semibold leading-tight tracking-[-0.01em] text-foreground'
+const muted = 'm-0 text-sm leading-relaxed text-muted-foreground'
+
+function SelectField({ label, value, options, onValueChange, format, allLabel, className }: { label: string; value: string; options: readonly string[]; onValueChange: (v: string) => void; format: (v: string) => string; allLabel?: string; className?: string }) {
+  const id = useId()
+  return <div className={cn('grid min-w-0 content-start gap-2', className)}>
+    <Label htmlFor={id}>{label}</Label>
+    <Select value={value || (allLabel ? ALL : undefined)} onValueChange={v => onValueChange(v === ALL ? '' : v)}>
+      <SelectTrigger id={id}><SelectValue /></SelectTrigger>
+      <SelectContent>
+        {allLabel && <SelectItem value={ALL}>{allLabel}</SelectItem>}
+        {options.map(v => <SelectItem key={v} value={v}>{format(v)}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  </div>
+}
+
+function GameCards({ label, value, onValueChange, allLabel, allMeta, disabled }: { label: string; value: string; onValueChange: (v: string) => void; allLabel?: string; allMeta?: string; disabled?: boolean }) {
+  return <div className="grid min-w-0 gap-2">
+    <span className="font-sans text-[13px] font-medium leading-none text-muted-foreground">{label}</span>
+    <RadioGroup aria-label={label} disabled={disabled} value={value || (allLabel ? ALL : '')} onValueChange={v => onValueChange(v === ALL ? '' : v)} className={cn('grid-cols-2 gap-2.5', allLabel ? 'xl:grid-cols-4' : 'sm:grid-cols-3')}>
+      {allLabel && <RadioGroupCard value={ALL}>
+        <span aria-hidden="true" className="grid size-9 flex-none place-content-center rounded-lg border border-solid border-input bg-foreground/[.04] text-muted-foreground"><Gamepad2 className="size-[18px]" /></span>
+        <span className="grid min-w-0 gap-1"><strong className="font-semibold text-balance">{allLabel}</strong>{allMeta && <small className="text-xs font-normal text-muted-foreground">{allMeta}</small>}</span>
+      </RadioGroupCard>}
+      {games.map(id => <RadioGroupCard key={id} value={id}>
+        <GameBadge gameId={id} size="sm" selected={value === id} />
+        <span className="grid min-w-0 gap-1"><strong className="font-semibold text-balance">{registry[id].name}</strong><small className="text-xs font-normal text-muted-foreground">{platformFamilies(id)}</small></span>
+      </RadioGroupCard>)}
+    </RadioGroup>
+  </div>
+}
+
+function CheckField({ checked, onCheckedChange, children }: { checked: boolean; onCheckedChange: (v: boolean) => void; children: ReactNode }) {
+  const id = useId()
+  return <div className="flex items-start gap-3">
+    <Checkbox id={id} checked={checked} onCheckedChange={v => onCheckedChange(v === true)} className="mt-px" />
+    <Label htmlFor={id} className="cursor-pointer text-sm leading-normal font-normal text-foreground">{children}</Label>
+  </div>
+}
 
 export function SquadFinder({ onLogin }: { onLogin: () => void }) {
   const [auth, setAuth] = useState<AuthSessionState>(readAuthSessionState)
@@ -41,6 +96,7 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
   const lang = locale === 'pt' ? 'pt' : 'en'
   const text = squadCopy[lang], statuses = statusCopy[lang], reduced = useReducedMotion()
   const value = (key: string) => valueCopy[key]?.[lang === 'pt' ? 0 : 1] ?? key
+  const format = (v: string) => optionLabel(v, value)
   const date = (time: string) => new Date(time).toLocaleString(localeTag, { dateStyle: 'short', timeStyle: 'short' })
   const [area, setArea] = useState<Area>(initialArea)
   const [filters, setFilters] = useState(() => {
@@ -55,7 +111,7 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [dialog, setDialog] = useState<Dialog | null>(null)
+  const [dialog, setDialog] = useState<DialogState | null>(null)
   const [knownDiscord, setKnownDiscord] = useState('')
   const [contact, setContact] = useState<{ roomId: string; data: Contact } | null>(null)
   const [refresh, setRefresh] = useState(0)
@@ -146,77 +202,141 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
     catch { if (mounted.current) setError(text.copyError) }
   }
   const open = (action: string, room?: Room, request?: Request) => { setError(''); setDialog({ action, room, request }) }
-  const select = (label: string, current: string, options: readonly string[], change: (v: string) => void, all = false) => <label className="lfg-field">{label}<select value={current} onChange={e => change(e.target.value)}>{all && <option value="">{text.all}</option>}{options.map(v => <option key={v} value={v}>{v in registry ? registry[v as SquadGame].name : v in platforms ? platforms[v as SquadPlatform] : value(v)}</option>)}</select></label>
+  const setFilter = (patch: Partial<typeof filters>) => { setFilters(f => ({ ...f, ...patch })); setPage(0) }
+  const identity = (avatarId: string | null, nickname: string, note: ReactNode) => <div className="flex min-w-0 items-center gap-2.5 text-sm font-medium text-foreground">
+    <AvatarArtwork avatarId={isAvatarId(avatarId) ? avatarId : DEFAULT_AVATAR} className="size-[34px] flex-none rounded-full" />
+    <span className="min-w-0 [overflow-wrap:anywhere]">{nickname}</span>
+    <span className="ml-auto text-xs font-normal text-muted-foreground">{note}</span>
+  </div>
+  const privateContact = (discord: string, label?: string) => <div className="flex flex-wrap items-center gap-3 rounded-lg border border-solid border-border bg-black/25 px-3 py-2 text-sm text-foreground">
+    {label && <span className="font-medium">{label}</span>}
+    <code className="select-text font-mono [overflow-wrap:anywhere]">{discord}</code>
+    <Button variant="ghost" size="sm" className="ml-auto" onClick={() => void copy(discord)}><Copy />{text.copy}</Button>
+  </div>
   const roomInfo = (room: Room) => <>
-    <div className="lfg-room-heading"><h2>{registry[room.game_id]?.name}</h2><span className={`lfg-status lfg-status-${room.status}`}>{statuses[room.status]}</span></div>
-    <p className="lfg-summary"><span>{platforms[room.platform]}</span><span>{value(room.region)}</span><span>{value(room.game_mode)}</span></p>
-    <dl className="lfg-facts"><div><dt>{text.rank}</dt><dd>{value(room.rank_info)}</dd></div><div><dt>{text.mic}</dt><dd>{room.microphone_required ? text.mandatory : text.optional}</dd></div><div><dt>{text.expires}</dt><dd>{date(room.expires_at)}</dd></div></dl>
-    <p className="lfg-identity"><AvatarArtwork avatarId={isAvatarId(room.avatar_id) ? room.avatar_id : DEFAULT_AVATAR} />{room.nickname}<span>{room.status === 'open' ? text.slot : room.status === 'reserved' ? text.reservedSlot : statuses[room.status]}</span></p>
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-3">
+        <GameBadge gameId={room.game_id} size="sm" />
+        <h2 className={cn(heading, 'text-[19px]')}>{registry[room.game_id]?.name}</h2>
+      </div>
+      <Badge variant={room.status === 'open' ? 'success' : room.status === 'reserved' ? 'default' : 'outline'}>{statuses[room.status]}</Badge>
+    </div>
+    <div className="flex flex-wrap gap-1.5"><Badge variant="secondary">{platforms[room.platform]}</Badge><Badge variant="secondary">{value(room.region)}</Badge><Badge variant="secondary">{value(room.game_mode)}</Badge></div>
+    <dl className="m-0 grid border-0 border-y border-solid border-border [&>div+div]:border-0 [&>div+div]:border-t [&>div+div]:border-solid [&>div+div]:border-border">
+      {[[text.rank, value(room.rank_info)], [text.mic, room.microphone_required ? text.mandatory : text.optional], [text.expires, date(room.expires_at)]].map(([term, detail]) => <div key={term} className="flex items-baseline justify-between gap-3 py-2.5">
+        <dt className="text-xs font-medium text-muted-foreground">{term}</dt><dd className="m-0 text-right text-[13px] font-medium text-foreground [overflow-wrap:anywhere]">{detail}</dd>
+      </div>)}
+    </dl>
+    {identity(room.avatar_id, room.nickname, room.status === 'open' ? text.slot : room.status === 'reserved' ? text.reservedSlot : statuses[room.status])}
   </>
-  const pager = (hasMore: boolean) => <div className="lfg-pager"><button type="button" disabled={page === 0 || loading} onClick={() => setPage(n => n - 1)}>{text.previous}</button><span>{text.page} {page + 1}</span><button type="button" disabled={!hasMore || loading} onClick={() => setPage(n => n + 1)}>{text.next}</button></div>
+  const pagerControls = (current: number, hasMore: boolean, onPage: (delta: number) => void, disabled: boolean) => <div className="flex flex-wrap items-center justify-center gap-3 pt-2 text-[13px] font-medium text-muted-foreground">
+    <Button variant="outline" size="sm" disabled={current === 0 || disabled} onClick={() => onPage(-1)}><ChevronLeft />{text.previous}</Button>
+    <span className="tabular-nums">{text.page} {current + 1}</span>
+    <Button variant="outline" size="sm" disabled={!hasMore || disabled} onClick={() => onPage(1)}>{text.next}<ChevronRight /></Button>
+  </div>
+  const pager = (hasMore: boolean) => pagerControls(page, hasMore, d => setPage(n => n + d), loading)
   const enter = { initial: reduced ? false as const : { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { duration: reduced ? 0 : xensiMotion.durations.interaction } }
   const a = snapshot.access
   const allowed = a?.eligible || (area === 'moderation' && a?.moderator)
   const gate = auth.status === 'loading' ? text.loading : !uid ? text.anonymous : !a ? '' : a.suspended ? text.suspended : !a.email_confirmed ? text.emailGate : !a.enabled ? text.disabled : text.accessDenied
   const tabIcons = { find: Search, mine: DoorOpen, requests: Inbox, blocks: Ban, moderation: ShieldCheck }
   const tabs: Area[] = a?.moderator ? ['find', 'mine', 'requests', 'blocks', 'moderation'] : ['find', 'mine', 'requests', 'blocks']
-  const createButton = <button type="button" className="lfg-primary" disabled={busy || !a?.creation_enabled || a.publication_restricted || snapshot.rooms.some(r => r.status === 'open' || r.status === 'reserved') && area === 'mine'} onClick={() => open('create')}><Plus size={16} aria-hidden="true" />{text.create}</button>
-  const refreshButton = <button type="button" onClick={() => setRefresh(n => n + 1)} disabled={loading || busy}><RefreshCw size={15} aria-hidden="true" />{text.retry}</button>
+  const createButton = <Button disabled={busy || !a?.creation_enabled || a.publication_restricted || snapshot.rooms.some(r => r.status === 'open' || r.status === 'reserved') && area === 'mine'} onClick={() => open('create')}><Plus />{text.create}</Button>
+  const refreshButton = <Button variant="outline" size="sm" onClick={() => setRefresh(n => n + 1)} disabled={loading || busy}><RefreshCw />{text.retry}</Button>
+  const roomGrid = (wide = false) => cn('grid gap-5', wide ? 'grid-cols-[repeat(auto-fill,minmax(min(420px,100%),1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))]')
+  const cardBody = 'gap-3.5 p-5 sm:p-6'
+  const section = 'mt-1.5 grid gap-2.5 border-0 border-t border-solid border-border pt-4'
   return <div className="lfg-workspace" ref={root} aria-busy={loading || busy}>
-    <XensiPageHeader title={text.title} description={text.description} />
+    <XensiPageHeader title={text.title} />
     <div className="lfg-layout">
-      <aside className="lfg-sidebar">
-        <p className="lfg-product">XENSI Squad Finder</p>
-        <nav className="lfg-tabs" aria-label="Squad Finder">{tabs.map(tab => { const Icon = tabIcons[tab]; return <button type="button" key={tab} aria-current={area === tab ? 'page' : undefined} onClick={() => navigate(tab)}><Icon size={18} aria-hidden="true" /><span>{text[tab]}</span></button> })}</nav>
-      </aside>
-      <div className="lfg-main">
-    <div className="lfg-feedback" aria-live="polite">{message && <p role="status">{message}</p>}{error && <p role="alert">{error}</p>}</div>
-    {!allowed ? <section className="lfg-panel lfg-gate"><UsersRound size={28} /><h2>{text.accessTitle}</h2>{gate && <p>{gate}</p>}{uid ? <button type="button" onClick={() => setRefresh(n => n + 1)} disabled={loading}>{text.retry}</button> : auth.status !== 'loading' && <button type="button" className="lfg-primary" onClick={onLogin}>{text.login}</button>}</section> : <>
-      {area === 'find' && <div className="lfg-hero-row">
-        <section className="lfg-panel lfg-hero"><h2>{text.heroTitle}</h2><p>{text.heroText}</p>{!loading && <dl className="lfg-stats"><div><dt>{text.inList}</dt><dd>{snapshot.rooms.length}</dd></div><div><dt>{text.notifications}</dt><dd>{snapshot.notifications.length}</dd></div></dl>}</section>
-        <section className="lfg-panel lfg-side"><h2>{text.yourRoom}</h2><p>{text.yourRoomHint}</p><div className="lfg-actions">{createButton}<button type="button" onClick={() => navigate('mine')}>{text.manageRoom}</button></div></section>
-      </div>}
-      {area !== 'moderation' && <details className="lfg-notifications"><summary>{text.notifications} ({snapshot.notifications.length})</summary>{snapshot.notifications.length ? <ul>{snapshot.notifications.map(n => <li key={n.id}>{value(n.kind)} <time dateTime={n.created_at}>{date(n.created_at)}</time></li>)}</ul> : <p>{text.noNotifications}</p>}</details>}
-      {area !== 'find' && <div className="lfg-toolbar">{refreshButton}{area === 'mine' && createButton}</div>}
-      {(area === 'find' || area === 'mine') && (!a?.creation_enabled || a.publication_restricted) && <p>{text.creationOff}</p>}
-      {area === 'find' && <section className="lfg-panel lfg-filter-panel" aria-label={text.filtersTitle}><header><h2>{text.filtersTitle}</h2>{refreshButton}</header><div className="lfg-filters">{select(text.game, filters.game, Object.keys(registry), game => { setFilters(f => ({ ...f, game, platform: '', mode: '' })); setPage(0) }, true)}{select(text.platform, filters.platform, filters.game in registry ? registry[filters.game as SquadGame].platforms : Object.keys(platforms), platform => { setFilters(f => ({ ...f, platform })); setPage(0) }, true)}{select(text.region, filters.region, regions, region => { setFilters(f => ({ ...f, region })); setPage(0) }, true)}{select(text.mode, filters.mode, filters.game in registry ? registry[filters.game as SquadGame].modes : [...new Set(Object.values(registry).flatMap(g => g.modes))], mode => { setFilters(f => ({ ...f, mode })); setPage(0) }, true)}</div></section>}
-      {area === 'find' && <h2 className="lfg-section-title">{text.roomsTitle}</h2>}
-      {loading && <p role="status">{text.loading}</p>}
-      {!loading && (area === 'find' || area === 'mine') && <>
-        {!snapshot.rooms.length && <p className="lfg-empty">{text.empty}</p>}
-        <div className="lfg-rooms" data-area={area}>{snapshot.rooms.slice(0, pageSize).map(room => <motion.article {...enter} key={room.id} className="lfg-panel">
-          {roomInfo(room)}
-          {area === 'find' ? <div className="lfg-actions"><button type="button" className="lfg-primary" disabled={busy || room.status !== 'open'} onClick={() => open('request', room)}>{text.request}</button><button type="button" disabled={busy} onClick={() => open('report', room)}>{text.report}</button><button type="button" disabled={busy} onClick={() => open('block', room)}>{text.block}</button></div> : <>
-            {room.status === 'reserved' && <div className="lfg-reservation"><h3>{text.waiting}</h3><p>{text.reservation}: {room.reserved_until && date(room.reserved_until)}</p><div className="lfg-actions"><button type="button" className="lfg-primary" disabled={busy} onClick={() => open('confirm', room)}>{text.confirm}</button><button type="button" disabled={busy} onClick={() => open('release', room)}>{text.release}</button></div></div>}
-            {['open', 'reserved'].includes(room.status) && <button type="button" disabled={busy} onClick={() => open('cancel', room)}>{text.end}</button>}
-            <div className="lfg-host-requests">{snapshot.requests.filter(q => q.room_id === room.id).slice(0, pageSize).map(q => <motion.div {...enter} key={q.id} className="lfg-request"><p className="lfg-identity"><AvatarArtwork avatarId={isAvatarId(q.avatar_id) ? q.avatar_id : DEFAULT_AVATAR} />{q.nickname}<span>{statuses[q.status]}</span></p><p>{platforms[q.platform]} · {date(q.requested_at)}</p>{q.discord_username && <p className="lfg-private"><code>{q.discord_username}</code><button type="button" onClick={() => void copy(q.discord_username!)}>{text.copy}</button></p>}<div className="lfg-actions">{q.status === 'pending' && <><button type="button" className="lfg-primary" disabled={busy || room.status !== 'open'} onClick={() => open('accept', room, q)}>{text.accept}</button><button type="button" disabled={busy} onClick={() => void act('decline', { room_id: room.id, request_id: q.id })}>{text.decline}</button></>}<button type="button" disabled={busy} onClick={() => open('report', room, q)}>{text.report}</button><button type="button" disabled={busy} onClick={() => open('block', room, q)}>{text.block}</button></div></motion.div>)}{snapshot.requests.length === 0 && ['open', 'reserved'].includes(room.status) && <p>{text.noRequests}</p>}<div className="lfg-pager"><button type="button" disabled={hostPage === 0 || busy} onClick={() => setHostPage(n => n - 1)}>{text.previous}</button><span>{text.page} {hostPage + 1}</span><button type="button" disabled={snapshot.requests.length <= pageSize || busy} onClick={() => setHostPage(n => n + 1)}>{text.next}</button></div></div>
+      <Card className="sticky top-28 p-3.5 max-[1100px]:static max-[1100px]:p-2">
+        <p className="m-0 mx-2 mt-0.5 mb-3 text-xs font-medium text-muted-foreground max-[1100px]:hidden">XENSI Squad Finder</p>
+        <nav className="flex flex-col gap-1 max-[1100px]:flex-row max-[1100px]:overflow-x-auto max-[1100px]:[scrollbar-width:none]" aria-label="Squad Finder">{tabs.map(tab => { const Icon = tabIcons[tab]; return <Button variant="ghost" key={tab} aria-current={area === tab ? 'page' : undefined} onClick={() => navigate(tab)} className="w-full justify-start font-medium max-[1100px]:w-auto max-[1100px]:flex-none aria-[current=page]:bg-primary/12 aria-[current=page]:text-foreground aria-[current=page]:shadow-[inset_0_0_0_1px_rgba(255,64,85,.45)] aria-[current=page]:[&_svg]:text-primary"><Icon className="size-[18px]!" aria-hidden="true" /><span>{text[tab]}</span></Button> })}</nav>
+      </Card>
+      <div className="grid min-w-0 gap-5">
+        <div className="grid gap-2 empty:hidden" aria-live="polite">{message && <p role="status" className={muted}>{message}</p>}{error && <p role="alert" className="m-0 text-sm text-destructive">{error}</p>}</div>
+        {!allowed ? <Card className="grid max-w-[640px] justify-items-start gap-3 p-6"><UsersRound size={28} className="text-primary" /><h2 className={cn(heading, 'text-2xl')}>{text.accessTitle}</h2>{gate && <p className={muted}>{gate}</p>}{uid ? <Button variant="outline" onClick={() => setRefresh(n => n + 1)} disabled={loading}>{text.retry}</Button> : auth.status !== 'loading' && <Button onClick={onLogin}>{text.login}</Button>}</Card> : <>
+          {area === 'find' && <div className="grid gap-5 min-[1100px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+            <Card accent className="gap-2.5 bg-[linear-gradient(120deg,rgba(255,64,85,.12),rgba(16,17,22,.82)_55%)] p-6">
+              <h2 className={cn(heading, 'text-[clamp(22px,2.2vw,30px)]')}>{text.heroTitle}</h2><p className={cn(muted, 'max-w-[52ch]')}>{text.heroText}</p>
+              {!loading && <dl className="m-0 mt-auto flex pt-3.5">{[[text.inList, snapshot.rooms.length], [text.notifications, snapshot.notifications.length]].map(([term, count], i) => <div key={term} className={cn('grid gap-1.5 px-6', i === 0 ? 'pl-0' : 'border-0 border-l border-solid border-border')}><dt className="text-xs font-medium text-muted-foreground">{term}</dt><dd className="m-0 font-mono text-[28px] font-medium leading-none tabular-nums text-foreground">{count}</dd></div>)}</dl>}
+            </Card>
+            <Card className="gap-2.5 p-6"><h2 className={cn(heading, 'text-xl')}>{text.yourRoom}</h2><p className={muted}>{text.yourRoomHint}</p><div className="mt-auto flex flex-wrap gap-2 pt-1.5">{createButton}<Button variant="outline" onClick={() => navigate('mine')}>{text.manageRoom}</Button></div></Card>
+          </div>}
+          {area !== 'moderation' && <details className="group px-1"><summary className="cursor-pointer py-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground">{text.notifications} ({snapshot.notifications.length})</summary>{snapshot.notifications.length ? <ul className="m-0 grid gap-1.5 py-2 pl-5 text-sm text-foreground">{snapshot.notifications.map(n => <li key={n.id}>{value(n.kind)} <time dateTime={n.created_at} className="ml-2.5 text-xs text-muted-foreground">{date(n.created_at)}</time></li>)}</ul> : <p className={cn(muted, 'py-2')}>{text.noNotifications}</p>}</details>}
+          {area !== 'find' && <div className="flex items-center justify-between gap-4">{refreshButton}{area === 'mine' && createButton}</div>}
+          {(area === 'find' || area === 'mine') && (!a?.creation_enabled || a.publication_restricted) && <p className={muted}>{text.creationOff}</p>}
+          {area === 'find' && <Card className="gap-4 p-5 sm:p-6" aria-label={text.filtersTitle} role="region">
+            <div className="flex items-center justify-between gap-3"><h2 className={cn(heading, 'text-lg')}>{text.filtersTitle}</h2>{refreshButton}</div>
+            <GameCards label={text.game} value={filters.game} allLabel={text.allGames} allMeta={`${games.length} ${text.gamesCount}`} onValueChange={game => setFilter({ game, platform: '', mode: '' })} />
+            <div className="grid gap-3.5 sm:grid-cols-3">
+              <SelectField label={text.platform} value={filters.platform} allLabel={text.all} format={format} options={filters.game in registry ? registry[filters.game as SquadGame].platforms : Object.keys(platforms)} onValueChange={platform => setFilter({ platform })} />
+              <SelectField label={text.region} value={filters.region} allLabel={text.all} format={format} options={regions} onValueChange={region => setFilter({ region })} />
+              <SelectField label={text.mode} value={filters.mode} allLabel={text.all} format={format} options={filters.game in registry ? registry[filters.game as SquadGame].modes : [...new Set(Object.values(registry).flatMap(g => g.modes))]} onValueChange={mode => setFilter({ mode })} />
+            </div>
+          </Card>}
+          {area === 'find' && <h2 className={cn(heading, 'mt-1 text-lg')}>{text.roomsTitle}</h2>}
+          {loading && <p role="status" className={muted}>{text.loading}</p>}
+          {!loading && (area === 'find' || area === 'mine') && <>
+            {!snapshot.rooms.length && <p className={cn(muted, 'py-7')}>{text.empty}</p>}
+            <div className={roomGrid(area === 'mine')}>{snapshot.rooms.slice(0, pageSize).map(room => <MotionCard {...enter} key={room.id} spotlight className={cardBody}>
+              {roomInfo(room)}
+              {area === 'find' ? <div className="mt-auto grid grid-cols-2 gap-2">
+                <Button className="col-span-2" disabled={busy || room.status !== 'open'} onClick={() => open('request', room)}>{text.request}</Button>
+                <Button variant="outline" size="sm" disabled={busy} onClick={() => open('report', room)}>{text.report}</Button>
+                <Button variant="outline" size="sm" disabled={busy} onClick={() => open('block', room)}>{text.block}</Button>
+              </div> : <>
+                {room.status === 'reserved' && <div className={section}><h3 className={cn(heading, 'font-sans text-sm')}>{text.waiting}</h3><p className={muted}>{text.reservation}: {room.reserved_until && date(room.reserved_until)}</p><div className="flex flex-wrap gap-2"><Button disabled={busy} onClick={() => open('confirm', room)}>{text.confirm}</Button><Button variant="outline" disabled={busy} onClick={() => open('release', room)}>{text.release}</Button></div></div>}
+                {['open', 'reserved'].includes(room.status) && <Button variant="outline" className="justify-self-start" disabled={busy} onClick={() => open('cancel', room)}>{text.end}</Button>}
+                <div className="grid">
+                  {snapshot.requests.filter(q => q.room_id === room.id).slice(0, pageSize).map(q => <motion.div {...enter} key={q.id} className={section}>
+                    {identity(q.avatar_id, q.nickname, <Badge variant={q.status === 'pending' ? 'outline' : q.status === 'accepted' ? 'default' : 'secondary'}>{statuses[q.status]}</Badge>)}
+                    <p className={muted}>{platforms[q.platform]} · {date(q.requested_at)}</p>
+                    {q.discord_username && privateContact(q.discord_username)}
+                    <div className="flex flex-wrap gap-2">
+                      {q.status === 'pending' && <><Button size="sm" disabled={busy || room.status !== 'open'} onClick={() => open('accept', room, q)}>{text.accept}</Button><Button variant="outline" size="sm" disabled={busy} onClick={() => void act('decline', { room_id: room.id, request_id: q.id })}>{text.decline}</Button></>}
+                      <Button variant="ghost" size="sm" disabled={busy} onClick={() => open('report', room, q)}>{text.report}</Button><Button variant="ghost" size="sm" disabled={busy} onClick={() => open('block', room, q)}>{text.block}</Button>
+                    </div>
+                  </motion.div>)}
+                  {snapshot.requests.length === 0 && ['open', 'reserved'].includes(room.status) && <p className={cn(muted, 'pt-2')}>{text.noRequests}</p>}
+                  {pagerControls(hostPage, snapshot.requests.length > pageSize, d => setHostPage(n => n + d), busy)}
+                </div>
+              </>}
+            </MotionCard>)}</div>{pager(snapshot.rooms.length > pageSize)}
           </>}
-        </motion.article>)}</div>{pager(snapshot.rooms.length > pageSize)}
-      </>}
-      {!loading && area === 'requests' && <>{!snapshot.requests.length && <p className="lfg-empty">{text.noRequests}</p>}<div className="lfg-rooms">{snapshot.requests.slice(0, pageSize).map(q => <motion.article {...enter} key={q.id} className="lfg-panel">{roomInfo(q.room)}<h3>{statuses[q.status]}</h3><p>{date(q.requested_at)}</p>{q.status === 'accepted' && q.room.status === 'reserved' && <div className="lfg-reservation"><h3>{text.accepted}</h3><p>{text.acceptedHint}</p><button type="button" className="lfg-primary" disabled={busy} onClick={() => void act('host_contact', { room_id: q.room_id })}>{text.contact}</button>{contact?.roomId === q.room_id && <div className="lfg-private"><span>{contact.data.nickname}</span><code>{contact.data.discord_username}</code><button type="button" onClick={() => void copy(contact.data.discord_username)}>{text.copy}</button></div>}</div>}<div className="lfg-actions">{q.status === 'pending' && <button type="button" disabled={busy} onClick={() => void act('withdraw', { room_id: q.room_id, request_id: q.id })}>{text.withdraw}</button>}<button type="button" disabled={busy} onClick={() => open('report', q.room)}>{text.report}</button><button type="button" disabled={busy} onClick={() => open('block', q.room)}>{text.block}</button></div></motion.article>)}</div>{pager(snapshot.requests.length > pageSize)}</>}
-      {!loading && area === 'blocks' && <section className="lfg-panel">{!snapshot.blocks.length && <p>{text.noBlocks}</p>}{snapshot.blocks.slice(0, pageSize).map(b => <p className="lfg-private" key={b.id}>{b.nickname}<button type="button" disabled={busy} onClick={() => void act('unblock', { id: b.id })}>{text.unblock}</button></p>)}{pager(snapshot.blocks.length > pageSize)}</section>}
-      {!loading && area === 'moderation' && snapshot.moderation && <section className="lfg-panel">
-        <div className="lfg-toolbar"><h2>{text.capacity}</h2><button type="button" disabled={busy} onClick={() => setDialog({ action: 'mod_capacity', enabled: !snapshot.moderation!.creation_enabled })}>{snapshot.moderation.creation_enabled ? text.disable : text.enable}</button></div>
-        {select(text.moderation, reportStatus, ['pending', 'all'], v => { setReportStatus(v); setPage(0) })}
-        <h2>{reportStatus === 'pending' ? text.pendingReports : text.history}</h2>{snapshot.moderation.reports.length === 0 && <p>{text.noRequests}</p>}{snapshot.moderation.reports.slice(0, pageSize).map(report => <div className="lfg-request" key={report.id}><h3>{report.nickname}</h3><p>{value(report.category)} · {value(report.status)} · {date(report.created_at)}</p><div className="lfg-actions">{(['dismiss', 'resolve', 'restrict', 'suspend', 'restore', 'cancel_room'] as const).map(decision => <button type="button" key={decision} disabled={busy} onClick={() => setDialog({ action: 'mod_decide', id: report.id, decision })}>{text[decision === 'cancel_room' ? 'cancelRoom' : decision]}</button>)}</div></div>)}
-        <h2>{text.restrictions}</h2>{snapshot.moderation.restrictions.slice(0, pageSize).map(r => <p key={r.user_id}>{r.nickname} · {r.suspended ? text.suspend : r.publication_restricted ? text.restrict : text.restore}</p>)}
-        <details><summary>{text.decisions}</summary>{snapshot.moderation.actions.slice(0, pageSize).map(d => <p key={d.id}>{value(d.action_type)} · {value(d.reason)} · {date(d.created_at)}</p>)}</details>
-        <details><summary>{text.blocks} ({snapshot.moderation.blocks.length})</summary>{snapshot.moderation.blocks.slice(0, pageSize).map((b, i) => <p key={i}>{b.blocker_user_id} → {b.blocked_user_id} · {date(b.created_at)}</p>)}</details>
-        {pager(Math.max(snapshot.moderation.reports.length, snapshot.moderation.actions.length, snapshot.moderation.blocks.length, snapshot.moderation.restrictions.length) > pageSize)}
-      </section>}
-    </>}
+          {!loading && area === 'requests' && <>{!snapshot.requests.length && <p className={cn(muted, 'py-7')}>{text.noRequests}</p>}<div className={roomGrid()}>{snapshot.requests.slice(0, pageSize).map(q => <MotionCard {...enter} key={q.id} spotlight className={cardBody}>
+            {roomInfo(q.room)}
+            <div className="flex items-center justify-between gap-3"><h3 className={cn(heading, 'font-sans text-sm')}>{statuses[q.status]}</h3><p className={cn(muted, 'text-xs')}>{date(q.requested_at)}</p></div>
+            {q.status === 'accepted' && q.room.status === 'reserved' && <div className={section}><h3 className={cn(heading, 'font-sans text-sm')}>{text.accepted}</h3><p className={muted}>{text.acceptedHint}</p><Button className="justify-self-start" disabled={busy} onClick={() => void act('host_contact', { room_id: q.room_id })}>{text.contact}</Button>{contact?.roomId === q.room_id && privateContact(contact.data.discord_username, contact.data.nickname)}</div>}
+            <div className="mt-auto flex flex-wrap gap-2">{q.status === 'pending' && <Button variant="outline" size="sm" disabled={busy} onClick={() => void act('withdraw', { room_id: q.room_id, request_id: q.id })}>{text.withdraw}</Button>}<Button variant="ghost" size="sm" disabled={busy} onClick={() => open('report', q.room)}>{text.report}</Button><Button variant="ghost" size="sm" disabled={busy} onClick={() => open('block', q.room)}>{text.block}</Button></div>
+          </MotionCard>)}</div>{pager(snapshot.requests.length > pageSize)}</>}
+          {!loading && area === 'blocks' && <Card className="gap-3 p-5 sm:p-6">{!snapshot.blocks.length && <p className={muted}>{text.noBlocks}</p>}{snapshot.blocks.slice(0, pageSize).map(b => <div key={b.id} className="flex items-center justify-between gap-3 border-0 border-b border-solid border-border pb-3 text-sm font-medium text-foreground last-of-type:border-0"><span className="[overflow-wrap:anywhere]">{b.nickname}</span><Button variant="outline" size="sm" disabled={busy} onClick={() => void act('unblock', { id: b.id })}>{text.unblock}</Button></div>)}{pager(snapshot.blocks.length > pageSize)}</Card>}
+          {!loading && area === 'moderation' && snapshot.moderation && <Card className="gap-4 p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-4"><h2 className={cn(heading, 'text-lg')}>{text.capacity}</h2><Button variant="outline" disabled={busy} onClick={() => setDialog({ action: 'mod_capacity', enabled: !snapshot.moderation!.creation_enabled })}>{snapshot.moderation.creation_enabled ? text.disable : text.enable}</Button></div>
+            <SelectField className="max-w-xs" label={text.moderation} value={reportStatus} format={format} options={['pending', 'all']} onValueChange={v => { setReportStatus(v); setPage(0) }} />
+            <h2 className={cn(heading, 'text-lg')}>{reportStatus === 'pending' ? text.pendingReports : text.history}</h2>
+            {snapshot.moderation.reports.length === 0 && <p className={muted}>{text.noRequests}</p>}
+            {snapshot.moderation.reports.slice(0, pageSize).map(report => <div key={report.id} className="grid gap-2.5 rounded-lg border border-solid border-border bg-black/20 p-4"><h3 className={cn(heading, 'font-sans text-[15px]')}>{report.nickname}</h3><p className={muted}>{value(report.category)} · {value(report.status)} · {date(report.created_at)}</p><div className="flex flex-wrap gap-2">{(['dismiss', 'resolve', 'restrict', 'suspend', 'restore', 'cancel_room'] as const).map(decision => <Button variant="outline" size="sm" key={decision} disabled={busy} onClick={() => setDialog({ action: 'mod_decide', id: report.id, decision })}>{text[decision === 'cancel_room' ? 'cancelRoom' : decision]}</Button>)}</div></div>)}
+            <h2 className={cn(heading, 'text-lg')}>{text.restrictions}</h2>{snapshot.moderation.restrictions.slice(0, pageSize).map(r => <p key={r.user_id} className={muted}>{r.nickname} · {r.suspended ? text.suspend : r.publication_restricted ? text.restrict : text.restore}</p>)}
+            <details><summary className="cursor-pointer py-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground">{text.decisions}</summary>{snapshot.moderation.actions.slice(0, pageSize).map(d => <p key={d.id} className={muted}>{value(d.action_type)} · {value(d.reason)} · {date(d.created_at)}</p>)}</details>
+            <details><summary className="cursor-pointer py-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground">{text.blocks} ({snapshot.moderation.blocks.length})</summary>{snapshot.moderation.blocks.slice(0, pageSize).map((b, i) => <p key={i} className={muted}>{b.blocker_user_id} → {b.blocked_user_id} · {date(b.created_at)}</p>)}</details>
+            {pager(Math.max(snapshot.moderation.reports.length, snapshot.moderation.actions.length, snapshot.moderation.blocks.length, snapshot.moderation.restrictions.length) > pageSize)}
+          </Card>}
+        </>}
       </div>
     </div>
     {dialog && <SquadDialog key={`${dialog.action}:${dialog.room?.id}:${dialog.request?.id}`} dialog={dialog} lang={lang} knownDiscord={knownDiscord} busy={busy} error={error} onClose={() => { if (!busy) setDialog(null) }} onSubmit={payload => void act(dialog.action, payload)} />}
   </div>
 }
 
-function SquadDialog({ dialog, lang, knownDiscord, busy, error, onClose, onSubmit }: { dialog: Dialog; lang: 'pt' | 'en'; knownDiscord: string; busy: boolean; error: string; onClose: () => void; onSubmit: (payload: Record<string, unknown>) => void }) {
+function SquadDialog({ dialog, lang, knownDiscord, busy, error, onClose, onSubmit }: { dialog: DialogState; lang: 'pt' | 'en'; knownDiscord: string; busy: boolean; error: string; onClose: () => void; onSubmit: (payload: Record<string, unknown>) => void }) {
   const text = squadCopy[lang]
   const value = (v: string) => valueCopy[v]?.[lang === 'pt' ? 0 : 1] ?? v
-  const ref = useRef<HTMLElement>(null), form = useRef<HTMLFormElement>(null)
+  const format = (v: string) => optionLabel(v, value)
+  const discordId = useId()
+  const discordInput = useRef<HTMLInputElement>(null)
+  // No DialogTrigger here: return focus to whatever opened the dialog.
   const trigger = useRef(document.activeElement as HTMLElement | null)
-  useDialogFocus(ref, true)
   const [game, setGame] = useState<SquadGame>(dialog.room?.game_id ?? 'valorant')
   const [platform, setPlatform] = useState<SquadPlatform>(dialog.room?.platform ?? 'pc')
   const [region, setRegion] = useState('br'), [mode, setMode] = useState(registry[game].modes[0] as string), [rank, setRank] = useState('unranked')
@@ -228,7 +348,7 @@ function SquadDialog({ dialog, lang, knownDiscord, busy, error, onClose, onSubmi
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (busy) return
-    if ((creating || requesting) && !validDiscord(discord)) { setInvalid(true); form.current?.querySelector<HTMLInputElement>('input[name="discord"]')?.focus(); return }
+    if ((creating || requesting) && !validDiscord(discord)) { setInvalid(true); discordInput.current?.focus(); return }
     const payload: Record<string, unknown> = { room_id: dialog.room?.id, request_id: dialog.request?.id }
     if (creating) Object.assign(payload, { game_id: game, platform, region, game_mode: mode, rank_info: rank, microphone_required: mic, crossplay, discord_username: discord })
     if (requesting) Object.assign(payload, { platform, discord_username: discord, consent })
@@ -237,38 +357,43 @@ function SquadDialog({ dialog, lang, knownDiscord, busy, error, onClose, onSubmi
     if (dialog.action === 'mod_capacity') payload.enabled = dialog.enabled
     onSubmit(payload)
   }
-  const field = (label: string, current: string, options: readonly string[], change: (v: string) => void) => <label className="lfg-field">{label}<select value={current} onChange={e => change(e.target.value)}>{options.map(v => <option key={v} value={v}>{v in registry ? registry[v as SquadGame].name : v in platforms ? platforms[v as SquadPlatform] : value(v)}</option>)}</select></label>
-  // Make the persistent app chrome inert while the app-owned modal is open.
-  useEffect(() => {
-    const backdrop = ref.current?.closest('.xensi-motion-backdrop')
-    const returnFocus = trigger.current
-    const hidden: { element: HTMLElement; previous: boolean }[] = []
-    let child = backdrop
-    while (child?.parentElement) {
-      for (const sibling of Array.from(child.parentElement.children)) if (sibling !== child && sibling instanceof HTMLElement && !['SCRIPT', 'STYLE'].includes(sibling.tagName)) { hidden.push({ element: sibling, previous: sibling.inert }); sibling.inert = true }
-      child = child.parentElement
-      if (child.tagName === 'BODY') break
-    }
-    return () => {
-      hidden.forEach(({ element, previous }) => { element.inert = previous })
-      window.requestAnimationFrame(() => { if (returnFocus?.isConnected) returnFocus.focus() })
-    }
-  }, [])
+  const pickGame = (v: string) => { const next = v as SquadGame; setGame(next); setPlatform('pc'); setMode(registry[next].modes[0]); setRank('unranked'); setCrossplay(false) }
   const title = dialog.action === 'mod_decide' ? value(dialog.decision ?? '') : titles[dialog.action] ?? text.confirm
-  return <MotionDialog open onKeyDown={e => { if (e.key === 'Escape' && !busy) { e.stopPropagation(); onClose() } }}>
-    <MotionDialogPanel ref={ref} className="lfg-dialog" role="dialog" aria-modal="true" aria-labelledby="lfg-dialog-title" aria-describedby="lfg-dialog-hint">
-      <button type="button" className="lfg-dialog-close" onClick={onClose} disabled={busy}>{text.cancel}</button>
-      <h2 id="lfg-dialog-title">{title}</h2><p id="lfg-dialog-hint">{hints[dialog.action]}</p>
-      <form ref={form} noValidate onSubmit={submit}>
-        {creating && <div className="lfg-form-grid">{field(text.game, game, Object.keys(registry), v => { const next = v as SquadGame; setGame(next); setPlatform('pc'); setMode(registry[next].modes[0]); setRank('unranked'); setCrossplay(false) })}{field(text.platform, platform, registry[game].platforms, v => setPlatform(v as SquadPlatform))}{field(text.region, region, regions, setRegion)}{field(text.mode, mode, registry[game].modes, v => { setMode(v); setRank('unranked') })}{field(text.rank, rank, ranksFor(game, mode), setRank)}</div>}
-        {requesting && dialog.room && field(text.platform, platform, registry[game].platforms.filter(p => compatible(game, dialog.room!.platform, p, dialog.room!.crossplay)), v => setPlatform(v as SquadPlatform))}
-        {creating && <><label className="lfg-check"><input type="checkbox" checked={mic} onChange={e => setMic(e.target.checked)} />{text.mic}</label>{game !== 'cs2' && (game !== 'valorant' || platform !== 'pc') && <label className="lfg-check"><input type="checkbox" checked={crossplay} onChange={e => setCrossplay(e.target.checked)} />{text.crossplay}</label>}<p>{text.crossplayHint}</p></>}
-        {(creating || requesting) && <label className="lfg-field">{text.discord}<input name="discord" autoComplete="off" maxLength={32} value={discord} aria-invalid={invalid} aria-describedby="lfg-discord-hint lfg-discord-error" onChange={e => { setDiscord(e.target.value); setInvalid(false) }} /><small id="lfg-discord-hint">{text.discordHint}</small><span id="lfg-discord-error">{invalid ? text.invalidDiscord : ''}</span></label>}
-        {requesting && <label className="lfg-check"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} />{text.consent}</label>}
-        {(dialog.action === 'report' || dialog.action === 'mod_decide') && field(text.category, category, ['harassment', 'abuse', 'spam', 'suspicious', 'privacy', 'other'], setCategory)}
-        {error && <p role="alert">{error}</p>}
-        <button type="submit" className="lfg-primary" disabled={busy || (requesting && !consent)} aria-busy={busy}>{creating ? text.publish : dialog.action === 'mod_capacity' ? dialog.enabled ? text.enable : text.disable : title}</button>
+  return <Dialog open onOpenChange={next => { if (!next) onClose() }}>
+    <DialogContent showCloseButton={false} className={cn(creating ? 'max-w-[720px]' : 'max-w-[560px]')}
+      onEscapeKeyDown={e => { if (busy) e.preventDefault() }} onInteractOutside={e => { if (busy) e.preventDefault() }}
+      onCloseAutoFocus={e => { e.preventDefault(); if (trigger.current?.isConnected) trigger.current.focus() }}>
+      <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{hints[dialog.action]}</DialogDescription></DialogHeader>
+      <form noValidate onSubmit={submit} className="grid gap-5">
+        {creating && <>
+          <GameCards label={text.game} value={game} onValueChange={pickGame} />
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            <SelectField label={text.platform} value={platform} format={format} options={registry[game].platforms} onValueChange={v => setPlatform(v as SquadPlatform)} />
+            <SelectField label={text.region} value={region} format={format} options={regions} onValueChange={setRegion} />
+            <SelectField label={text.mode} value={mode} format={format} options={registry[game].modes} onValueChange={v => { setMode(v); setRank('unranked') }} />
+            <SelectField label={text.rank} value={rank} format={format} options={ranksFor(game, mode)} onValueChange={setRank} />
+          </div>
+          <div className="grid gap-3">
+            <CheckField checked={mic} onCheckedChange={setMic}>{text.mic}</CheckField>
+            {game !== 'cs2' && (game !== 'valorant' || platform !== 'pc') && <CheckField checked={crossplay} onCheckedChange={setCrossplay}>{text.crossplay}</CheckField>}
+            <p className="m-0 text-xs leading-relaxed text-muted-foreground">{text.crossplayHint}</p>
+          </div>
+        </>}
+        {requesting && dialog.room && <SelectField label={text.platform} value={platform} format={format} options={registry[game].platforms.filter(p => compatible(game, dialog.room!.platform, p, dialog.room!.crossplay))} onValueChange={v => setPlatform(v as SquadPlatform)} />}
+        {(creating || requesting) && <div className="grid gap-2">
+          <Label htmlFor={discordId}>{text.discord}</Label>
+          <Input ref={discordInput} id={discordId} name="discord" autoComplete="off" maxLength={32} value={discord} aria-invalid={invalid} aria-describedby={`${discordId}-hint ${discordId}-error`} onChange={e => { setDiscord(e.target.value); setInvalid(false) }} />
+          <small id={`${discordId}-hint`} className="text-xs leading-relaxed text-muted-foreground">{text.discordHint}</small>
+          <span id={`${discordId}-error`} className="text-xs text-destructive empty:hidden">{invalid ? text.invalidDiscord : ''}</span>
+        </div>}
+        {requesting && <CheckField checked={consent} onCheckedChange={setConsent}>{text.consent}</CheckField>}
+        {(dialog.action === 'report' || dialog.action === 'mod_decide') && <SelectField label={text.category} value={category} format={format} options={['harassment', 'abuse', 'spam', 'suspicious', 'privacy', 'other']} onValueChange={setCategory} />}
+        {error && <p role="alert" className="m-0 text-sm text-destructive">{error}</p>}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>{text.cancel}</Button>
+          <Button type="submit" disabled={busy || (requesting && !consent)} aria-busy={busy}>{creating ? text.publish : dialog.action === 'mod_capacity' ? dialog.enabled ? text.enable : text.disable : title}</Button>
+        </DialogFooter>
       </form>
-    </MotionDialogPanel>
-  </MotionDialog>
+    </DialogContent>
+  </Dialog>
 }

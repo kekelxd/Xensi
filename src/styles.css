@@ -1440,7 +1440,6 @@ header, footer {
     linear-gradient(90deg, rgba(255,42,85,.035) 1px, transparent 1px),
     rgba(11,11,14,.9);
   background-size: 40px 40px, 40px 40px, auto;
-  backdrop-filter: blur(16px);
   z-index: 3;
 }
 .app-header { position: relative; flex-direction: column; justify-content: stretch; border-bottom: 1px solid rgba(255,42,85,.16); padding: 0; box-shadow: 0 18px 46px rgba(0,0,0,.26); }

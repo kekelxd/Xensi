@@ -1,6 +1,11 @@
-import { test, expect, type BrowserContext } from '@playwright/test'
+import { test, expect, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import { mockCloud, login } from './fixtures/accountCloud'
 import type { Access, Room, Request } from '../src/squad/service'
+// Radix Select: open the combobox, then pick the option from the portal listbox.
+async function choose(page: Page, scope: Page | Locator, label: string, option: string) {
+  await scope.getByRole('combobox', { name: label, exact: true }).click()
+  await page.getByRole('option', { name: option, exact: true }).click()
+}
 const roomId = '40000000-0000-4000-8000-000000000001'
 const requestId = '50000000-0000-4000-8000-000000000001'
 function room(): Room { return { id: roomId, game_id: 'valorant', platform: 'pc', crossplay: false, region: 'br', game_mode: 'competitive', rank_info: 'gold', microphone_required: true, status: 'open', slots: 1, nickname: 'Host XENSI', avatar_id: 'dog-happy', created_at: new Date().toISOString(), expires_at: new Date(Date.now()+1800000).toISOString(), reserved_until: null } }
@@ -51,12 +56,16 @@ test.describe('Squad Finder', () => {
     state.access.enabled=false;await page.getByRole('button',{name:'Atualizar',exact:true}).click()
     await expect(page.getByText('O Squad Finder está em preparação.', {exact:false})).toBeVisible()
   })
-  test('create validates Discord, game platforms, focus and server failure recovery', async ({page,context}) => {
+  test('create validates Discord, game platforms, focus and server failure recovery', async ({page,context},info) => {
     const state=await fixture(context);await login(page);await page.goto('/squad')
     await page.getByRole('button',{name:'Criar sala',exact:true}).click()
     const dialog=page.getByRole('dialog')
-    await dialog.getByRole('combobox',{name:'Jogo',exact:true}).selectOption('cs2')
-    await expect(dialog.getByRole('combobox',{name:'Plataforma',exact:true}).getByRole('option')).toHaveCount(1)
+    await dialog.getByRole('radio',{name:/^Counter-Strike 2/}).click()
+    await expect(dialog.getByRole('radio',{name:/^Counter-Strike 2/})).toBeChecked()
+    await page.screenshot({path:`test-results/squad-create-${info.project.name}.png`,animations:'disabled'})
+    await dialog.getByRole('combobox',{name:'Plataforma',exact:true}).click()
+    await expect(page.getByRole('option')).toHaveCount(1)
+    await page.keyboard.press('Escape');await expect(dialog).toBeVisible()
     await dialog.getByRole('button',{name:'Publicar sala'}).click();await expect(dialog.getByRole('textbox',{name:'Usuário Discord'})).toBeFocused()
     await dialog.getByRole('textbox',{name:'Usuário Discord'}).fill('host.username')
     state.fail=true;await dialog.getByRole('button',{name:'Publicar sala'}).click();await expect(dialog.getByRole('alert')).toBeVisible()
@@ -67,15 +76,16 @@ test.describe('Squad Finder', () => {
   test('request requires disclosure consent and never gets host contact before approval', async ({page,context},info) => {
     const state=await fixture(context);state.rooms=[state.room];await login(page);await page.goto('/squad')
     await expect(page.getByText('host.secret')).toHaveCount(0)
-    await page.screenshot({path:`test-results/squad-list-${info.project.name}.png`,animations:'disabled'})
-    await page.getByRole('button',{name:'SOLICITAR ENTRADA'}).click()
+    await expect(page.getByRole('button',{name:'Solicitar entrada'})).toBeVisible()
+    await page.screenshot({path:`test-results/squad-list-${info.project.name}.png`,animations:'disabled',fullPage:true})
+    await page.getByRole('button',{name:'Solicitar entrada'}).click()
     const dialog=page.getByRole('dialog')
     await expect(dialog.getByText('Seu nickname XENSI e usuário Discord serão compartilhados', {exact:false})).toBeVisible()
     await expect(dialog.getByRole('textbox')).toHaveCount(1)
     await page.screenshot({path:`test-results/squad-request-${info.project.name}.png`,animations:'disabled'})
     await dialog.getByRole('textbox',{name:'Usuário Discord'}).fill('guest.username')
-    await expect(dialog.getByRole('button',{name:'SOLICITAR ENTRADA'})).toBeDisabled()
-    await dialog.getByRole('checkbox').check();await dialog.getByRole('button',{name:'SOLICITAR ENTRADA'}).click()
+    await expect(dialog.getByRole('button',{name:'Solicitar entrada'})).toBeDisabled()
+    await dialog.getByRole('checkbox').check();await dialog.getByRole('button',{name:'Solicitar entrada'}).click()
     await expect(dialog).not.toBeVisible();expect(state.requested).toBe(true);expect(state.calls.some(c=>c.action==='host_contact')).toBe(false)
   })
   test('host approval reserves the slot; confirmation closes room', async ({page,context}) => {
@@ -83,11 +93,11 @@ test.describe('Squad Finder', () => {
     state.requests=[{id:requestId,room_id:roomId,status:'pending',requested_at:new Date().toISOString(),platform:'pc',nickname:'Applicant XENSI',avatar_id:null,room:state.room,discord_username:'applicant.private'}]
     await login(page);await page.goto('/squad/my-room')
     await expect(page.getByText('applicant.private')).toBeVisible()
-    await page.getByRole('button',{name:'ACEITAR',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'ACEITAR',exact:true}).click()
-    await expect(page.getByRole('heading',{name:'AGUARDANDO ENTRADA DO JOGADOR'})).toBeVisible()
-    await page.getByRole('button',{name:'CONFIRMAR ENTRADA'}).click();await page.getByRole('dialog').getByRole('button',{name:'CONFIRMAR ENTRADA'}).click()
+    await page.getByRole('button',{name:'Aceitar',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Aceitar',exact:true}).click()
+    await expect(page.getByRole('heading',{name:'Aguardando a entrada do jogador'})).toBeVisible()
+    await page.getByRole('button',{name:'Confirmar entrada'}).click();await page.getByRole('dialog').getByRole('button',{name:'Confirmar entrada'}).click()
     await expect(page.getByText('Entrada confirmada',{exact:true})).toBeVisible()
-    await expect(page.getByRole('button',{name:'CONFIRMAR ENTRADA'})).toHaveCount(0)
+    await expect(page.getByRole('button',{name:'Confirmar entrada'})).toHaveCount(0)
   })
   test('approved contact is fetched on demand and cleared on logout', async ({page,context}) => {
     const state=await fixture(context);state.room.status='reserved';state.room.reserved_until=new Date(Date.now()+600000).toISOString()
@@ -96,7 +106,7 @@ test.describe('Squad Finder', () => {
     await expect(page.getByText('host.secret')).toHaveCount(0)
     await page.getByRole('button',{name:'Consultar Discord do anfitrião'}).click();await expect(page.getByText('host.secret')).toBeVisible()
     expect(await page.evaluate(()=>JSON.stringify(localStorage))).not.toContain('host.secret')
-    await page.locator('.xensi-user-trigger').click();await page.getByRole('button',{name:'Sair',exact:true}).click()
+    await page.locator('.xensi-user-trigger').click();await page.getByRole('menuitem',{name:'Sair',exact:true}).click()
     await page.goto('/squad/requests');await expect(page.getByText('host.secret')).toHaveCount(0)
   })
   test('empty, failure, keyboard dialog dismissal, English and reduced motion', async ({page,context}) => {
@@ -119,10 +129,10 @@ test.describe('Squad Finder', () => {
   })
   test('reports and blocks require an explicit decision, filters stay in the URL', async ({page,context}) => {
     const state=await fixture(context);state.rooms=[state.room];await login(page);await page.goto('/squad')
-    await page.getByRole('combobox',{name:'Jogo',exact:true}).selectOption('valorant')
+    await page.getByRole('radio',{name:/^Valorant/}).click()
     await expect(page).toHaveURL(/game=valorant/)
     await page.getByRole('button',{name:'Denunciar',exact:true}).click()
-    await page.getByRole('dialog').getByRole('combobox',{name:'Categoria'}).selectOption('privacy')
+    await choose(page,page.getByRole('dialog'),'Categoria','Compartilhamento indevido de dados')
     await page.getByRole('dialog').getByRole('button',{name:'Denunciar',exact:true}).click()
     await expect(page.getByText('Denúncia registrada.')).toBeVisible()
     expect(state.calls.some(c=>c.action==='report'&&c.payload.category==='privacy')).toBe(true)
@@ -135,7 +145,7 @@ test.describe('Squad Finder', () => {
     state.requests=[{id:requestId,room_id:roomId,status:'accepted',requested_at:new Date().toISOString(),platform:'pc',nickname:'Account A',avatar_id:null,room:state.room,discord_username:null}]
     await login(page);await page.goto('/squad/requests')
     await page.getByRole('button',{name:'Consultar Discord do anfitrião'}).click();await expect(page.getByText('host.secret')).toBeVisible()
-    await page.locator('.xensi-user-trigger').click();await page.getByRole('button',{name:'Sair',exact:true}).click()
+    await page.locator('.xensi-user-trigger').click();await page.getByRole('menuitem',{name:'Sair',exact:true}).click()
     state.requests=[];await login(page,'b@example.invalid');await page.goto('/squad/requests')
     await expect(page.getByText('Nenhuma solicitação por aqui.')).toBeVisible();await expect(page.getByText('host.secret')).toHaveCount(0)
   })

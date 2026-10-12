@@ -20,6 +20,21 @@ export const XENSI_AVATARS = [
   { id: 'hamster-laptop', label: 'Hamster no notebook', group: 'hamsters' },
   { id: 'hamster-focused', label: 'Hamster concentrado', group: 'hamsters' },
   { id: 'hamster-happy', label: 'Hamster feliz', group: 'hamsters' },
+  { id: 'tactical-fox-headset', label: 'Raposa com headset', group: 'tactical' },
+  { id: 'tactical-wolf-scout', label: 'Lobo batedor', group: 'tactical' },
+  { id: 'tactical-raccoon-nightvision', label: 'Guaxinim com visão noturna', group: 'tactical' },
+  { id: 'tactical-owl-wink', label: 'Coruja piscando', group: 'tactical' },
+  { id: 'tactical-panther-comms', label: 'Pantera no rádio', group: 'tactical' },
+  { id: 'tactical-dog-cap', label: 'Cachorro de boné', group: 'tactical' },
+  { id: 'tactical-bear-guard', label: 'Urso de guarda', group: 'tactical' },
+  { id: 'tactical-bunny-beanie', label: 'Coelho de gorro', group: 'tactical' },
+  { id: 'tactical-bat-helmet', label: 'Morcego de capacete', group: 'tactical' },
+  { id: 'tactical-ferret-scout', label: 'Furão batedor', group: 'tactical' },
+  { id: 'tactical-redpanda-goggles', label: 'Panda-vermelho de óculos', group: 'tactical' },
+  { id: 'tactical-cat-hood', label: 'Gato encapuzado', group: 'tactical' },
+  { id: 'tactical-otter-laugh', label: 'Lontra rindo', group: 'tactical' },
+  { id: 'tactical-crow-visor', label: 'Corvo com visor', group: 'tactical' },
+  { id: 'tactical-fox-wink', label: 'Raposa piscando', group: 'tactical' },
 ] as const
 
 export type AvatarId = typeof XENSI_AVATARS[number]['id']

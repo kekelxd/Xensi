@@ -13,7 +13,7 @@ async function fixture(context: BrowserContext) {
   await mockCloud(context)
   const state = {
     access: { eligible: true, enabled: true, email_confirmed: true, moderator: false, creation_enabled: true, publication_restricted: false, suspended: false } as Access,
-    room: room(), rooms: [] as Room[], requests: [] as Request[], host: false, fail: false, requested: false, calls: [] as { action: string; payload: Record<string, unknown> }[],
+    room: room(), rooms: [] as Room[], requests: [] as Request[], host: false, fail: false, notifications: [] as { id: string; kind: string; room_id: string; created_at: string }[], requested: false, calls: [] as { action: string; payload: Record<string, unknown> }[],
   }
   await context.route('**/rest/v1/rpc/xensi_lfg', async route => {
     const { action, payload } = route.request().postDataJSON()
@@ -21,7 +21,8 @@ async function fixture(context: BrowserContext) {
     const respond = (data: unknown) => route.fulfill({ json: data })
     if(state.fail) return route.fulfill({status:503,json:{message:'Network failure'}})
     if(action==='access') return respond(state.access)
-    if(action==='notifications' || action==='blocks') return respond([])
+    if(action==='notifications') return respond(state.notifications)
+    if(action==='blocks') return respond([])
     if(action==='list') return respond(state.rooms)
     if(action==='mine') return respond(state.host ? [state.room] : [])
     if(action==='requests') return respond(state.requests)
@@ -55,6 +56,21 @@ test.describe('Squad Finder', () => {
     expect(state.calls.some(c=>c.action==='list')).toBe(false)
     state.access.enabled=false;await page.getByRole('button',{name:'Atualizar',exact:true}).click()
     await expect(page.getByText('O Squad Finder está em preparação.', {exact:false})).toBeVisible()
+  })
+  test('host gets a top-right card for a new request and can accept it', async ({page,context}) => {
+    const state=await fixture(context);await login(page);await page.goto('/squad')
+    await expect(page.getByRole('button',{name:'Atualizar',exact:true}).first()).toBeVisible()
+    state.host=true;state.requests=[{id:requestId,room_id:roomId,status:'pending',requested_at:new Date().toISOString(),platform:'pc',nickname:'Applicant XENSI',avatar_id:null,room:state.room,discord_username:'applicant.private'}]
+    state.notifications=[{id:'n1',kind:'new_request',room_id:roomId,created_at:new Date().toISOString()}]
+    const card=page.getByRole('alert').filter({hasText:'Nova solicitação'})
+    await expect(card).toBeVisible({timeout:20000})
+    await expect(card).toContainText('Applicant XENSI')
+    await expect(card).not.toContainText('applicant.private')
+    await page.screenshot({path:'test-results/squad-toast.png',animations:'disabled'})
+    await card.getByRole('button',{name:'Aceitar'}).click()
+    await expect.poll(()=>state.calls.some(c=>c.action==='accept'&&c.payload.request_id===requestId)).toBe(true)
+    await expect(page).toHaveURL(/\/squad\/my-room$/)
+    await expect(card).toBeHidden()
   })
   test('create validates Discord, game platforms, focus and server failure recovery', async ({page,context},info) => {
     const state=await fixture(context);await login(page);await page.goto('/squad')

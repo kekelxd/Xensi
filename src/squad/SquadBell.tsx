@@ -4,6 +4,8 @@ import { MotionDropdown } from '../design/MotionSurfaces'
 import type { Locale } from '../i18n'
 import { disablePush, enablePush, pushState, type PushState } from './push'
 import { withBasePath } from '../routes'
+import { armAlertSound } from './sound'
+import { SquadToast } from './SquadToast'
 import { valueCopy } from './copy'
 import { clearNotifications, squadRpc, type Notification } from './service'
 
@@ -38,11 +40,12 @@ export function SquadBell({ userId, locale, open, disabled, triggerRef, onToggle
     if (!userId) return
     try { setSeen(localStorage.getItem(seenKey(userId)) ?? '') } catch { /* storage unavailable */ }
     void load(); void pushState().then(setPush).catch(() => setPush('unsupported'))
-    const timer = window.setInterval(() => void load(), 15000)
+    const timer = window.setInterval(() => void load(), 8000)
     const onMessage = (e: MessageEvent) => { if (e.data?.type === 'squad-push') window.setTimeout(() => void load(), 800) }
     const visible = () => void load()
+    const disarm = armAlertSound()
     navigator.serviceWorker?.addEventListener('message', onMessage); document.addEventListener('visibilitychange', visible)
-    return () => { clearInterval(timer); navigator.serviceWorker?.removeEventListener('message', onMessage); document.removeEventListener('visibilitychange', visible) }
+    return () => { disarm(); clearInterval(timer); navigator.serviceWorker?.removeEventListener('message', onMessage); document.removeEventListener('visibilitychange', visible) }
   }, [userId, load])
   const latest = items[0]?.created_at ?? ''
   const unread = items.filter(n => n.created_at > seen).length
@@ -68,6 +71,7 @@ export function SquadBell({ userId, locale, open, disabled, triggerRef, onToggle
   }
   const fmt = (iso: string) => new Date(iso).toLocaleString(locale === 'pt' ? 'pt-BR' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
   return <div className="xensi-nav-menu-group xensi-nav-bell">
+    <SquadToast userId={userId} locale={locale === 'pt' ? 'pt' : 'en'} items={items} />
     <button ref={triggerRef} type="button" className="xensi-nav-utility" aria-label={unread ? `${text.label} (${unread})` : text.label} title={text.label} aria-expanded={open} onClick={userId ? onToggle : onOpenSquad} disabled={disabled}>
       <Bell size={22} />{unread > 0 && <i className="xensi-nav-bell-dot" aria-hidden="true">{unread > 9 ? '9+' : unread}</i>}
     </button>

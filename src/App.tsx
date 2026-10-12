@@ -1,15 +1,15 @@
 import { XensiAppShell } from './design/XensiAppShell'
 import { navigateWithPageMotion } from './design/pageMotion'
-import { MotionDialog, MotionDialogPanel } from './design/MotionSurfaces'
 import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { Activity, ArrowLeft, ArrowRight, Circle, Crosshair, Dot, Info, MousePointer2, Plus, Settings2, Target, X, type LucideIcon } from 'lucide-react'
+import { Activity, ArrowLeft, ArrowRight, Circle, Crosshair, Dot, Info, MousePointer2, Plus, Settings2, Target, type LucideIcon } from 'lucide-react'
 import { buildCalibrationReport, calculateRoundResult, createCalibrationSessionSummary, getTargetSpeed, isCalibrationComplete, readCalibrationHistory, ROUND_DURATION, ROUND_WARMUP, selectValidationCandidateIds, writeCalibrationSession, type CalibrationSessionSummary, type RoundCapture, type RoundIssue, type RoundResult, type TargetSpeedMode } from './calibration'
 import { appendValidationRounds, BASE_CANDIDATE_MULTIPLIERS, buildCalibrationCandidates, CALIBRATION_REPETITIONS, createCalibrationPlan, createRefinementPlan, MIN_CALIBRATION_CANDIDATES, VALIDATION_FINALIST_COUNT, VALIDATION_REPETITIONS, type CalibrationPlan } from './calibrationPlan'
 import { GAME_BY_ID, GAMES, GameId } from './games'
 import { GamePicker } from './GamePicker'
 import { WizardStepper } from './SetupWizard'
 import { Alert } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -663,27 +663,31 @@ function App() {
         </DialogContent>
       </Dialog>
 
-      <MotionDialog open={Boolean(view === 'calibration' && resultOpen)} className="modal-backdrop calibration-result-backdrop">{view === 'calibration' && resultOpen && (<MotionDialogPanel className="modal result-modal calibration-result-modal" role="dialog" aria-modal="true" aria-labelledby="calibration-result-title">
-            <button className="modal-close" onClick={() => setResultOpen(false)} aria-label={t('common.close')}><X size={18} /></button>
-            <Target size={24} className="modal-icon" />
-            <div className="panel-label">{t('common.result')}</div>
-            <h2 id="calibration-result-title">{t(resultTitleKey)}</h2>
-            {calibrationReport && <CalibrationReportView
-              report={calibrationReport}
-              previous={previousCalibration}
-              history={calibrationHistory}
-              game={confirmedGameConfig}
-              baseSensitivity={baseSensitivity}
-              recommendedSensitivity={recommendedSelected}
-              recommendedRangeMin={recommendedRangeMin}
-              recommendedRangeMax={recommendedRangeMax}
-              canRefine={canRefine}
-              isRefinement={plan?.mode === 'refinement'}
-              onRefine={refineCalibration}
-              onRedo={reset}
-              onClose={() => setResultOpen(false)}
-            />}
-          </MotionDialogPanel>)}</MotionDialog>
+      <Dialog open={view === 'calibration' && resultOpen} onOpenChange={open => { if (!open) setResultOpen(false) }}>
+        <DialogContent closeLabel={t('common.close')} className="calibration-result-modal max-w-[1020px] gap-5">
+          <DialogHeader>
+            <Target size={24} className="text-primary" aria-hidden="true" />
+            <Badge variant="outline" className="w-fit">{t('common.result')}</Badge>
+            <DialogTitle id="calibration-result-title">{t(resultTitleKey)}</DialogTitle>
+            <DialogDescription className="sr-only">{t(resultTitleKey)}</DialogDescription>
+          </DialogHeader>
+          {calibrationReport && <CalibrationReportView
+            report={calibrationReport}
+            previous={previousCalibration}
+            history={calibrationHistory}
+            game={confirmedGameConfig}
+            baseSensitivity={baseSensitivity}
+            recommendedSensitivity={recommendedSelected}
+            recommendedRangeMin={recommendedRangeMin}
+            recommendedRangeMax={recommendedRangeMax}
+            canRefine={canRefine}
+            isRefinement={plan?.mode === 'refinement'}
+            onRefine={refineCalibration}
+            onRedo={reset}
+            onClose={() => setResultOpen(false)}
+          />}
+        </DialogContent>
+      </Dialog>
     </XensiAppShell>
   )
 }

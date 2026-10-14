@@ -207,6 +207,15 @@ Eventos privados (`lfg_private.events`): `new_request`, `request_withdrawn`, `re
 
 ## Web Push
 
+> **ESTACIONADO (2026-10-14):** o push está dormente por decisão de produto. A migration
+> `20261014001314_squad_finder_disable_push_trigger` removeu o trigger `lfg_events_push`
+> no hospedado, então nada dispara a função. Tabelas, RPCs `xensi_push_*` e a função
+> `squad-push` (v2) continuam existindo, inertes. O botão de push só aparece com
+> `VITE_VAPID_PUBLIC_KEY` definida no build. Para reativar: recriar o trigger (comando no
+> comentário da migration) e fazer o teste manual de ponta a ponta. O texto abaixo descreve
+> o desenho e as correções feitas; as notificações dentro do app (sino, som, toast) seguem
+> ativas e independentes.
+
 Push do navegador apenas para `new_request` (host) e `request_accepted` (solicitante). O
 payload é genérico e nunca carrega Discord; tocar na notificação abre `/squad/my-room` ou
 `/squad/requests`, onde `host_contact` é buscado sob as regras normais.

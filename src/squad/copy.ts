@@ -85,4 +85,5 @@ export const errorCopy: Record<string, [string, string]> = {
   lfg_forbidden: ['Você não tem permissão para esta ação.', 'You do not have permission for this action.'], lfg_ineligible: ['Seu acesso ao módulo não está autorizado.', 'Your module access is not authorized.'],
   lfg_unavailable: ['Esta sala ou interação está indisponível.', 'This room or interaction is unavailable.'], lfg_expired: ['A sala expirou.', 'The room expired.'], lfg_platform: ['Plataforma incompatível com esta sala.', 'Platform incompatible with this room.'],
   lfg_creation_disabled: ['A publicação de salas está indisponível.', 'Room publication is unavailable.'], lfg_auth: ['A sessão mudou. Entre novamente.', 'The session changed. Sign in again.'], lfg_invalid: ['Confira os campos e tente novamente.', 'Check the fields and try again.'],
+  lfg_invalid_endpoint: ['Este navegador usa um serviço de notificação não suportado.', 'This browser uses an unsupported notification service.'],
 }

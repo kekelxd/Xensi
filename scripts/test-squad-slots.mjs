@@ -18,7 +18,7 @@ await db.exec(`
  create policy profiles_own on public.profiles to authenticated using(id=auth.uid());
  grant select on public.profiles to authenticated;
 `)
-for (const f of ['20261011163626_squad_finder_v1','20261011173736_squad_finder_security_hardening','20261011180903_squad_finder_controlled_testing','20261011182551_squad_finder_remove_age_gate','20261011184403_squad_finder_registered_access','20261012190000_squad_finder_games_and_slots','20261012210000_squad_finder_saved_discord'])
+for (const f of ['20261011163626_squad_finder_v1','20261011173736_squad_finder_security_hardening','20261011180903_squad_finder_controlled_testing','20261011182551_squad_finder_remove_age_gate','20261011184403_squad_finder_registered_access','20261012180025_squad_finder_games_and_slots','20261012181153_squad_finder_saved_discord'])
  await db.exec(readFileSync(`supabase/migrations/${f}.sql`,'utf8'))
 console.log('PASS migrations apply in order on PostgreSQL')
 
@@ -170,6 +170,37 @@ await check('saved Discord: signed-out and ineligible accounts cannot save',asyn
  await db.exec("set role anon"); await fails(()=>db.query('select public.xensi_discord_set($1)',['anon.user']),/permission denied/); await db.exec('reset role')
  await db.query(`insert into auth.users values($1,null,false)`,[id(9)]); await db.query(`insert into public.profiles values($1,'Unconfirmed','dog-happy')`,[id(9)])
  await fails(()=>call(id(9),'select public.xensi_discord_set($1)',['unconfirmed.user']),/lfg_ineligible/)
+})
+// Web Push endpoint allowlist. pg_net does not exist in PGlite: stub its schema; the dispatch trigger swallows any delivery error by design.
+await db.exec(readFileSync('supabase/migrations/20261012165854_squad_finder_web_push.sql','utf8').replace('create extension if not exists pg_net with schema extensions;','create schema if not exists extensions;'))
+for (const f of ['20261012170010_squad_finder_push_service_rpcs','20261013235902_squad_finder_push_endpoint_allowlist'])
+ await db.exec(readFileSync(`supabase/migrations/${f}.sql`,'utf8'))
+const keys = ['p'.repeat(30),'a'.repeat(16)]
+const subscribe = (user,endpoint) => call(user,'select public.xensi_push_subscribe($1,$2,$3,$4)',[endpoint,...keys,'en'])
+const subs = async user => (await db.query('select endpoint from lfg_private.push_subscriptions where user_id=$1 order by endpoint',[user])).rows.map(r=>r.endpoint)
+await check('push: endpoints of every allowed service are accepted',async()=>{
+ const ok=['https://fcm.googleapis.com/fcm/send/abc','https://updates.push.services.mozilla.com/wpush/v2/abc','https://eu.push.services.mozilla.com/x','https://wns2-par02p.notify.windows.com/w/?token=abc','https://web.push.apple.com/QAbc','https://api.push.apple.com/3/device/abc','https://fcm.googleapis.com:443/fcm/send/abc','https://FCM.GOOGLEAPIS.COM/x']
+ for(const e of ok){ await subscribe(host,e); assert.deepEqual(await subs(host),[e]); await db.exec('delete from lfg_private.push_subscriptions') }
+})
+await check('push: lookalike hosts, userinfo, IP literals, odd ports and non-https are rejected',async()=>{
+ const bad=['https://fcm.googleapis.com.evil.com/x','https://evil.com/fcm.googleapis.com','https://fcm.googleapis.com@evil.com/','https://evil.com@fcm.googleapis.com/x','https://user:pw@fcm.googleapis.com/x','https://evil.com#@fcm.googleapis.com/','https://evilfcm.googleapis.com/x','https://notify.windows.com.evil.com/x','https://evil-push.apple.com.evil.com/x','https://127.0.0.1/x','https://169.254.169.254/latest','https://[::1]/x','https://[2001:db8::1]:443/x','https://fcm.googleapis.com:8443/x','https://fcm.googleapis.com:80/x','http://fcm.googleapis.com/x','https://fcm.googleapis.com\@evil.com/','https://fcm.googleapis.com./x','https://localhost/x','ftp://fcm.googleapis.com/x','','https://']
+ for(const e of bad) await fails(()=>subscribe(host,e),/lfg_invalid_endpoint/)
+ await fails(()=>call(host,'select public.xensi_push_subscribe(null,$1,$2,$3)',[...keys,'en']),/lfg_invalid_endpoint/)
+ assert.equal((await subs(host)).length,0)
+})
+await check('push: unauthenticated callers cannot subscribe',()=>fails(()=>db.exec("set role anon; select public.xensi_push_subscribe('https://fcm.googleapis.com/x','"+keys.join("','")+"','en')").finally(()=>db.exec('reset role')),/permission denied/))
+await check('push: unsubscribe removes only the caller own subscription',async()=>{
+ const e='https://fcm.googleapis.com/fcm/send/shared-endpoint'
+ await subscribe(host,e)
+ await call(other,'select public.xensi_push_unsubscribe($1)',[e])
+ assert.deepEqual(await subs(host),[e])
+ await call(host,'select public.xensi_push_unsubscribe($1)',[e])
+ assert.deepEqual(await subs(host),[])
+})
+await check('push: targets/drop are not executable by authenticated or anon, only service_role',async()=>{
+ const p=(await db.query("select has_function_privilege('authenticated','public.xensi_push_targets(uuid)','execute') t_auth,has_function_privilege('anon','public.xensi_push_targets(uuid)','execute') t_anon,has_function_privilege('authenticated','public.xensi_push_drop(uuid)','execute') d_auth,has_function_privilege('anon','public.xensi_push_drop(uuid)','execute') d_anon,has_function_privilege('service_role','public.xensi_push_targets(uuid)','execute') t_svc,has_function_privilege('service_role','public.xensi_push_drop(uuid)','execute') d_svc,has_function_privilege('authenticated','lfg_private.push_endpoint_ok(text)','execute') ok_auth,has_function_privilege('anon','public.xensi_push_subscribe(text,text,text,text)','execute') sub_anon,has_function_privilege('authenticated','public.xensi_push_subscribe(text,text,text,text)','execute') sub_auth")).rows[0]
+ assert.deepEqual(p,{t_auth:false,t_anon:false,d_auth:false,d_anon:false,t_svc:true,d_svc:true,ok_auth:false,sub_anon:false,sub_auth:true})
+ await fails(()=>call(host,'select * from public.xensi_push_targets($1)',[host]),/permission denied/)
 })
 console.log(`${passed} slot/game checks passed on PostgreSQL.`)
 await db.close()

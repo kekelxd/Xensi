@@ -3,6 +3,7 @@ import { ActiveIndicator, MotionDropdown } from './design/MotionSurfaces'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Home as HomeIcon, Bell, Search, BarChart3, ChevronDown, Crosshair, Gamepad2, Gauge, Info, Languages, MonitorUp, Mouse, Settings2, SlidersHorizontal, UserRound } from 'lucide-react'
 import { SquadBell } from './squad/SquadBell'
+import { disablePush } from './squad/push'
 import { initializeAuth, readAuthSessionState, signOut, type AuthSessionState } from './authService'
 import type { Locale } from './i18n'
 import type { WarmupExercise } from './warmupConfig'
@@ -138,6 +139,10 @@ export function AppNavigation({ view, analysisSection, locale, disabled, onLocal
   const logout = async () => {
     setOpenMenu(null)
     setMoreOpen(false)
+    // Drop this browser's push subscription while the session is still valid; never block logout on it.
+    let timer = 0
+    await Promise.race([disablePush().catch(() => undefined), new Promise(resolve => { timer = window.setTimeout(resolve, 1500) })])
+    window.clearTimeout(timer)
     await signOut()
     onNavigate('home')
   }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { Bell, BellOff } from 'lucide-react'
 import { MotionDropdown } from '../design/MotionSurfaces'
 import type { Locale } from '../i18n'
-import { disablePush, enablePush, pushState, type PushState } from './push'
+import { disablePush, enablePush, pushState, resyncPush, type PushState } from './push'
 import { withBasePath } from '../routes'
 import { armAlertSound } from './sound'
 import { SquadToast } from './SquadToast'
@@ -30,6 +30,7 @@ export function SquadBell({ userId, locale, open, disabled, triggerRef, onToggle
   const [push, setPush] = useState<PushState>('unsupported')
   const [note, setNote] = useState('')
   const stopped = useRef(false)
+  const langRef = useRef<'pt' | 'en'>('en'); langRef.current = locale === 'pt' ? 'pt' : 'en'
   const load = useCallback(async () => {
     if (!userId || stopped.current || document.hidden) return
     try { setItems((await squadRpc<Notification[]>(userId, 'notifications')).filter(n => tracked.has(n.kind))) }
@@ -39,7 +40,7 @@ export function SquadBell({ userId, locale, open, disabled, triggerRef, onToggle
     stopped.current = false; setItems([]); setSeen('')
     if (!userId) return
     try { setSeen(localStorage.getItem(seenKey(userId)) ?? '') } catch { /* storage unavailable */ }
-    void load(); void pushState().then(setPush).catch(() => setPush('unsupported'))
+    void load(); void pushState().then(state => { setPush(state); if (state === 'on') void resyncPush(langRef.current).catch(() => undefined) }).catch(() => setPush('unsupported'))
     const timer = window.setInterval(() => void load(), 8000)
     const onMessage = (e: MessageEvent) => { if (e.data?.type === 'squad-push') window.setTimeout(() => void load(), 800) }
     const visible = () => void load()

@@ -23,7 +23,7 @@ import { platformIds, platforms, regions, registry, validDiscord, validFreeText,
 import { errorCopy, squadCopy, statusCopy, valueCopy } from './copy'
 import { GameSelect } from './GameSelect'
 import { armAlertSound, playAlert } from './sound'
-import { disablePush, enablePush, pushState, type PushState } from './push'
+import { disablePush, enablePush, pushState, resyncPush, type PushState } from './push'
 import { clearNotifications, getSavedDiscord, saveDiscord, squadRpc, type Access, type Block, type Contact, type Moderation, type Notification, type Request, type Room } from './service'
 import './squad.css'
 
@@ -91,6 +91,7 @@ export function SquadFinder({ onLogin }: { onLogin: () => void }) {
 function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: () => void }) {
   const { locale, localeTag } = useI18n()
   const lang = locale === 'pt' ? 'pt' : 'en'
+  const langRef = useRef<'pt' | 'en'>(lang); langRef.current = lang
   const text = squadCopy[lang], statuses = statusCopy[lang], reduced = useReducedMotion()
   const value = (key: string) => valueCopy[key]?.[lang === 'pt' ? 0 : 1] ?? key
   const format = (v: string) => optionLabel(v, value)
@@ -210,7 +211,7 @@ function SquadWorkspace({ auth, onLogin }: { auth: AuthSessionState; onLogin: ()
     return () => { disarm(); navigator.serviceWorker?.removeEventListener('message', onMessage) }
   }, [])
   useEffect(() => { seen.current = new Set() }, [uid])
-  useEffect(() => { if (uid) void pushState().then(setPush).catch(() => setPush('unsupported')) }, [uid])
+  useEffect(() => { if (uid) void pushState().then(state => { setPush(state); if (state === 'on') void resyncPush(langRef.current).catch(() => undefined) }).catch(() => setPush('unsupported')) }, [uid])
   const togglePush = async () => {
     try { setPush(push === 'on' ? await disablePush() : await enablePush(lang)) } catch (e) { setError(errorMessage(e)) }
   }
